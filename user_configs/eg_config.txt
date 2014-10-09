@@ -1,0 +1,8 @@
+snpdb_name test_snpdb
+reference_genome AM933172
+pg_uname flashton
+pg_pword 20031986
+pg_host localhost
+depth_cutoff 10
+mq_cutoff 30
+ad_cutoff 0.9
