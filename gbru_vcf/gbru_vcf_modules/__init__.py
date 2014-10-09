@@ -4,6 +4,7 @@ import re
 import os
 import sys
 import subprocess
+import inspect
 try:
     import cPickle as pickle
 except:
@@ -149,24 +150,7 @@ class Vcf:
         with open(opts.good_var_pick, 'wb') as fo:
             pickle.dump(self.good_var, fo, -1)
 
-    def parse_config(self):
-        try:
-            with open(self.path_to_config, 'r') as fi:
-                for line in fi.readlines():
-                    if line.startswith('reference_genome'):
-                        self.reference_genome = line.strip().split()[-1]
 
-        except IOError:
-            print 'Cannot find {0}'.format(self.path_to_config)
-            sys.exit()
-
-        self.ref_genome_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname( __file__ ))),
-                                                                     'reference_genomes'))
-        if os.path.exists(self.ref_genome_dir):
-            pass
-        else:
-            sys.stderr.write('Ref genome dir not found\n')
-            sys.exit()
 
     def check_reference_bwa_indexed(self):
         indices = ['amb', 'ann', 'bwt', 'pac', 'sa']
@@ -224,7 +208,6 @@ class Vcf:
             sys.exit()
 
     def make_sorted_bam(self, opts):
-        self.parse_config()
         self.ref_genome_path = os.path.join(self.ref_genome_dir, self.reference_genome + '.fa')
         self.check_reference_bwa_indexed()
         self.run_bwa(opts.fastq_1, opts.fastq_2, opts.out_dir)

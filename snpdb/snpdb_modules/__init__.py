@@ -93,30 +93,6 @@ class SNPdb:
             self.make_snpdb()
 
 
-    def _parse_config(self):
-        try:
-            with open(self.path_to_config, 'r') as fi:
-                for line in fi.readlines():
-                    if line.startswith('reference_genome'):
-                        self.reference_genome = line.strip().split()[-1]
-                    if line.startswith('snpdb_name'):
-                        self.snpdb_name = line.strip().split()[-1]
-                    if line.startswith('pg_uname'):
-                        self.pg_uname = line.strip().split()[-1]
-                    if line.startswith('pg_pword'):
-                        self.pg_pword = line.strip().split()[-1]
-                    if line.startswith('pg_host'):
-                        self.pg_host = line.strip().split()[-1]
-                    if line.startswith('depth_cutoff'):
-                        self.depth_cutoff = line.strip().split()[-1]
-                    if line.startswith('mq_cutoff'):
-                        self.mq_cutoff = line.strip().split()[-1]
-                    if line.startswith('ad_cutoff'):
-                        self.ad_cutoff = line.strip().split()[-1]
-        except IOError:
-            print 'Cannot find {0}'.format(self.path_to_config)
-            sys.exit()
-
     def _write_conn_string(self):
         self.conn_string = 'host=\'{0}\' dbname={1} user=\'{2}\' password=\'{3}\''.format(self.pg_host, self.snpdb_name,
                                                                                           self.pg_uname, self.pg_pword)
