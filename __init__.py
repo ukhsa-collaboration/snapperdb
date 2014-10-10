@@ -9,7 +9,7 @@ __ref_genome_dir__ = os.path.join(os.path.dirname(os.path.realpath(__file__)), '
 
 
 def parse_config(args):
-    path_to_config = os.path.join(__config_dir__, args.config_file[0])
+    path_to_config = os.path.join(__config_dir__, args.config_file)
     config_dict = {}
     try:
         with open(path_to_config, 'r') as fi:
