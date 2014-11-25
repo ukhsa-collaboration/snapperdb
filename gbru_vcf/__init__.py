@@ -1,6 +1,5 @@
 __author__ = 'flashton'
 
-import inspect
 import re
 import os
 import sys
@@ -207,6 +206,7 @@ class Vcf:
             self.sample_name = os.path.basename(args.vcf[0]).split(os.extsep)[0]
         except AttributeError:
             self.sample_name = os.path.basename(args.fastqs[0]).split(os.extsep)[0]
+
         self.ref_genome_path = os.path.join(SnapperDB.__ref_genome_dir__, self.reference_genome + '.fa')
         self.make_tmp_dir(args)
         self.sorted_bamfile = os.path.join(self.tmp_dir, self.sample_name + '.sorted' + '.bam')
@@ -304,14 +304,10 @@ def fastq_to_vcf(args, config_dict):
     fastq_bam_vcf = Vcf()
     fastq_bam_vcf.parse_config_dict(config_dict)
     fastq_bam_vcf.define_class_variables_and_make_output_files(args)
-    #fastq_bam_vcf.make_sorted_bam(args)
-    #fastq_bam_vcf.make_vcf(args)
+    fastq_bam_vcf.make_sorted_bam(args)
+    fastq_bam_vcf.make_vcf(args)
     fastq_bam_vcf.read_vcf()
     if args.command == 'fastq_to_vcf':
         fastq_bam_vcf.pickle_variants_and_ignored_pos(args)
     elif args.command == 'fastq_to_db':
         return fastq_bam_vcf
-
-
-
-    #return fastq_bam_vcf

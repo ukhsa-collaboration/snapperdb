@@ -1,6 +1,5 @@
 __author__ = 'flashton'
 
-import logging
 import psycopg2, psycopg2.extras
 import sys
 import os
@@ -11,6 +10,7 @@ import SnapperDB
 import errno
 from gbru_vcf import Vcf
 import pickle
+import re
 
 class SNPdb:
     """
@@ -24,7 +24,6 @@ class SNPdb:
          # >>> db = SNPdb(config="/path")
          # >>> db.get_matrix()
     """
-
     path_to_config = None
     """Path to the config"""
     snpdb_name = None
@@ -39,6 +38,7 @@ class SNPdb:
     depth_cutoff = None
     mq_cutoff = None
     ad_cutoff = None
+
 
 
     def __init__(self, config_dict):
@@ -62,19 +62,15 @@ class SNPdb:
         -----
 
         """
-
+        self.strains_snps = {}
         self.parse_config_dict(config_dict)
         self.snpdb_conn = None
-
         self.ref_genome_dir = SnapperDB.__ref_genome_dir__
-
         if os.path.exists(self.ref_genome_dir):
             pass
         else:
             sys.stderr.write('Ref genome dir %s not found\n' % self.ref_genome_dir)
             sys.exit()
-
-
 
     def parse_config_dict(self, config_dict):
         ## we loop through thusly in case not all these things are in the config
@@ -139,13 +135,11 @@ class SNPdb:
             sys.stdout.write('The SNPdb {0} does not exist - running sql to  make snpdb\n'.format(self.snpdb_name))
             make_db_conn_string = 'host=\'{0}\' dbname=postgres user=\'{1}\' password=\'{2}\''.format(self.pg_host,
                                                                                           self.pg_uname, self.pg_pword)
-
             conn = psycopg2.connect(make_db_conn_string)
             conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
             cur = conn.cursor()
             cur.execute('CREATE DATABASE {0}'.format(self.snpdb_name))
             cur.close()
-
             conn_string = 'host=\'{0}\' dbname={1} user=\'{2}\' password=\'{3}\''.format(self.pg_host, self.snpdb_name,
                                                                                          self.pg_uname, self.pg_pword)
             conn = psycopg2.connect(conn_string)
@@ -154,7 +148,6 @@ class SNPdb:
             cur.execute(open(sql_script, 'r').read())
             conn.commit()
             conn.close()
-
 
     def check_len_vcf(self, vcf):
         vcf_len = len(vcf.depth)
@@ -191,7 +184,6 @@ class SNPdb:
         var_base = good_var[pos]
         # fasta starts at 0, snpdb pos is worked out from a reference that starts at 1 (position in snpdb)
         ref_base = contig[int(pos) - 1]
-
         cursor = self.snpdb_conn.cursor()
         cursor.execute("insert into variants (pos, var_base, ref_base) VALUES (%s,\'%s\',\'%s\')" % (pos, var_base, ref_base))
         self.snpdb_conn.commit()
@@ -207,7 +199,6 @@ class SNPdb:
             pass
         else:
             sys.stderr.write('Could not find {0}, check your file extension (needs to be .fa)\n'.format(ref_genome_path))
-
         with open(ref_genome_path, 'r') as fi:
             ref_fasta = SeqIO.parse(fi, 'fasta')
             contig = ''
@@ -272,6 +263,270 @@ class SNPdb:
         elif self.check_duplicate(vcf) == True:
             sys.stderr.write('Sample is already in SNPdb\n')
 
+    ## functions below here are for querying the snpdb
+    
+    def get_background(self,cur,strain_list, args):
+        sql = "select distinct("+args.back_flag+") from strain_clusters"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            sql2 = "select sc.name from strain_clusters sc , strain_meta sm where sm.name = sc.name and "+args.back_flag+"="+str(
+                row[0])+" "
+            if args.meta_flag != 'N':
+                temp = args.meta_flag.split(',')
+                for meta in temp:
+                    temp2 = meta.split(':')
+                    sql2 = sql2 + "and "+temp2[0]+"=\'"+str(temp2[1])+"\' "
+                sql2 = sql2 + " limit 1"    
+            #print sql2
+            cur.execute(sql2)
+            rows2 = cur.fetchone()
+            if rows2:
+                strain_list.append(rows2[0])
+        return strain_list
+
+    def add_strains_to_sql_co(self, sql, strain_list, co, name):
+        for strain in strain_list:
+            sql += "name =\'" + strain + "\' or "
+        sql = sql[:-4]
+        sql += ") and icount("+name+") < "+co
+        return sql
+
+    def get_all_good_ids(self,cur,strain_list, snp_co):
+        strain_snps = {}
+        totlist = []
+        ## this could be replaced by where like any (array[strain_list]) - I think
+        sql = " select variants_id, name, icount(variants_id) as count from strains_snps where ("
+        sql = self.add_strains_to_sql_co(sql, strain_list, snp_co, "variants_id")
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            totlist = set(totlist) | set(row[0])
+            strain_snps[row[1]] = row[0]
+        return totlist, strain_snps
+
+    def get_variants(self,cur):
+        variant_container = {}
+        pos_2_id_list = {}
+        sql = "select pos , id, ref_base, var_base, gene,product, amino_acid from variants"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            variant = Variant()
+            variant.pos = row[0]
+            variant.id = row[1]
+            variant.ref_base = row[2]
+            variant.var_base = row[3]
+            variant.gene = row[4]
+            variant.product = row[5]
+            variant.amino_acid = row[6]
+            variant_container[row[1]] = variant
+            if row[1] in self.goodids:
+                if row[0] in pos_2_id_list:
+                    pos_2_id_list[row[0]].append(row[1])
+                else:
+                    pos_2_id_list[row[0]] = []
+                    pos_2_id_list[row[0]].append(row[1])
+        return variant_container, pos_2_id_list
+
+    def get_bad_pos_for_strain_get_the_vars(self, cur, strain, totlist):
+        strain_ig = {}
+        sql = "select ignored_pos, icount(ignored_pos), name as count from strains_snps where name =\'" + strain + "\'"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            totlist = set(totlist) | set(row[0])
+            strain_ig = row[0]
+        return totlist, strain_ig
+
+    def make_consensus(self,ref_seq, ref_flag, cur):
+        fasta = {}
+        var_id_list = []
+        var_look = {}
+        n_look = {}
+        badlist = []
+        for strain in self.strains_snps:
+            badlist, strains_ig = self.get_bad_pos_for_strain_get_the_vars(cur, strain, badlist)
+            if strain not in fasta:
+                fasta[strain] = ref_seq[:]
+            for ids in self.strains_snps[strain]:
+                if self.variants[ids].var_base != fasta[strain][self.variants[ids].pos-1]:
+                    fasta[strain][self.variants[ids].pos-1] = self.variants[ids].var_base
+                    if self.variants[ids].pos:
+                        if self.variants[ids].pos in var_look:
+                            var_look[self.variants[ids].pos] = var_look[self.variants[ids].pos] + 1
+                            if ids not in var_id_list:                            
+                                var_id_list.append(ids)
+                        else:
+                            var_look[self.variants[ids].pos] = 1
+                            var_id_list.append(ids)
+            for bad_ids in strains_ig:
+                fasta[strain][bad_ids-1] = 'N'
+                n_look[bad_ids] = 'N'
+        if ref_flag == 'Y':        
+            fasta[self.reference_genome] = ref_seq
+        return fasta, var_look, n_look, badlist, var_id_list
+
+    def calc_matrix(self):             
+        diff_matrix = {}
+        for strain1 in self.fasta:
+            diff_matrix[strain1] = {}
+            for strain2 in self.fasta:
+                if strain2 in diff_matrix and strain1 not in diff_matrix[strain2]:
+                    diff_matrix[strain1][strain2] = 0
+                    for var in self.var_look:
+                        if self.fasta[strain1][var-1] != self.fasta[strain2][var-1] and self.fasta[strain1][var-1] != 'N' and self.fasta[strain2][var-1] !='N':                                 diff_matrix[strain1][strain2]+=1
+
+        return diff_matrix    
+
+    def parse_args_for_get_the_snps(self, args, cur, strain_list, ref_seq):
+        ## this populates class variables specific to querying the SNPdb
+        if args.back_flag != 'N':
+            print "###  Getting background strains:"+str(datetime.datetime.now())
+            strain_list = self.get_background(cur, strain_list, args)
+
+        print "###  Getting good positions:"+str(datetime.datetime.now())
+        self.goodids, self.strains_snps = self.get_all_good_ids(cur, strain_list, args.snp_co)
+
+        print "Variable positions: "+ str(len(self.goodids))
+
+        if len(self.goodids) == 0:
+            print "###  No variable positions found: EXITING "+str(datetime.datetime.now())
+            sys.exit()
+        print str(len(self.strains_snps)) +" strains used out of "+str(len(strain_list))
+        print "###  Getting variants:"+str(datetime.datetime.now())
+        self.variants, self.posIDMap = self.get_variants(cur)
+        print "###  Making consensus:"+str(datetime.datetime.now())
+        self.fasta, self.var_look, self.n_look, self.badlist, self.var_id_list = self.make_consensus(ref_seq, args.ref_flag, cur)
+        print "Ignored positions: "+ str(len(self.badlist))
+        if args.mat_flag == 'Y':
+            print "###  Making Distance Matrix: "+str(datetime.datetime.now())
+            self.matrix = self.calc_matrix()
+
+    def print_fasta(self, out, flag, ref_flag, rec_list):
+        f = open(out+'.fa','w')
+        for strain in self.fasta:
+            f.write(">" + strain + "\n")
+            if flag == 'W':
+                for i, seq in enumerate(self.fasta[strain]):
+                    f.write(seq)
+            elif flag == 'A':
+                for i in sorted(self.var_look):
+                    if i not in rec_list:
+                        if ref_flag == 'Y':
+                            f.write(self.fasta[strain][i-1])
+                        elif self.var_look[i] != len(self.strains_snps):
+                            f.write(self.fasta[strain][i-1])
+            elif flag == 'C':
+                for i in sorted(self.var_look):
+                    if i not in self.n_look:
+                        if i not in rec_list:
+                            if ref_flag == 'Y':
+                                f.write(self.fasta[strain][i-1])
+                            elif self.var_look[i] != len(self.strains_snps):
+                                f.write(self.fasta[strain][i-1])
+            f.write("\n")
+
+    def print_matrix(self, out):
+        f = open(out+'.matrix','w')
+        for strain1 in self.matrix:
+            for strain2 in self.matrix[strain1]:
+                if strain1 != strain2:
+                    f.write(strain1+"\t"+strain2+"\t"+str(self.matrix[strain1][strain2])+"\n")
+                    
+    def print_vars(self, out, flag, rec_list, ref_flag):
+        f = open(out+'.variants','w')
+        for pos in sorted(self.var_look):
+            var_ids = self.posIDMap[pos]
+            for var_id in var_ids:
+                if var_id in self.var_id_list:
+                    if flag == 'W':
+                        f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base)  + "\t" + str(self.variants[var_id].gene) + "\n")
+                    elif flag == 'A':
+                        if pos not in rec_list:
+                            if ref_flag == 'Y':
+                                f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base)  + "\t" + str(self.variants[var_id].amino_acid)  + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")                    
+                            elif self.var_look[pos] != len(self.strains_snps):
+                                f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base)  + "\t" + str(self.variants[var_id].amino_acid)  + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                    
+                    elif flag == 'C':
+                        if pos not in self.n_look:
+                            if pos not in rec_list:
+                                if ref_flag == 'Y':
+                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base)  + "\t" + str(self.variants[var_id].amino_acid)  + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")                    
+                                elif self.var_look[pos] != len(self.strains_snps):
+                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base)  + "\t" + str(self.variants[var_id].amino_acid)  + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+
+    ## functions below here are from update_distance_matrix
+
+    def get_strains(self, cur):
+        strain_list = []
+        sql = " select name from strain_stats where ignore is NULL"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            strain_list.append(row[0])
+        return strain_list
+
+    def parse_args_for_update_matrix(self, cur, snp_co, strain_list):
+        ## this populates class variables specific to querying the SNPdb
+
+        print "###  Getting good positions:"+str(datetime.datetime.now())
+        self.goodids, self.strains_snps = self.get_all_good_ids(cur, strain_list, snp_co)
+        print "###  Getting variants:"+str(datetime.datetime.now())
+        self.variants, self.posIDMap = self.get_variants(cur)
+
+    def get_bad_pos_for_strain_update_matrix(self, cur, strain):
+        strain_ig = []
+        sql = "select ignored_pos, icount(ignored_pos), name from strains_snps where name =\'" + strain + "\'"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            strain_ig = row[0]
+        return strain_ig    
+
+    def check_matrix(self, cur, data_list):
+        update_strain = []
+        for strain1 in data_list:
+            sql = "select * from dist_matrix where strain1 = '%s' or strain2 = '%s' limit 1" % (strain1, strain1)
+            cur.execute(sql)
+            row = cur.fetchall()
+            if not row:
+                update_strain.append(strain1)
+        seen_strain = []
+        for strain1 in update_strain:
+            seen_strain.append(strain1)
+            print "Populating matrix for: "+ strain1
+            strain1_good_var = self.strains_snps[strain1]
+            strain1_ig_pos = self.get_bad_pos_for_strain_update_matrix(cur, strain1)
+            for strain2 in data_list:
+                if strain1 != strain2 and strain2 not in seen_strain:    
+                    strain2_good_var = self.strains_snps[strain2]
+                    strain2_ig_pos = self.get_bad_pos_for_strain_update_matrix(cur, strain2)
+                    #getunion of bad_pos
+                    all_bad_pos = set(strain1_ig_pos) | set(strain2_ig_pos)
+                    #getsymmetric differecne of variants
+                    all_var = set(strain1_good_var) ^ set(strain2_good_var)
+                    diff = 0
+                    for var_id in all_var:
+                        if self.variants[var_id].pos not in all_bad_pos:
+                            diff = diff + 1
+                    #add to db
+                    sql2 = "insert into dist_matrix (strain1, strain2, snp_dist) VALUES (\'%s\',\'%s\',%s)" % (strain1, strain2, diff)
+                    cur.execute(sql2)    
+                    self.snpdb_conn.commit()
+
+
+class Variant:
+    def __init__(self):
+        self._pos = int
+        self._id = int
+        self._product = str
+        self._ref_base = str
+        self._var_base = str
+        self._amino_acid = str
+        self._gene = str
+        self._locus_tag = str
 
 def vcf_to_db(args, config_dict, vcf):
     snpdb = SNPdb(config_dict)
@@ -296,7 +551,6 @@ def vcf_to_db(args, config_dict, vcf):
             vcf.parse_config_dict(config_dict)
             vcf.read_vcf()
             snpdb.snpdb_upload(vcf)
-
             '''
             Parse vcf and get good_var and ignored_pos
             '''
@@ -306,3 +560,81 @@ def make_snpdb(config_dict):
     snpdb._write_conn_string()
     snpdb.make_snpdb()
 
+def read_file(file_name):
+    try:
+        openfile = open(file_name, 'r')
+    except:
+        print file_name + " not found ... "
+        sys.exit()
+    strain_list = []    
+    for line in openfile:
+        strain_list.append(line.strip())
+    return strain_list
+
+def read_fasta(ref):
+    try:
+        openfile = open(ref, 'r')
+    except:
+        print (ref + " not found ... ")
+        sys.exit()
+    ref_seq = []    
+    for line in openfile:
+        matchObj = re.search('>',line)
+        if matchObj is None:
+            for n in line.strip():
+                ref_seq.append(n)
+    return ref_seq
+
+def read_rec_file(rec_file):
+    try:
+        openfile = open(rec_file, 'r')
+    except:
+        print (rec_file + " not found ... ")
+        sys.exit()
+    rec_list = []    
+    for line in openfile:
+        if line[0].isdigit():
+            temp = (line.strip()).split('\t')
+            rec_range = range((int(temp[0])-1), (int(temp[1])-1))
+            rec_list = set(rec_list) | set(rec_range)
+    return rec_list
+
+def get_the_snps(args, config_dict):
+    print "###  START: "+str(datetime.datetime.now())
+    print "###  Inititialising SnpDB Class:"+str(datetime.datetime.now())
+    snpdb = SNPdb(config_dict)
+    snpdb.parse_config_dict(config_dict)
+    strain_list = read_file(args.strain_list)
+    snpdb._write_conn_string()
+    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
+    cur = snpdb.snpdb_conn.cursor()
+    ref_seq_file = os.path.join(SnapperDB.__ref_genome_dir__, snpdb.reference_genome + '.fa')
+    ref_seq = read_fasta(ref_seq_file)
+    if args.rec_file != 'N':
+        print "###  Reading recombination list:"+ str(datetime.datetime.now())
+        rec_list = read_rec_file(args.rec_file)
+    else:
+        rec_list = []
+    snpdb.parse_args_for_get_the_snps(args, cur, strain_list, ref_seq)
+    print "###  Printing FASTA: "+str(datetime.datetime.now())
+    snpdb.print_fasta(args.out, args.alignment_type, args.ref_flag, rec_list)
+    if args.mat_flag == 'Y':
+        print "###  Printing Matrix: "+str(datetime.datetime.now())
+        snpdb.print_matrix(args.out)
+    if args.var_flag == 'Y':
+        print "###  Printing Variants: "+str(datetime.datetime.now())
+        snpdb.print_vars(args.out, args.alignment_type, rec_list, args.ref_flag)
+
+def update_distance_matrix(config_dict):
+    print "###  Inititialising SnpDB Class:"+str(datetime.datetime.now())
+    snpdb = SNPdb(config_dict)
+    snpdb.parse_config_dict(config_dict)
+    snpdb._write_conn_string()
+    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
+    cur = snpdb.snpdb_conn.cursor()
+    strain_list = snpdb.get_strains(cur)
+    ## get_all_good_ids from snpdb2 takes a snp cutoff as well, here, we don't have a SNP cutoff so we set it arbitrarily high.
+    snp_co = '1000000'
+    print "###  Populating distance matrix:"+str(datetime.datetime.now())
+    snpdb.parse_args_for_update_matrix(cur, snp_co, strain_list)
+    snpdb.check_matrix(cur, strain_list)
