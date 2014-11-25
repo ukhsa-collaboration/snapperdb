@@ -11,7 +11,6 @@ import errno
 from gbru_vcf import Vcf
 import pickle
 import re
-import numpy as np
 
 class SNPdb:
     """
