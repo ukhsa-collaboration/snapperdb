@@ -505,12 +505,7 @@ class SNPdb:
                     strain2_good_var = self.strains_snps[strain2]
                     strain2_ig_pos = self.get_bad_pos_for_strain_update_matrix(cur, strain2)
                     #getunion of bad_pos
-                    #all_bad_pos = set(strain1_ig_pos) | set(strain2_ig_pos)
-
-                    all_bad_pos = np.union1d(np.asarray(strain1_ig_pos), np.asarray(strain2_ig_pos))
-
-
-
+                    all_bad_pos = set(strain1_ig_pos) | set(strain2_ig_pos)
 
                     #getsymmetric difference of variants
                     all_var = set(strain1_good_var) ^ set(strain2_good_var)
