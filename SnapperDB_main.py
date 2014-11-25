@@ -46,8 +46,8 @@ def run_command(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog='SnapperDB', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-v", "--version", help="Installed SnapperDB version", action="version",
+    parser = argparse.ArgumentParser(prog='snapperdb', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("-v", "--version", help="Installed snapperdb version", action="version",
                         version="%(prog)s " + str(__version__))
 
     subparsers = parser.add_subparsers(title='[sub-commands]', dest='command', parser_class=ArgumentParserWithDefaults)

@@ -6,7 +6,7 @@ import os
 from Bio import SeqIO
 import datetime
 import inspect
-import SnapperDB
+import snapperdb
 import errno
 from gbru_vcf import Vcf
 import pickle
@@ -66,7 +66,7 @@ class SNPdb:
         self.strains_snps = {}
         self.parse_config_dict(config_dict)
         self.snpdb_conn = None
-        self.ref_genome_dir = SnapperDB.__ref_genome_dir__
+        self.ref_genome_dir = snapperdb.__ref_genome_dir__
         if os.path.exists(self.ref_genome_dir):
             pass
         else:
@@ -112,7 +112,7 @@ class SNPdb:
             vcf.sample_name = os.path.basename(args.vcf[0]).split(os.extsep)[0]
         except AttributeError:
             vcf.sample_name = os.path.basename(args.fastqs[0]).split(os.extsep)[0]
-        vcf.ref_genome_path = os.path.join(SnapperDB.__ref_genome_dir__, self.reference_genome + '.fa')
+        vcf.ref_genome_path = os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')
         vcf.make_tmp_dir(args)
         vcf.sorted_bamfile = os.path.join(vcf.tmp_dir, vcf.sample_name + '.sorted' + '.bam')
         vcf.vcf_filehandle = os.path.join(vcf.tmp_dir, os.path.pardir, '{0}.vcf'.format(vcf.sample_name))
@@ -610,7 +610,7 @@ def get_the_snps(args, config_dict):
     snpdb._write_conn_string()
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
     cur = snpdb.snpdb_conn.cursor()
-    ref_seq_file = os.path.join(SnapperDB.__ref_genome_dir__, snpdb.reference_genome + '.fa')
+    ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
     ref_seq = read_fasta(ref_seq_file)
     if args.rec_file != 'N':
         print "###  Reading recombination list:"+ str(datetime.datetime.now())
