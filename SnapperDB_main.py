@@ -8,7 +8,7 @@ https://github.com/arq5x/poretools
 import argparse
 from __init__ import __version__, parse_config
 from gbru_vcf import fastq_to_vcf
-from snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix
+from snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix
 
 
 
@@ -34,7 +34,10 @@ def run_command(args):
         vcf_to_db(args, config_dict, None)
 
     elif args.command == 'update_distance_matrix':
-        update_distance_matrix(config_dict)
+        update_distance_matrix(config_dict, args)
+
+    elif args.command == 'qsub_to_check_matrix':
+        qsub_to_check_matrix(config_dict, args)
 
     elif args.command == 'make_snpdb':
         make_snpdb(config_dict)
@@ -73,14 +76,28 @@ def main():
     parser_vcf_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config file in the user_configs directory (not the full path)')
 
     parser_make_snpdb = subparsers.add_parser('make_snpdb', help='Takes a config and makes a snpdb')
-    parser_make_snpdb.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config file in the user_configs directory (not the full path)')
-
+    parser_make_snpdb.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
+                                                                    'file in the user_configs directory (not the full path)')
     parser_update_distance_matrix = subparsers.add_parser('update_distance_matrix',
                                                           help='Takes a config and updates the distance matrix in the specified '
                                                                'snpdb')
     parser_update_distance_matrix.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                                help='The name of a config file in the user_configs directory (not the full path)')
+    parser_update_distance_matrix.add_argument('-m', dest='hpc', default='N', help='This is a PHE only function <int>/N, '
+                                                                                   'where int is the number of qsub jobs you '
+                                                                                   'want to spread your matrix updates across. '
+                                                                                   'Default is N')
 
+    parser_qsub_to_check_matrix = subparsers.add_parser('qsub_to_check_matrix', help='This is only for internal use by snapperdb'
+                                                                               ' when update matrix is being run in hpc mode.')
+    parser_qsub_to_check_matrix.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a'
+                                                                ' config file in the user_configs directory (not the full path)')
+    parser_qsub_to_check_matrix.add_argument('-l', dest='strain_list', required=True, help='The list of all the strains '
+                                                                                            ' in the SNPdb')
+    parser_qsub_to_check_matrix.add_argument('-s', dest='short_strain_list', required=True, help='The list of all the strains '
+                                                                                            'already in the distance matrix')
+    parser_qsub_to_check_matrix.add_argument('-u', dest='update_list', required=True, help='The list of all the strains to be '
+                                                                                        'added to the distance matrix')
 
     parser_get_the_snps = subparsers.add_parser('get_the_snps', help='Takes a config file, a list, and a bunch of other flags '
                                                                     'and provides you with snps and more')
@@ -106,7 +123,7 @@ def main():
     parser_get_the_snps.add_argument('-b', dest='back_flag', help='Would you like a background cluster level? SNP cluster level '
                                                                  'from which to take one representative/N', default='N')
     parser_get_the_snps.add_argument('-e', dest='meta_flag', help='some value from the metadata in strain_stats, '
-                                                                  ', every strain with this meta-data will be included. '
+                                                                  'every strain with this meta-data will be included. '
                                                                   'e.g. (e.g. stx:2a,pt:8,row:value)', default='N')
 
     args = parser.parse_args()
