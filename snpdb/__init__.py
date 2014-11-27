@@ -524,14 +524,16 @@ class SNPdb:
         for i in xrange(0, len(l), n):
             yield l[i:i+n]
 
-    def write_qsubs_to_check_matrix(self, args, strain_list, short_strain_list, update_strain):
+    def write_qsubs_to_check_matrix(self, args, strain_list, short_strain_list, update_strain, snpdb):
         '''
         how to call this particular function as a qsub - need access to check matrix on command line.
         1. write lists
         2. for each in lists, qsub
         '''
-
+        home_dir = os.path.expanduser('~')
+        logs_dir = os.path.join(home_dir, 'logs')
         this_dir = os.path.dirname(os.path.realpath(__file__))
+        snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
         for i, each in enumerate(self.chunks(update_strain, args.hpc)):
             with open('{0}/update_list_{1}'.format(this_dir, i), 'w') as fo:
@@ -547,14 +549,25 @@ class SNPdb:
         res = sorted(glob.glob('{0}/update_list*'.format(this_dir)))
 
         for i, update_list in enumerate(res):
+            command = ('#! /bin/bash\n'
+                       '#$ -o {0}/check_matrix.stdout\n'
+                       '#$ -e {0}/check_matrix.stderr\n'
+                       '#$ -m e\n'
+                       '#$ -wd {1}\n'
+                       '#$ -N run_update_matrix_{2}_{3}\n\n'
+                       '. /etc/profile.d/modules.sh\n'
+                       'module load {7}/.module_files/snapperdb/1-0\n'
+                       'python SnapperDB_main.py'
+                       ' qsub_to_check_matrix -c {4}'
+                       ' -l {5}/strain_list'
+                       ' -s {5}/short_strain_list'
+                       ' -u {6}\n'.format(logs_dir, snapperdb_dir, snpdb, i, args.config_file, this_dir, update_list, home_dir))
 
-            command = ('#!/bin/sh\npython /Users/flashton/Dropbox/PyCharm_projects/phe/snapperdb/SnapperDB_main.py '
-                       'qsub_to_check_matrix -c {0} -l '
-                       '{1}/strain_list -s {1}/short_strain_list -u {2}\n'.format(args.config_file, this_dir, update_list))
             with open('{0}/update_matrix_{1}.sh'.format(this_dir, i), 'w') as fo:
                 fo.write(command)
-            os.system('chmod u+x {0}/update_matrix_{1}.sh'.format(this_dir, i))
-            os.system('{0}/update_matrix_{1}.sh'.format(this_dir, i))
+            os.system('qsub {0}/update_matrix_{1}.sh'.format(this_dir, i))
+            #os.system('chmod u+x {0}/update_matrix_{1}.sh'.format(this_dir, i))
+            #os.system('{0}/update_matrix_{1}.sh'.format(this_dir, i))
 
     def sweep_matrix(self):
         '''
@@ -698,7 +711,7 @@ def update_distance_matrix(config_dict, args):
         try:
             args.hpc = int(args.hpc)
             short_strain_list = set(strain_list) - set(update_strain)
-            snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain)
+            snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain, config_dict['snpdb_name'])
             ## on cluster version this will have to be subject to a qsub hold
             snpdb.check_matrix(cur, update_strain, update_strain)
         except ValueError as e:
