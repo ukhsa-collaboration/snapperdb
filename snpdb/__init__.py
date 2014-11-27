@@ -11,6 +11,7 @@ import errno
 from gbru_vcf import Vcf
 import pickle
 import re
+import glob
 
 class SNPdb:
     """
@@ -466,7 +467,16 @@ class SNPdb:
         rows = cur.fetchall()
         for row in rows:
             strain_list.append(row[0])
-        return strain_list
+
+        update_strain = []
+        for strain1 in strain_list:
+            sql = "select * from dist_matrix where strain1 = '%s' or strain2 = '%s' limit 1" % (strain1, strain1)
+            cur.execute(sql)
+            row = cur.fetchall()
+            if not row:
+                update_strain.append(strain1)
+
+        return strain_list, update_strain
 
     def parse_args_for_update_matrix(self, cur, snp_co, strain_list):
         ## this populates class variables specific to querying the SNPdb
@@ -485,14 +495,7 @@ class SNPdb:
             strain_ig = row[0]
         return strain_ig    
 
-    def check_matrix(self, cur, data_list):
-        update_strain = []
-        for strain1 in data_list:
-            sql = "select * from dist_matrix where strain1 = '%s' or strain2 = '%s' limit 1" % (strain1, strain1)
-            cur.execute(sql)
-            row = cur.fetchall()
-            if not row:
-                update_strain.append(strain1)
+    def check_matrix(self, cur, data_list, update_strain):
         seen_strain = []
         for strain1 in update_strain:
             seen_strain.append(strain1)
@@ -516,6 +519,57 @@ class SNPdb:
                     sql2 = "insert into dist_matrix (strain1, strain2, snp_dist) VALUES (\'%s\',\'%s\',%s)" % (strain1, strain2, diff)
                     cur.execute(sql2)    
                     self.snpdb_conn.commit()
+
+    def chunks(self, l, n):
+        for i in xrange(0, len(l), n):
+            yield l[i:i+n]
+
+    def write_qsubs_to_check_matrix(self, args, strain_list, short_strain_list, update_strain):
+        '''
+        how to call this particular function as a qsub - need access to check matrix on command line.
+        1. write lists
+        2. for each in lists, qsub
+        '''
+
+        this_dir = os.path.dirname(os.path.realpath(__file__))
+
+        for i, each in enumerate(self.chunks(update_strain, args.hpc)):
+            with open('{0}/update_list_{1}'.format(this_dir, i), 'w') as fo:
+                for x in each:
+                    fo.write(x + '\n')
+        with open('{0}/short_strain_list'.format(this_dir), 'w') as fo:
+            for x in short_strain_list:
+                fo.write(x + '\n')
+        with open('{0}/strain_list'.format(this_dir), 'w') as fo:
+            for x in strain_list:
+                fo.write(x + '\n')
+
+        res = sorted(glob.glob('{0}/update_list*'.format(this_dir)))
+
+        for i, update_list in enumerate(res):
+
+            command = ('#!/bin/sh\npython /Users/flashton/Dropbox/PyCharm_projects/phe/snapperdb/SnapperDB_main.py '
+                       'qsub_to_check_matrix -c {0} -l '
+                       '{1}/strain_list -s {1}/short_strain_list -u {2}\n'.format(args.config_file, this_dir, update_list))
+            with open('{0}/update_matrix_{1}.sh'.format(this_dir, i), 'w') as fo:
+                fo.write(command)
+            os.system('chmod u+x {0}/update_matrix_{1}.sh'.format(this_dir, i))
+            os.system('{0}/update_matrix_{1}.sh'.format(this_dir, i))
+
+    def sweep_matrix(self):
+        '''
+        if the total number of strains in snpdb is n, check that for each strain there is n(n+1)/2 (or is ithis n-1?)
+        entries in matrix. if there isn't, run some version of check matrix.
+
+        or
+
+        for each strain in the original update_strain list, fill in the matrix, where seen strain includes everything in the
+        database that isn't in update strains.
+
+        1. wait until all qsub_check_matrix jobs finished
+        '''
+
+        pass
 
 
 class Variant:
@@ -626,16 +680,56 @@ def get_the_snps(args, config_dict):
         print "###  Printing Variants: "+str(datetime.datetime.now())
         snpdb.print_vars(args.out, args.alignment_type, rec_list, args.ref_flag)
 
-def update_distance_matrix(config_dict):
+def update_distance_matrix(config_dict, args):
     print "###  Inititialising SnpDB Class:"+str(datetime.datetime.now())
     snpdb = SNPdb(config_dict)
     snpdb.parse_config_dict(config_dict)
     snpdb._write_conn_string()
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
     cur = snpdb.snpdb_conn.cursor()
-    strain_list = snpdb.get_strains(cur)
+    strain_list, update_strain = snpdb.get_strains(cur)
     ## get_all_good_ids from snpdb2 takes a snp cutoff as well, here, we don't have a SNP cutoff so we set it arbitrarily high.
     snp_co = '1000000'
-    print "###  Populating distance matrix:"+str(datetime.datetime.now())
+    print "###  Populating distance matrix: " + str(datetime.datetime.now())
     snpdb.parse_args_for_update_matrix(cur, snp_co, strain_list)
-    snpdb.check_matrix(cur, strain_list)
+    if args.hpc == 'N':
+        snpdb.check_matrix(cur, strain_list, update_strain)
+    else:
+        try:
+            args.hpc = int(args.hpc)
+            short_strain_list = set(strain_list) - set(update_strain)
+            snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain)
+            ## on cluster version this will have to be subject to a qsub hold
+            snpdb.check_matrix(cur, update_strain, update_strain)
+        except ValueError as e:
+            print '\n#### Error ####'
+            print e, '-m has to be an integer'
+
+def qsub_to_check_matrix(config_dict, args):
+    snpdb = SNPdb(config_dict)
+    snpdb.parse_config_dict(config_dict)
+    snpdb._write_conn_string()
+    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
+    cur = snpdb.snpdb_conn.cursor()
+    snp_co = '1000000'
+
+    strain_list = []
+    with open(args.strain_list) as fi:
+        for x in fi.readlines():
+            strain_list.append(x.strip())
+    short_strain_list = []
+    with open(args.short_strain_list) as fi:
+        for x in fi.readlines():
+            short_strain_list.append(x.strip())
+    update_strain = []
+    with open(args.update_list) as fi:
+        for x in fi.readlines():
+            update_strain.append(x.strip())
+
+    snpdb.parse_args_for_update_matrix(cur, snp_co, strain_list)
+    snpdb.check_matrix(cur, short_strain_list, update_strain)
+
+
+
+
+
