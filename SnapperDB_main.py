@@ -67,13 +67,15 @@ def main():
     parser_fastq_to_vcf = subparsers.add_parser('fastq_to_vcf', help='Takes fastqs and a config file and produces a vcf and '
                                                                      'serialised SNPs and ignored positions')
     parser_fastq_to_vcf.add_argument('fastqs', metavar='FASTQ file(s)', nargs='+', help='At least one fastq file')
-    parser_fastq_to_vcf.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config file in the user_configs directory (not the full path)')
+    parser_fastq_to_vcf.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
+                                                                        'file in the user_configs directory (not the full path)')
 
     parser_vcf_to_db = subparsers.add_parser('vcf_to_db', help='Takes a vcf and a config file, parses the vcf and then adds to '
                                                                'snpdb specified in the config file')
     parser_vcf_to_db.add_argument('vcf', metavar='VCF file', nargs='+', help='A vcf file (generated using '
                                                                                 'emit_all_positions?)')
-    parser_vcf_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config file in the user_configs directory (not the full path)')
+    parser_vcf_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
+                                                                    'file in the user_configs directory (not the full path)')
 
     parser_make_snpdb = subparsers.add_parser('make_snpdb', help='Takes a config and makes a snpdb')
     parser_make_snpdb.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
@@ -82,11 +84,11 @@ def main():
                                                           help='Takes a config and updates the distance matrix in the specified '
                                                                'snpdb')
     parser_update_distance_matrix.add_argument('-c', dest='config_file', metavar='Config file', required=True,
-                                               help='The name of a config file in the user_configs directory (not the full path)')
+                                               help='The name of a config file in the user_configs directory '
+                                                    '(not the full path)')
     parser_update_distance_matrix.add_argument('-m', dest='hpc', default='N', help='This is a PHE only function <int>/N, '
-                                                                                   'where int is the number of qsub jobs you '
-                                                                                   'want to spread your matrix updates across. '
-                                                                                   'Default is N')
+                                                                                   'where int is the number of comparisons you '
+                                                                                   'want to do on each core')
 
     parser_qsub_to_check_matrix = subparsers.add_parser('qsub_to_check_matrix', help='This is only for internal use by snapperdb'
                                                                                ' when update matrix is being run in hpc mode.')
@@ -101,7 +103,8 @@ def main():
 
     parser_get_the_snps = subparsers.add_parser('get_the_snps', help='Takes a config file, a list, and a bunch of other flags '
                                                                     'and provides you with snps and more')
-    parser_get_the_snps.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config file in the user_configs directory (not the full path)')
+    parser_get_the_snps.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
+                                                                        'file in the user_configs directory (not the full path)')
     parser_get_the_snps.add_argument('-l', dest='strain_list', required=True)
     parser_get_the_snps.add_argument('-m', dest='snp_co', required=True, help='SNP cut off (has to be integer), strains more '
                                                                              'than this number of '

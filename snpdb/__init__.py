@@ -712,7 +712,7 @@ def update_distance_matrix(config_dict, args):
             args.hpc = int(args.hpc)
             short_strain_list = set(strain_list) - set(update_strain)
             snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain, config_dict['snpdb_name'])
-            ## on cluster version this will have to be subject to a qsub hold
+            ## on cluster version this will have to be subject to a qsub hold - no it wont, can just run on headnode
             snpdb.check_matrix(cur, update_strain, update_strain)
         except ValueError as e:
             print '\n#### Error ####'
@@ -725,7 +725,6 @@ def qsub_to_check_matrix(config_dict, args):
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
     cur = snpdb.snpdb_conn.cursor()
     snp_co = '1000000'
-
     strain_list = []
     with open(args.strain_list) as fi:
         for x in fi.readlines():
@@ -738,9 +737,15 @@ def qsub_to_check_matrix(config_dict, args):
     with open(args.update_list) as fi:
         for x in fi.readlines():
             update_strain.append(x.strip())
-
     snpdb.parse_args_for_update_matrix(cur, snp_co, strain_list)
     snpdb.check_matrix(cur, short_strain_list, update_strain)
+
+    ## need to clean up as otherwise the glob
+    os.system('rm -f {0}'.format(args.strain_list))
+    direc, name = os.path.split(args.strain_list)
+    list_number = name.split('_')[-1]
+    shell_script = '{0}/update_matrix_{1}.sh'.format(direc, list_number)
+    os.system('rm -f {0}'.format(shell_script))
 
 
 
