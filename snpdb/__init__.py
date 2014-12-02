@@ -524,14 +524,16 @@ class SNPdb:
         for i in xrange(0, len(l), n):
             yield l[i:i+n]
 
-    def write_qsubs_to_check_matrix(self, args, strain_list, short_strain_list, update_strain):
+    def write_qsubs_to_check_matrix(self, args, strain_list, short_strain_list, update_strain, snpdb):
         '''
         how to call this particular function as a qsub - need access to check matrix on command line.
         1. write lists
         2. for each in lists, qsub
         '''
-
+        home_dir = os.path.expanduser('~')
+        logs_dir = os.path.join(home_dir, 'logs')
         this_dir = os.path.dirname(os.path.realpath(__file__))
+        snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
         for i, each in enumerate(self.chunks(update_strain, args.hpc)):
             with open('{0}/update_list_{1}'.format(this_dir, i), 'w') as fo:
@@ -547,14 +549,25 @@ class SNPdb:
         res = sorted(glob.glob('{0}/update_list*'.format(this_dir)))
 
         for i, update_list in enumerate(res):
+            command = ('#! /bin/bash\n'
+                       '#$ -o {0}/check_matrix.stdout\n'
+                       '#$ -e {0}/check_matrix.stderr\n'
+                       '#$ -m e\n'
+                       '#$ -wd {1}\n'
+                       '#$ -N run_update_matrix_{2}_{3}\n\n'
+                       '. /etc/profile.d/modules.sh\n'
+                       'module load {7}/.module_files/snapperdb/1-0\n'
+                       'python SnapperDB_main.py'
+                       ' qsub_to_check_matrix -c {4}'
+                       ' -l {5}/strain_list'
+                       ' -s {5}/short_strain_list'
+                       ' -u {6}\n'.format(logs_dir, snapperdb_dir, snpdb, i, args.config_file, this_dir, update_list, home_dir))
 
-            command = ('#!/bin/sh\npython /Users/flashton/Dropbox/PyCharm_projects/phe/snapperdb/SnapperDB_main.py '
-                       'qsub_to_check_matrix -c {0} -l '
-                       '{1}/strain_list -s {1}/short_strain_list -u {2}\n'.format(args.config_file, this_dir, update_list))
             with open('{0}/update_matrix_{1}.sh'.format(this_dir, i), 'w') as fo:
                 fo.write(command)
-            os.system('chmod u+x {0}/update_matrix_{1}.sh'.format(this_dir, i))
-            os.system('{0}/update_matrix_{1}.sh'.format(this_dir, i))
+            os.system('qsub {0}/update_matrix_{1}.sh'.format(this_dir, i))
+            #os.system('chmod u+x {0}/update_matrix_{1}.sh'.format(this_dir, i))
+            #os.system('{0}/update_matrix_{1}.sh'.format(this_dir, i))
 
     def sweep_matrix(self):
         '''
@@ -570,6 +583,148 @@ class SNPdb:
         '''
 
         pass
+
+    ### all functions below here are to do with the clustering
+
+    def get_input(self, cur):
+        profile_dict = {}
+        sql = "select strain1, strain2, snp_dist from dist_matrix"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            if row[0] not in profile_dict:
+                profile_dict[row[0]] = {}
+                profile_dict[row[0]][row[1]] = row[2]
+            else:
+                profile_dict[row[0]][row[1]] = row[2]
+            if row[1] not in profile_dict:
+                profile_dict[row[1]] = {}
+                profile_dict[row[1]][row[0]] = row[2]
+            else:
+                profile_dict[row[1]][row[0]] = row[2]
+        return profile_dict
+
+    def get_cutoffs(self, cur):
+        co = []
+        cluster_dict = {}
+        cluster_strain_list = {}
+        #get columns names
+        sql = "SELECT * FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'strain_clusters'"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            if row[3][0] == "t":
+                co.append(row[3][1:])
+        return co
+
+    def make_links(self, profile_dict,co):
+        clusters = {}
+        for i, strain1 in enumerate(profile_dict):
+            clusters[i] = []
+            clusters[i].append(strain1)    
+            for strain2 in profile_dict[strain1]:
+                if int(profile_dict[strain1][strain2]) <= int(co):
+                    clusters[i].append(strain2)
+        return clusters
+    
+    def define_clusters(self, slvs):
+        clusters = {}
+        for each in slvs:
+            clusters[each] = set(slvs[each])
+            for each2 in slvs:
+                    int_set = set(slvs[each]) & set(slvs[each2])
+                    if len(int_set) >= 1:
+                        clusters[each] = set(clusters[each]) | set(slvs[each2])
+                        #can we merge with any other clusters
+                        for made_clusters in clusters:
+                            int_set = set(clusters[each]) & set(clusters[made_clusters])    
+                            if len(int_set) >= 1:
+                                clusters[each] = set(clusters[made_clusters]) | set(clusters[each])
+                                clusters[made_clusters] = clusters[each]
+        return clusters
+
+    def remove_duplicate_clusters(self, clusters):
+        clean_clusters = {}
+        for cluster1 in clusters:
+            clean_clusters[tuple(sorted(clusters[cluster1]))] = 1
+        return clean_clusters
+
+    def print_slv_clusters(self, clusters,levels):
+        strain_list = {}
+        print "#\t"+ str(levels)
+        for co in (sorted(clusters, key=clusters.get)):
+            #print co
+            for i, cluster in enumerate(clusters[co]):
+                for strain in list(cluster):
+                    if strain not in strain_list:
+                        strain_list[strain] = []
+                    strain_list[strain].append(i+1)
+        #print strain_list
+        for strain in (sorted(tuple(strain_list), key=strain_list.get)):
+            hier=""
+            for clust in strain_list[strain]:
+                hier = hier + str(clust) + "."
+            print strain + "\t",
+            print hier[:-1]
+
+    def add_clusters_to_db(self, clusters, profile_dict,levels,cur,conn, cluster_strain_list):
+        strain_list = {}
+        for co in (sorted(clusters, key=clusters.get)):
+            for i, cluster in enumerate(clusters[co]):
+                for strain in list(cluster):
+                    if strain not in strain_list:
+                        strain_list[strain] = []
+                    strain_list[strain].append(int(clusters[co][cluster]))
+        for strain in (sorted(tuple(strain_list), key=strain_list.get)):
+            if strain in cluster_strain_list:
+                sql = "update strain_clusters set "
+                for i,clust in enumerate(strain_list[strain]):
+                    sql = sql + "t"+levels[len(levels)-(i+1)] +" = "+str(clust)+" ,"
+                sql = sql[:-1]
+                sql = sql + " where name = '"+strain+"'"
+                cur.execute(sql)    
+                conn.commit()
+            else:
+                sql = "insert into strain_clusters ("
+                for i,clust in enumerate(strain_list[strain]):
+                    sql = sql + "t"+levels[len(levels)-(i+1)] + ","
+                sql = sql + "name ) VALUES ("
+                for i,clust in enumerate(strain_list[strain]):
+                    sql = sql + str(clust) + ","
+                sql = sql + "\'"+strain+"\')"
+                cur.execute(sql)    
+                conn.commit()
+        return strain_list
+
+    def update_clusters(self, cur):
+        cur.execute('select * from strain_clusters')
+        row = cur.fetchall()
+        if not row:
+            '''
+            run the clustering for the first time and add to the db
+            '''
+            print 'strain_clusters empty'
+            print "###  Fetching Matrix:"+ str(datetime.datetime.now())
+            profile_dict = self.get_input(cur)
+            cluster_co = self.get_cutoffs(cur)
+            clean_clusters = {}
+            for cuts in cluster_co:
+                links = self.make_links(profile_dict, cuts)
+                clusters = self.define_clusters(links)
+                clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
+
+            #self.print_slv_clusters(clean_clusters, cluster_co)
+
+            self.add_clusters_to_db(clean_clusters, profile_dict, cluster_co, )
+        else:
+            '''
+            run update_clusters_db
+            '''
+
+            pass
+
+
+
 
 
 class Variant:
@@ -693,13 +848,15 @@ def update_distance_matrix(config_dict, args):
     print "###  Populating distance matrix: " + str(datetime.datetime.now())
     snpdb.parse_args_for_update_matrix(cur, snp_co, strain_list)
     if args.hpc == 'N':
-        snpdb.check_matrix(cur, strain_list, update_strain)
+        #snpdb.check_matrix(cur, strain_list, update_strain)
+        snpdb.update_clusters(cur)
+
     else:
         try:
             args.hpc = int(args.hpc)
             short_strain_list = set(strain_list) - set(update_strain)
-            snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain)
-            ## on cluster version this will have to be subject to a qsub hold
+            snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain, config_dict['snpdb_name'])
+            ## on cluster version this will have to be subject to a qsub hold - no it wont, can just run on headnode
             snpdb.check_matrix(cur, update_strain, update_strain)
         except ValueError as e:
             print '\n#### Error ####'
@@ -712,7 +869,6 @@ def qsub_to_check_matrix(config_dict, args):
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
     cur = snpdb.snpdb_conn.cursor()
     snp_co = '1000000'
-
     strain_list = []
     with open(args.strain_list) as fi:
         for x in fi.readlines():
@@ -725,9 +881,15 @@ def qsub_to_check_matrix(config_dict, args):
     with open(args.update_list) as fi:
         for x in fi.readlines():
             update_strain.append(x.strip())
-
     snpdb.parse_args_for_update_matrix(cur, snp_co, strain_list)
     snpdb.check_matrix(cur, short_strain_list, update_strain)
+
+    ## need to clean up as otherwise the glob
+    os.system('rm -f {0}'.format(args.strain_list))
+    direc, name = os.path.split(args.strain_list)
+    list_number = name.split('_')[-1]
+    shell_script = '{0}/update_matrix_{1}.sh'.format(direc, list_number)
+    os.system('rm -f {0}'.format(shell_script))
 
 
 

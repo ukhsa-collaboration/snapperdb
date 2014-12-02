@@ -3,6 +3,14 @@ __author__ = 'flashton'
 '''
 This section of the code is heavily influenced by the design of Aaron Quinlan and Nick Loman's poretools package - check it out!
 https://github.com/arq5x/poretools
+
+Feature wish list
+
+Want an ipython notebook that speaks to the gdw-sequencing table, you can give it a SNP address and it shows you the
+distribution of that snp address over time (and geog).
+
+Also, should work the other way around and given an ebg, tell you the most frequent SNP addresses that week, last week etc.
+
 '''
 
 import argparse
@@ -67,13 +75,15 @@ def main():
     parser_fastq_to_vcf = subparsers.add_parser('fastq_to_vcf', help='Takes fastqs and a config file and produces a vcf and '
                                                                      'serialised SNPs and ignored positions')
     parser_fastq_to_vcf.add_argument('fastqs', metavar='FASTQ file(s)', nargs='+', help='At least one fastq file')
-    parser_fastq_to_vcf.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config file in the user_configs directory (not the full path)')
+    parser_fastq_to_vcf.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
+                                                                        'file in the user_configs directory (not the full path)')
 
     parser_vcf_to_db = subparsers.add_parser('vcf_to_db', help='Takes a vcf and a config file, parses the vcf and then adds to '
                                                                'snpdb specified in the config file')
     parser_vcf_to_db.add_argument('vcf', metavar='VCF file', nargs='+', help='A vcf file (generated using '
                                                                                 'emit_all_positions?)')
-    parser_vcf_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config file in the user_configs directory (not the full path)')
+    parser_vcf_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
+                                                                    'file in the user_configs directory (not the full path)')
 
     parser_make_snpdb = subparsers.add_parser('make_snpdb', help='Takes a config and makes a snpdb')
     parser_make_snpdb.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
@@ -82,11 +92,11 @@ def main():
                                                           help='Takes a config and updates the distance matrix in the specified '
                                                                'snpdb')
     parser_update_distance_matrix.add_argument('-c', dest='config_file', metavar='Config file', required=True,
-                                               help='The name of a config file in the user_configs directory (not the full path)')
+                                               help='The name of a config file in the user_configs directory '
+                                                    '(not the full path)')
     parser_update_distance_matrix.add_argument('-m', dest='hpc', default='N', help='This is a PHE only function <int>/N, '
-                                                                                   'where int is the number of qsub jobs you '
-                                                                                   'want to spread your matrix updates across. '
-                                                                                   'Default is N')
+                                                                                   'where int is the number of comparisons you '
+                                                                                   'want to do on each core')
 
     parser_qsub_to_check_matrix = subparsers.add_parser('qsub_to_check_matrix', help='This is only for internal use by snapperdb'
                                                                                ' when update matrix is being run in hpc mode.')
@@ -101,7 +111,8 @@ def main():
 
     parser_get_the_snps = subparsers.add_parser('get_the_snps', help='Takes a config file, a list, and a bunch of other flags '
                                                                     'and provides you with snps and more')
-    parser_get_the_snps.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config file in the user_configs directory (not the full path)')
+    parser_get_the_snps.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
+                                                                        'file in the user_configs directory (not the full path)')
     parser_get_the_snps.add_argument('-l', dest='strain_list', required=True)
     parser_get_the_snps.add_argument('-m', dest='snp_co', required=True, help='SNP cut off (has to be integer), strains more '
                                                                              'than this number of '
@@ -125,6 +136,11 @@ def main():
     parser_get_the_snps.add_argument('-e', dest='meta_flag', help='some value from the metadata in strain_stats, '
                                                                   'every strain with this meta-data will be included. '
                                                                   'e.g. (e.g. stx:2a,pt:8,row:value)', default='N')
+
+    parser_update_clusters = subparsers.add_parser('update_clusters', help='Given a config file, updates the SNP clustering '
+                                                                           'associated with the SNPdb specified in the config.')
+    parser_update_clusters.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
+                                                                        'file in the user_configs directory (not the full path)')
 
     args = parser.parse_args()
     run_command(args)
