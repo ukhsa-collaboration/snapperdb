@@ -667,7 +667,25 @@ class SNPdb:
             print strain + "\t",
             print hier[:-1]
 
-    def add_clusters_to_db(self, clusters, profile_dict,levels,cur,conn, cluster_strain_list):
+    def add_clusters_to_table(self, clusters, levels):
+        strain_list = {}
+        print "#\t"+ str(levels)
+        for co in (sorted(clusters, key=clusters.get)):
+            #print co
+            for i, cluster in enumerate(clusters[co]):
+                for strain in list(cluster):
+                    if strain not in strain_list:
+                        strain_list[strain] = []
+                    strain_list[strain].append(i+1)
+        print strain_list
+        for strain in (sorted(tuple(strain_list), key=strain_list.get)):
+            hier=""
+            for clust in strain_list[strain]:
+                hier = hier + str(clust) + "."
+            print strain + "\t",
+            print hier[:-1]
+
+    def add_clusters_to_existing_table(self, clusters, profile_dict,levels,cur,conn, cluster_strain_list):
         strain_list = {}
         for co in (sorted(clusters, key=clusters.get)):
             for i, cluster in enumerate(clusters[co]):
@@ -696,6 +714,8 @@ class SNPdb:
                 conn.commit()
         return strain_list
 
+
+
     def update_clusters(self, cur):
         cur.execute('select * from strain_clusters')
         row = cur.fetchall()
@@ -715,7 +735,7 @@ class SNPdb:
 
             #self.print_slv_clusters(clean_clusters, cluster_co)
 
-            self.add_clusters_to_db(clean_clusters, profile_dict, cluster_co, )
+            self.add_clusters_to_table(clean_clusters, cluster_co)
         else:
             '''
             run update_clusters_db
@@ -850,7 +870,6 @@ def update_distance_matrix(config_dict, args):
     if args.hpc == 'N':
         #snpdb.check_matrix(cur, strain_list, update_strain)
         snpdb.update_clusters(cur)
-
     else:
         try:
             args.hpc = int(args.hpc)
