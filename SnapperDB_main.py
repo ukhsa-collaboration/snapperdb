@@ -16,7 +16,7 @@ Also, should work the other way around and given an ebg, tell you the most frequ
 import argparse
 from __init__ import __version__, parse_config
 from gbru_vcf import fastq_to_vcf
-from snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix
+from snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, update_clusters
 
 
 
@@ -46,6 +46,9 @@ def run_command(args):
 
     elif args.command == 'qsub_to_check_matrix':
         qsub_to_check_matrix(config_dict, args)
+
+    elif args.command == 'update_clusters':
+        update_clusters(config_dict)
 
     elif args.command == 'make_snpdb':
         make_snpdb(config_dict)
