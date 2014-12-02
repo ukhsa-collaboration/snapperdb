@@ -584,6 +584,148 @@ class SNPdb:
 
         pass
 
+    ### all functions below here are to do with the clustering
+
+    def get_input(self, cur):
+        profile_dict = {}
+        sql = "select strain1, strain2, snp_dist from dist_matrix"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            if row[0] not in profile_dict:
+                profile_dict[row[0]] = {}
+                profile_dict[row[0]][row[1]] = row[2]
+            else:
+                profile_dict[row[0]][row[1]] = row[2]
+            if row[1] not in profile_dict:
+                profile_dict[row[1]] = {}
+                profile_dict[row[1]][row[0]] = row[2]
+            else:
+                profile_dict[row[1]][row[0]] = row[2]
+        return profile_dict
+
+    def get_cutoffs(self, cur):
+        co = []
+        cluster_dict = {}
+        cluster_strain_list = {}
+        #get columns names
+        sql = "SELECT * FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'strain_clusters'"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            if row[3][0] == "t":
+                co.append(row[3][1:])
+        return co
+
+    def make_links(self, profile_dict,co):
+        clusters = {}
+        for i, strain1 in enumerate(profile_dict):
+            clusters[i] = []
+            clusters[i].append(strain1)    
+            for strain2 in profile_dict[strain1]:
+                if int(profile_dict[strain1][strain2]) <= int(co):
+                    clusters[i].append(strain2)
+        return clusters
+    
+    def define_clusters(self, slvs):
+        clusters = {}
+        for each in slvs:
+            clusters[each] = set(slvs[each])
+            for each2 in slvs:
+                    int_set = set(slvs[each]) & set(slvs[each2])
+                    if len(int_set) >= 1:
+                        clusters[each] = set(clusters[each]) | set(slvs[each2])
+                        #can we merge with any other clusters
+                        for made_clusters in clusters:
+                            int_set = set(clusters[each]) & set(clusters[made_clusters])    
+                            if len(int_set) >= 1:
+                                clusters[each] = set(clusters[made_clusters]) | set(clusters[each])
+                                clusters[made_clusters] = clusters[each]
+        return clusters
+
+    def remove_duplicate_clusters(self, clusters):
+        clean_clusters = {}
+        for cluster1 in clusters:
+            clean_clusters[tuple(sorted(clusters[cluster1]))] = 1
+        return clean_clusters
+
+    def print_slv_clusters(self, clusters,levels):
+        strain_list = {}
+        print "#\t"+ str(levels)
+        for co in (sorted(clusters, key=clusters.get)):
+            #print co
+            for i, cluster in enumerate(clusters[co]):
+                for strain in list(cluster):
+                    if strain not in strain_list:
+                        strain_list[strain] = []
+                    strain_list[strain].append(i+1)
+        #print strain_list
+        for strain in (sorted(tuple(strain_list), key=strain_list.get)):
+            hier=""
+            for clust in strain_list[strain]:
+                hier = hier + str(clust) + "."
+            print strain + "\t",
+            print hier[:-1]
+
+    def add_clusters_to_db(self, clusters, profile_dict,levels,cur,conn, cluster_strain_list):
+        strain_list = {}
+        for co in (sorted(clusters, key=clusters.get)):
+            for i, cluster in enumerate(clusters[co]):
+                for strain in list(cluster):
+                    if strain not in strain_list:
+                        strain_list[strain] = []
+                    strain_list[strain].append(int(clusters[co][cluster]))
+        for strain in (sorted(tuple(strain_list), key=strain_list.get)):
+            if strain in cluster_strain_list:
+                sql = "update strain_clusters set "
+                for i,clust in enumerate(strain_list[strain]):
+                    sql = sql + "t"+levels[len(levels)-(i+1)] +" = "+str(clust)+" ,"
+                sql = sql[:-1]
+                sql = sql + " where name = '"+strain+"'"
+                cur.execute(sql)    
+                conn.commit()
+            else:
+                sql = "insert into strain_clusters ("
+                for i,clust in enumerate(strain_list[strain]):
+                    sql = sql + "t"+levels[len(levels)-(i+1)] + ","
+                sql = sql + "name ) VALUES ("
+                for i,clust in enumerate(strain_list[strain]):
+                    sql = sql + str(clust) + ","
+                sql = sql + "\'"+strain+"\')"
+                cur.execute(sql)    
+                conn.commit()
+        return strain_list
+
+    def update_clusters(self, cur):
+        cur.execute('select * from strain_clusters')
+        row = cur.fetchall()
+        if not row:
+            '''
+            run the clustering for the first time and add to the db
+            '''
+            print 'strain_clusters empty'
+            print "###  Fetching Matrix:"+ str(datetime.datetime.now())
+            profile_dict = self.get_input(cur)
+            cluster_co = self.get_cutoffs(cur)
+            clean_clusters = {}
+            for cuts in cluster_co:
+                links = self.make_links(profile_dict, cuts)
+                clusters = self.define_clusters(links)
+                clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
+
+            #self.print_slv_clusters(clean_clusters, cluster_co)
+
+            self.add_clusters_to_db(clean_clusters, profile_dict, cluster_co, )
+        else:
+            '''
+            run update_clusters_db
+            '''
+
+            pass
+
+
+
+
 
 class Variant:
     def __init__(self):
@@ -706,7 +848,9 @@ def update_distance_matrix(config_dict, args):
     print "###  Populating distance matrix: " + str(datetime.datetime.now())
     snpdb.parse_args_for_update_matrix(cur, snp_co, strain_list)
     if args.hpc == 'N':
-        snpdb.check_matrix(cur, strain_list, update_strain)
+        #snpdb.check_matrix(cur, strain_list, update_strain)
+        snpdb.update_clusters(cur)
+
     else:
         try:
             args.hpc = int(args.hpc)

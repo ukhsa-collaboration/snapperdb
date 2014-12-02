@@ -3,6 +3,14 @@ __author__ = 'flashton'
 '''
 This section of the code is heavily influenced by the design of Aaron Quinlan and Nick Loman's poretools package - check it out!
 https://github.com/arq5x/poretools
+
+Feature wish list
+
+Want an ipython notebook that speaks to the gdw-sequencing table, you can give it a SNP address and it shows you the
+distribution of that snp address over time (and geog).
+
+Also, should work the other way around and given an ebg, tell you the most frequent SNP addresses that week, last week etc.
+
 '''
 
 import argparse
@@ -128,6 +136,11 @@ def main():
     parser_get_the_snps.add_argument('-e', dest='meta_flag', help='some value from the metadata in strain_stats, '
                                                                   'every strain with this meta-data will be included. '
                                                                   'e.g. (e.g. stx:2a,pt:8,row:value)', default='N')
+
+    parser_update_clusters = subparsers.add_parser('update_clusters', help='Given a config file, updates the SNP clustering '
+                                                                           'associated with the SNPdb specified in the config.')
+    parser_update_clusters.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
+                                                                        'file in the user_configs directory (not the full path)')
 
     args = parser.parse_args()
     run_command(args)
