@@ -40,8 +40,6 @@ class SNPdb:
     mq_cutoff = None
     ad_cutoff = None
 
-
-
     def __init__(self, config_dict):
         """
         Constructor for the SNPdb class. If config is specified, then it will always be used to initialise
@@ -542,6 +540,8 @@ class SNPdb:
         with open('{0}/short_strain_list'.format(this_dir), 'w') as fo:
             for x in short_strain_list:
                 fo.write(x + '\n')
+
+        print strain_list
         with open('{0}/strain_list'.format(this_dir), 'w') as fo:
             for x in strain_list:
                 fo.write(x + '\n')
@@ -565,7 +565,9 @@ class SNPdb:
 
             with open('{0}/update_matrix_{1}.sh'.format(this_dir, i), 'w') as fo:
                 fo.write(command)
-            os.system('qsub {0}/update_matrix_{1}.sh'.format(this_dir, i))
+            #os.system('qsub {0}/update_matrix_{1}.sh'.format(this_dir, i))
+
+
             #os.system('chmod u+x {0}/update_matrix_{1}.sh'.format(this_dir, i))
             #os.system('{0}/update_matrix_{1}.sh'.format(this_dir, i))
 
@@ -832,7 +834,6 @@ class SNPdb:
             strain_list = self.add_clusters_to_existing_table(clean_clusters, profile_dict, cluster_co, cur, cluster_strain_list)
             self.merged_clusters(cluster_strain_list, strain_list, cur)
 
-
 class Variant:
     def __init__(self):
         self._pos = int
@@ -995,7 +996,6 @@ def qsub_to_check_matrix(config_dict, args):
     list_number = name.split('_')[-1]
     shell_script = '{0}/update_matrix_{1}.sh'.format(direc, list_number)
     os.system('rm -f {0}'.format(shell_script))
-
 
 def update_clusters(config_dict):
     snpdb = SNPdb(config_dict)
