@@ -541,7 +541,6 @@ class SNPdb:
             for x in short_strain_list:
                 fo.write(x + '\n')
 
-        print strain_list
         with open('{0}/strain_list'.format(this_dir), 'w') as fo:
             for x in strain_list:
                 fo.write(x + '\n')
@@ -554,7 +553,7 @@ class SNPdb:
                        '#$ -e {0}/check_matrix.stderr\n'
                        '#$ -m e\n'
                        '#$ -wd {1}\n'
-                       '#$ -N run_update_matrix_{2}_{3}\n\n'
+                       '#$ -N up_mat_{2}_{3}\n\n'
                        '. /etc/profile.d/modules.sh\n'
                        'module load {7}/.module_files/snapperdb/1-0\n'
                        'python SnapperDB_main.py'
@@ -565,7 +564,7 @@ class SNPdb:
 
             with open('{0}/update_matrix_{1}.sh'.format(this_dir, i), 'w') as fo:
                 fo.write(command)
-            #os.system('qsub {0}/update_matrix_{1}.sh'.format(this_dir, i))
+            os.system('qsub {0}/update_matrix_{1}.sh'.format(this_dir, i))
 
 
             #os.system('chmod u+x {0}/update_matrix_{1}.sh'.format(this_dir, i))
@@ -949,16 +948,19 @@ def update_distance_matrix(config_dict, args):
     snpdb._write_conn_string()
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
     cur = snpdb.snpdb_conn.cursor()
+    print '### Getting strains ' + str(datetime.datetime.now())
     strain_list, update_strain = snpdb.get_strains(cur)
     ## get_all_good_ids from snpdb2 takes a snp cutoff as well, here, we don't have a SNP cutoff so we set it arbitrarily high.
     snp_co = '1000000'
     print "###  Populating distance matrix: " + str(datetime.datetime.now())
     snpdb.parse_args_for_update_matrix(cur, snp_co, strain_list)
     if args.hpc == 'N':
+        print '### Launching serial update_distance_matrix ' + str(datetime.datetime.now())
         snpdb.check_matrix(cur, strain_list, update_strain)
         snpdb.update_clusters(cur)
     else:
         try:
+            print '### Launching parallele update_distance_matrix ' + str(datetime.datetime.now())
             args.hpc = int(args.hpc)
             short_strain_list = set(strain_list) - set(update_strain)
             snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain, config_dict['snpdb_name'])

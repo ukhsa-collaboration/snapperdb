@@ -43,8 +43,6 @@ class Vcf:
         self.mq_cutoff = None
         self.ad_cutoff = None
 
-
-
     def parse_config_dict(self, config_dict):
         ## we loop through thusly in case not all these things are in the config
         for attr in config_dict:
@@ -74,8 +72,6 @@ class Vcf:
             ## this is because we also call this from snpdb, where args doesn't contain fastqs, but a pickle.
             self.tmp_dir = os.path.join(os.path.dirname(args.vcf[0]), 'tmp')
             self.mkdir_p(self.tmp_dir)
-
-
 
     def read_vcf(self):
 
@@ -142,7 +138,6 @@ class Vcf:
         self.bad_pos = set(self.bad_depth) | set(self.bad_qual) | set(self.bad_var)
 
         self.get_average_and_sd_depth()
-
 
     def get_length_of_ref(self):
         ref_len = len(self.depth)
@@ -211,8 +206,6 @@ class Vcf:
         self.make_tmp_dir(args)
         self.sorted_bamfile = os.path.join(self.tmp_dir, self.sample_name + '.sorted' + '.bam')
         self.vcf_filehandle = os.path.join(self.tmp_dir, os.path.pardir, '{0}.vcf'.format(self.sample_name))
-
-        
 
     def check_reference_bwa_indexed(self):
         indices = ['amb', 'ann', 'bwt', 'pac', 'sa']
@@ -311,3 +304,11 @@ def fastq_to_vcf(args, config_dict):
         fastq_bam_vcf.pickle_variants_and_ignored_pos(args)
     elif args.command == 'fastq_to_db':
         return fastq_bam_vcf
+
+def parse_vcf_for_mixed(args, config_dict):
+    vcf = Vcf()
+    vcf.parse_config_dict(config_dict)
+    vcf.sample_name = os.path.basename(args.vcf[0]).split(os.extsep)[0]
+    vcf.ad_cutoff = float(args.ad_ratio)
+    vcf.vcf_filehandle = args.vcf_file
+    vcf.read_vcf()

@@ -15,7 +15,7 @@ Also, should work the other way around and given an ebg, tell you the most frequ
 
 import argparse
 from __init__ import __version__, parse_config
-from gbru_vcf import fastq_to_vcf
+from gbru_vcf import fastq_to_vcf, parse_vcf_for_mixed
 from snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, update_clusters
 
 
@@ -56,6 +56,9 @@ def run_command(args):
     elif args.command == 'get_the_snps':
         print str(args.out)
         get_the_snps(args, config_dict)
+
+    elif args.command == 'check_vcf_for_mixed':
+        parse_vcf_for_mixed(args, config_dict)
 
 
 
@@ -144,6 +147,15 @@ def main():
                                                                            'associated with the SNPdb specified in the config.')
     parser_update_clusters.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
                                                                         'file in the user_configs directory (not the full path)')
+    parser_check_vcf_for_mixed = subparsers.add_parser('check_vcf_for_mixed', help='Given the path to a vcf file, '
+                                                                                   'it will check the number of positions in '
+                                                                                   'the vcf that have an AD ratio less than '
+                                                                                   'specificed in -a')
+    parser_check_vcf_for_mixed.add_argument('-c', dest='config_file', required=True, help='The name of a config '
+                                                                        'file in the user_configs directory (not the full path)')
+    parser_check_vcf_for_mixed.add_argument('-v', dest='vcf_file', required=True, help='Path to a vcf')
+    parser_check_vcf_for_mixed.add_argument('-a', dest='ad_ratio', required=True, help='Positions below this cutoff will be '
+                                                                                       'counted by the script.')
 
     args = parser.parse_args()
     run_command(args)
