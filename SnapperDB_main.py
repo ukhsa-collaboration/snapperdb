@@ -156,6 +156,8 @@ def main():
     parser_check_vcf_for_mixed.add_argument('-v', dest='vcf_file', required=True, help='Path to a vcf')
     parser_check_vcf_for_mixed.add_argument('-a', dest='ad_ratio', required=True, help='Positions below this cutoff will be '
                                                                                        'counted by the script.')
+    parser_check_vcf_for_mixed.add_argument('-o', dest='outdir', required=True, help='Where do you want the output to be '
+                                                                                     'written to?')
 
     args = parser.parse_args()
     run_command(args)

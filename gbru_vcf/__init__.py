@@ -42,6 +42,7 @@ class Vcf:
         self.depth_cutoff = None
         self.mq_cutoff = None
         self.ad_cutoff = None
+        self.number_mixed_positions = 0
 
     def parse_config_dict(self, config_dict):
         ## we loop through thusly in case not all these things are in the config
@@ -98,11 +99,11 @@ class Vcf:
 
         for line in openfile:
             if not re.match(r'^#',line):
-                temp = line.split()
+                split_line = line.split()
                 #get reference
-                self.ref = temp[0]
+                self.ref = split_line[0]
                 #get pos
-                pos = temp[1]
+                pos = split_line[1]
                 #get depth
                 matchObj  = re.match(r'.*DP=(\d*)',line)
                 try:
@@ -116,19 +117,22 @@ class Vcf:
                 except:
                     self.qual[pos]  = 0
                 #get var call
-                var_call = temp[4]
-                ref_call = temp[3]
+                var_call = split_line[4]
+                ref_call = split_line[3]
                 #if not wild type
                 if var_call != '.':
                     matchObvar  = re.match(r'.*GT:AD:DP:GQ:PL\s+(.*)',line)
-                    temp = matchObvar.group(1).split(':')
-                    self.hap_call[pos] = temp[0]
-                    self.hap_depth [pos] = temp[2]
-                    self.hap_qual[pos] = temp[3]
-                    temp2 = temp[1].split(',')
-                    self.hap_var_count[pos] = float(temp2[1]) / float(self.depth[pos])
+                    format_string = matchObvar.group(1).split(':')
+                    self.hap_call[pos] = format_string[0]
+                    self.hap_depth [pos] = format_string[2]
+                    self.hap_qual[pos] = format_string[3]
+                    ad_string = format_string[1].split(',')
+                    self.hap_var_count[pos] = float(ad_string[1]) / float(self.depth[pos])
+                    if self.hap_var_count[pos] < self.ad_cutoff:
+                        self.number_mixed_positions += 1
                     self.var[pos] = var_call
                     self.ref_base[pos] = ref_call
+
 
         self.bad_depth = self.return_positions_with_depth_less_than_cutoff(self.depth_cutoff)
         self.bad_qual = self.return_positions_with_mq_less_than_cutoff(self.mq_cutoff)
@@ -136,8 +140,9 @@ class Vcf:
                                                                                                            self.mq_cutoff,
                                                                                                            self.ad_cutoff)
         self.bad_pos = set(self.bad_depth) | set(self.bad_qual) | set(self.bad_var)
-
+        
         self.get_average_and_sd_depth()
+        openfile.close()
 
     def get_length_of_ref(self):
         ref_len = len(self.depth)
@@ -308,7 +313,12 @@ def fastq_to_vcf(args, config_dict):
 def parse_vcf_for_mixed(args, config_dict):
     vcf = Vcf()
     vcf.parse_config_dict(config_dict)
-    vcf.sample_name = os.path.basename(args.vcf[0]).split(os.extsep)[0]
+    vcf.sample_name = os.path.basename(args.vcf_file[0]).split(os.extsep)[0]
     vcf.ad_cutoff = float(args.ad_ratio)
     vcf.vcf_filehandle = args.vcf_file
     vcf.read_vcf()
+
+    with open('{0}/{1}.txt'.format(args.outdir, vcf.sample_name), 'w') as fo:
+        fo.write('{0}\t{1}\n'.format(vcf.sample_name, vcf.number_mixed_positions))
+
+    print vcf.number_mixed_positions
