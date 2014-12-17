@@ -43,6 +43,8 @@ class Vcf:
         self.mq_cutoff = None
         self.ad_cutoff = None
         self.number_mixed_positions = 0
+        self.mixed_positions = []
+        self.rec_list = []
 
     def parse_config_dict(self, config_dict):
         ## we loop through thusly in case not all these things are in the config
@@ -129,7 +131,9 @@ class Vcf:
                     ad_string = format_string[1].split(',')
                     self.hap_var_count[pos] = float(ad_string[1]) / float(self.depth[pos])
                     if self.hap_var_count[pos] < self.ad_cutoff:
-                        self.number_mixed_positions += 1
+                        self.mixed_positions.append(pos)
+                        #if pos not in self.rec_list:
+                        #    self.number_mixed_positions += 1
                     self.var[pos] = var_call
                     self.ref_base[pos] = ref_call
 
@@ -297,6 +301,20 @@ class Vcf:
         self.check_reference_gatk_indexed()
         self.run_gatk(args)
 
+    def read_rec_file(self, rec_file):
+        try:
+            openfile = open(rec_file, 'r')
+        except:
+            print (rec_file + " not found ... ")
+            sys.exit()
+        rec_list = []    
+        for line in openfile:
+            if line[0].isdigit():
+                temp = (line.strip()).split('\t')
+                rec_range = range((int(temp[0])-1), (int(temp[1])-1))
+                rec_list = set(rec_list) | set(rec_range)
+
+        self.rec_list = rec_list
 
 def fastq_to_vcf(args, config_dict):
     fastq_bam_vcf = Vcf()
@@ -311,14 +329,26 @@ def fastq_to_vcf(args, config_dict):
         return fastq_bam_vcf
 
 def parse_vcf_for_mixed(args, config_dict):
+    if args.vcf_file.endswith('.gz'):
+
+        os.system('gunzip {0}'.format(args.vcf_file))
+        args.vcf_file = os.path.splitext(args.vcf_file)[0]
+
     vcf = Vcf()
     vcf.parse_config_dict(config_dict)
     vcf.sample_name = os.path.basename(args.vcf_file[0]).split(os.extsep)[0]
     vcf.ad_cutoff = float(args.ad_ratio)
     vcf.vcf_filehandle = args.vcf_file
+    #vcf.read_rec_file(args.rec_file)
     vcf.read_vcf()
 
-    with open('{0}/{1}.txt'.format(args.outdir, vcf.sample_name), 'w') as fo:
-        fo.write('{0}\t{1}\n'.format(vcf.sample_name, vcf.number_mixed_positions))
+    with open('{0}/{1}.positions.pick'.format(args.outdir, vcf.sample_name), 'wb') as fo:
+        vcf.mixed_positions = pickle.dump(vcf.mixed_positions, fo)
 
-    print vcf.number_mixed_positions
+
+    #with open('{0}/{1}.positions.txt'.format(args.outdir, vcf.sample_name), 'w') as fo:
+    #    fo.write('{0}\t{1}\n'.format(vcf.sample_name, vcf.number_mixed_positions))
+
+
+
+    #os.system('gzip {0}'.format(args.vcf_file))

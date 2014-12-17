@@ -158,6 +158,8 @@ def main():
                                                                                        'counted by the script.')
     parser_check_vcf_for_mixed.add_argument('-o', dest='outdir', required=True, help='Where do you want the output to be '
                                                                                      'written to?')
+    parser_check_vcf_for_mixed.add_argument('-r', dest='rec_file', help='File with positions to be ignored because of '
+                                                                        'phage/recombination.')
 
     args = parser.parse_args()
     run_command(args)
