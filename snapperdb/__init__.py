@@ -3,7 +3,7 @@ __author__ = 'flashton'
 import os
 import sys
 
-__version__="0.1.1"
+__version__ = "0.1.1"
 __config_dir__ = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'user_configs')
 __ref_genome_dir__ = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'reference_genomes')
 
@@ -36,7 +36,7 @@ def parse_config(args):
 
     return config_dict
 
-    ## don't need to check the below here necassarily, probably checked later.
+    # # don't need to check the below here necassarily, probably checked later.
     # ref_genome_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'reference_genomes')
     # if os.path.exists(ref_genome_dir):
     #     pass
