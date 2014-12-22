@@ -1,16 +1,18 @@
+import errno
+import os
+import re
+import subprocess
+import sys
+
+import snapperdb
+
 __author__ = 'flashton'
 
-import re
-import os
-import sys
-import subprocess
-import errno
 try:
     import cPickle as pickle
 except:
     import pickle
 
-import snapperdb
 
 class Vcf:
     def __init__(self):
@@ -47,7 +49,7 @@ class Vcf:
         self.rec_list = []
 
     def parse_config_dict(self, config_dict):
-        ## we loop through thusly in case not all these things are in the config
+        # # we loop through thusly in case not all these things are in the config
         for attr in config_dict:
             if attr == 'reference_genome':
                 self.reference_genome = config_dict[attr]
@@ -72,7 +74,7 @@ class Vcf:
             self.tmp_dir = os.path.join(os.path.dirname(args.fastqs[0]), 'snpdb', 'tmp')
             self.mkdir_p(self.tmp_dir)
         except AttributeError:
-            ## this is because we also call this from snpdb, where args doesn't contain fastqs, but a pickle.
+            # # this is because we also call this from snpdb, where args doesn't contain fastqs, but a pickle.
             self.tmp_dir = os.path.join(os.path.dirname(args.vcf[0]), 'tmp')
             self.mkdir_p(self.tmp_dir)
 
@@ -94,36 +96,36 @@ class Vcf:
             sys.exit()
         self.sample_name = os.path.splitext(os.path.basename(self.vcf_filehandle))[0]
 
-        ## bit pointless but maintains 'query' syntax of the original
+        # # bit pointless but maintains 'query' syntax of the original
         self.query = self.sample_name
 
         print self.query
 
         for line in openfile:
-            if not re.match(r'^#',line):
+            if not re.match(r'^#', line):
                 split_line = line.split()
-                #get reference
+                # get reference
                 self.ref = split_line[0]
-                #get pos
+                # get pos
                 pos = split_line[1]
-                #get depth
-                matchObj  = re.match(r'.*DP=(\d*)',line)
+                # get depth
+                matchObj = re.match(r'.*DP=(\d*)', line)
                 try:
                     self.depth[pos] = matchObj.group(1)
                 except:
                     self.depth[pos] = 0
-                #get map quality
-                matchObj  = re.match(r'.*MQ=(\d*\.\d*)',line)
+                # get map quality
+                matchObj = re.match(r'.*MQ=(\d*\.\d*)', line)
                 try:
                     self.qual[pos] = matchObj.group(1)
                 except:
-                    self.qual[pos]  = 0
-                #get var call
+                    self.qual[pos] = 0
+                # get var call
                 var_call = split_line[4]
                 ref_call = split_line[3]
-                #if not wild type
+                # if not wild type
                 if var_call != '.':
-                    matchObvar  = re.match(r'.*GT:AD:DP:GQ:PL\s+(.*)',line)
+                    matchObvar = re.match(r'.*GT:AD:DP:GQ:PL\s+(.*)', line)
                     format_string = matchObvar.group(1).split(':')
                     self.hap_call[pos] = format_string[0]
                     self.hap_depth [pos] = format_string[2]
@@ -132,7 +134,7 @@ class Vcf:
                     self.hap_var_count[pos] = float(ad_string[1]) / float(self.depth[pos])
                     if self.hap_var_count[pos] < self.ad_cutoff:
                         self.mixed_positions.append(pos)
-                        #if pos not in self.rec_list:
+                        # if pos not in self.rec_list:
                         #    self.number_mixed_positions += 1
                     self.var[pos] = var_call
                     self.ref_base[pos] = ref_call
@@ -144,7 +146,7 @@ class Vcf:
                                                                                                            self.mq_cutoff,
                                                                                                            self.ad_cutoff)
         self.bad_pos = set(self.bad_depth) | set(self.bad_qual) | set(self.bad_var)
-        
+
         self.get_average_and_sd_depth()
         openfile.close()
 
@@ -159,27 +161,27 @@ class Vcf:
             total += float(self.depth[pos])
         self.depth_average = float(total) / float(ref_len)
 
-        sd_tot=0
+        sd_tot = 0
         for pos in sorted(self.depth, key=int):
-            sd_tot = sd_tot + (float(self.depth[pos]) - float(self.depth_average))**2
+            sd_tot = sd_tot + (float(self.depth[pos]) - float(self.depth_average)) ** 2
 
-        self.depth_sd = (float(sd_tot)/float(ref_len))**0.5
+        self.depth_sd = (float(sd_tot) / float(ref_len)) ** 0.5
 
-    def return_positions_with_depth_less_than_cutoff(self,cutoff):
+    def return_positions_with_depth_less_than_cutoff(self, cutoff):
         bad_list = []
         for pos in self.depth:
             if float(self.depth[pos]) < float(cutoff):
                 bad_list.append(pos)
         return bad_list
 
-    def return_positions_with_mq_less_than_cutoff(self,cutoff):
+    def return_positions_with_mq_less_than_cutoff(self, cutoff):
         bad_list = []
         for pos in self.qual:
             if float(self.qual[pos]) < float(cutoff):
                 bad_list.append(pos)
         return bad_list
 
-    def return_var_positions_with_depth_qual_less_and_above_than_cutoff(self, depth_co, qual_co,var_count_co):
+    def return_var_positions_with_depth_qual_less_and_above_than_cutoff(self, depth_co, qual_co, var_count_co):
         bad_list = []
         good_dict = {}
         for pos in self.hap_qual:
@@ -248,23 +250,23 @@ class Vcf:
     def convert_sort_index(self, args):
         samfile = os.path.join(self.tmp_dir, self.sample_name + '.sam')
         bamfile = os.path.join(self.tmp_dir, self.sample_name + '.bam')
-        ## have to make tmp_sorted_bamfile because samtools sort takes filename without .bam as output handle
+        # # have to make tmp_sorted_bamfile because samtools sort takes filename without .bam as output handle
         tmp_sorted_bamfile = os.path.join(self.tmp_dir, self.sample_name + '.sorted')
-        process = subprocess.Popen(['samtools', 'view', '-bS', '-o', bamfile, samfile], stderr = subprocess.PIPE)
+        process = subprocess.Popen(['samtools', 'view', '-bS', '-o', bamfile, samfile], stderr=subprocess.PIPE)
         stderr = process.communicate()
         if process.returncode != 0:
             sys.stderr.write('Problem with <convert>_sort_index\n')
             sys.stderr.write('{0}\n'.format(stderr))
             sys.exit()
 
-        process = subprocess.Popen(['samtools', 'sort', bamfile, tmp_sorted_bamfile], stderr = subprocess.PIPE)
+        process = subprocess.Popen(['samtools', 'sort', bamfile, tmp_sorted_bamfile], stderr=subprocess.PIPE)
         stderr = process.communicate()
         if process.returncode != 0:
             sys.stderr.write('Problem with convert_<sort>_index\n')
             sys.stderr.write('{0}\n'.format(stderr))
             sys.exit()
 
-        process = subprocess.Popen(['samtools', 'index', self.sorted_bamfile], stderr = subprocess.PIPE)
+        process = subprocess.Popen(['samtools', 'index', self.sorted_bamfile], stderr=subprocess.PIPE)
         stderr = process.communicate()
         if process.returncode != 0:
             sys.stderr.write('Problem with convert_sort_<index>\n')
@@ -290,7 +292,7 @@ class Vcf:
         process = subprocess.Popen(['java', '-Xmx30g', '-jar',
                                     '/Users/flashton/Programs/GenomeAnalysisTK-3.2-2/GenomeAnalysisTK.jar', '-T',
                                     'UnifiedGenotyper', '-nt', '1', '-out_mode', 'EMIT_ALL_SITES', '-R', self.ref_genome_path,
-                                    '-I', self.sorted_bamfile, '-o', self.vcf_filehandle], stderr = subprocess.PIPE )
+                                    '-I', self.sorted_bamfile, '-o', self.vcf_filehandle], stderr=subprocess.PIPE)
         stderr = process.communicate()
         if process.returncode != 0:
             sys.stderr.write('Problem with run_gatk\n')
@@ -307,11 +309,11 @@ class Vcf:
         except:
             print (rec_file + " not found ... ")
             sys.exit()
-        rec_list = []    
+        rec_list = []
         for line in openfile:
             if line[0].isdigit():
                 temp = (line.strip()).split('\t')
-                rec_range = range((int(temp[0])-1), (int(temp[1])-1))
+                rec_range = range((int(temp[0]) - 1), (int(temp[1]) - 1))
                 rec_list = set(rec_list) | set(rec_range)
 
         self.rec_list = rec_list
@@ -339,16 +341,16 @@ def parse_vcf_for_mixed(args, config_dict):
     vcf.sample_name = os.path.basename(args.vcf_file[0]).split(os.extsep)[0]
     vcf.ad_cutoff = float(args.ad_ratio)
     vcf.vcf_filehandle = args.vcf_file
-    #vcf.read_rec_file(args.rec_file)
+    # vcf.read_rec_file(args.rec_file)
     vcf.read_vcf()
 
     with open('{0}/{1}.positions.pick'.format(args.outdir, vcf.sample_name), 'wb') as fo:
         vcf.mixed_positions = pickle.dump(vcf.mixed_positions, fo)
 
 
-    #with open('{0}/{1}.positions.txt'.format(args.outdir, vcf.sample_name), 'w') as fo:
+    # with open('{0}/{1}.positions.txt'.format(args.outdir, vcf.sample_name), 'w') as fo:
     #    fo.write('{0}\t{1}\n'.format(vcf.sample_name, vcf.number_mixed_positions))
 
 
 
-    #os.system('gzip {0}'.format(args.vcf_file))
+    # os.system('gzip {0}'.format(args.vcf_file))
