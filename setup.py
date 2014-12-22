@@ -14,5 +14,6 @@ setup(name='snapperdb',
       author_email='email',
       url='URL of the repo?',
       packages=['snapperdb', 'snapperdb.gbru_vcf', 'snapperdb.snpdb'],
+      scripts=["SnapperDB_main.py"],
       requires=["psycopg2"]  # This needs to be extended to include others.
      )
