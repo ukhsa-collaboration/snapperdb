@@ -14,10 +14,10 @@ Also, should work the other way around and given an ebg, tell you the most frequ
 '''
 
 import argparse
-from __init__ import __version__, parse_config
-from gbru_vcf import fastq_to_vcf, parse_vcf_for_mixed
-from snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, update_clusters
 
+from snapperdb import __version__, parse_config
+from snapperdb.gbru_vcf import fastq_to_vcf, parse_vcf_for_mixed
+from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, update_clusters
 
 
 class ArgumentParserWithDefaults(argparse.ArgumentParser):
@@ -38,7 +38,7 @@ def run_command(args):
         fastq_to_vcf(args, config_dict)
 
     elif args.command == 'vcf_to_db':
-        ## third argument is for an instance of a vcf class, which doesnt exist in this case
+        # # third argument is for an instance of a vcf class, which doesnt exist in this case
         vcf_to_db(args, config_dict, None)
 
     elif args.command == 'update_distance_matrix':
@@ -69,8 +69,8 @@ def main():
 
     subparsers = parser.add_subparsers(title='[sub-commands]', dest='command', parser_class=ArgumentParserWithDefaults)
 
-    ## metavar is a variable name for use in help
-    ## nargs = '+' means that fastqs will take mutliple files and return a list and return an error if not at least 1
+    # # metavar is a variable name for use in help
+    # # nargs = '+' means that fastqs will take mutliple files and return a list and return an error if not at least 1
 
     parser_fastq_to_db = subparsers.add_parser('fastq_to_db', help='Takes fastqs and a config file, produces vcf and then '
                                                                    'inserts variants into the snpdb specified in the config')

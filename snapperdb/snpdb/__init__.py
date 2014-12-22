@@ -12,8 +12,8 @@ import sys
 from Bio import SeqIO
 import psycopg2, psycopg2.extras
 
-from gbru_vcf import Vcf
 import snapperdb
+from snapperdb.gbru_vcf import Vcf
 
 
 class SNPdb:
