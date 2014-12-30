@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 import sys
-
+import logging
 import snapperdb
 
 __author__ = 'flashton'
@@ -98,7 +98,6 @@ class Vcf:
 
         # # bit pointless but maintains 'query' syntax of the original
         self.query = self.sample_name
-
         print self.query
 
         for line in openfile:
@@ -235,7 +234,7 @@ class Vcf:
 
     def run_bwa(self, fastq_1, fastq_2, out_dir):
         header = '@RG\tID:1\tSM:%s' % self.sample_name
-        process = subprocess.Popen(['/Users/flashton/Programs/bwa-0.7.5a/bwa', 'mem', '-R', header, self.ref_genome_path,
+        process = subprocess.Popen(['bwa', 'mem', '-R', header, self.ref_genome_path,
                                     fastq_1, fastq_2],
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
@@ -290,7 +289,7 @@ class Vcf:
 
     def run_gatk(self, args):
         process = subprocess.Popen(['java', '-Xmx30g', '-jar',
-                                    '/Users/flashton/Programs/GenomeAnalysisTK-3.2-2/GenomeAnalysisTK.jar', '-T',
+                                    '/phengs/hpc_software/gatk/2.6.5/GenomeAnalysisTK.jar', '-T',
                                     'UnifiedGenotyper', '-nt', '1', '-out_mode', 'EMIT_ALL_SITES', '-R', self.ref_genome_path,
                                     '-I', self.sorted_bamfile, '-o', self.vcf_filehandle], stderr=subprocess.PIPE)
         stderr = process.communicate()
@@ -315,19 +314,29 @@ class Vcf:
                 temp = (line.strip()).split('\t')
                 rec_range = range((int(temp[0]) - 1), (int(temp[1]) - 1))
                 rec_list = set(rec_list) | set(rec_range)
-
         self.rec_list = rec_list
 
 def fastq_to_vcf(args, config_dict):
+    logger = logging.getLogger('snapperdb.fastq_to_vcf')
+    logger.info('Running fastq_to_vcf')
+
+
     fastq_bam_vcf = Vcf()
+    logger.info('Parsing config_dict')
     fastq_bam_vcf.parse_config_dict(config_dict)
+    logger.info('Defining class variables and making output files')
     fastq_bam_vcf.define_class_variables_and_make_output_files(args)
+    logger.info('Making sorted bam')
     fastq_bam_vcf.make_sorted_bam(args)
+    logger.info('Making vcf')
     fastq_bam_vcf.make_vcf(args)
+    logger.info('Parsing vcf')
     fastq_bam_vcf.read_vcf()
     if args.command == 'fastq_to_vcf':
+        logger.info('Pickling variants and ignored positions')
         fastq_bam_vcf.pickle_variants_and_ignored_pos(args)
     elif args.command == 'fastq_to_db':
+        logger.info('Returning instance of Vcf class')
         return fastq_bam_vcf
 
 def parse_vcf_for_mixed(args, config_dict):

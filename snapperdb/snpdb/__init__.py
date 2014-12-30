@@ -8,7 +8,7 @@ import os
 import pickle
 import re
 import sys
-
+import logging
 from Bio import SeqIO
 import psycopg2, psycopg2.extras
 
@@ -851,34 +851,45 @@ class Variant:
         self._locus_tag = str
 
 def vcf_to_db(args, config_dict, vcf):
+    logger = logging.getLogger('snapperdb.vcf_to_db')
+    logger.info('Initialising SNPdb class')
     snpdb = SNPdb(config_dict)
+    logger.info('Parsing config dict')
     snpdb.parse_config_dict(config_dict)
     snpdb._write_conn_string()
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
-    print snpdb.conn_string
     if inspect.stack()[0][3] == 'fastq_to_db':
+        ## need to add the code to add the single vcf passed to this function to the db.
         pass
     elif inspect.stack()[0][3] == 'vcf_to_db':
-        # # there is no existing vcf class here, but there will definitely be a vcf, and there may be a pickle.
+        ## there is no existing vcf class here, but there will definitely be a vcf, and there may be a pickle.
+        logger.info('Initialising Vcf class')
         vcf = Vcf()
+        logger.info('Making SNPdb variables and output files')
         snpdb.define_class_variables_and_make_output_files(args, vcf)
         if os.path.exists(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')):
+            logger.info('There are already serialised variants and ignored positions for this sample')
             print os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')
+            logger.info('Loading serialised variants and ignored positions')
             bad_pos = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')))
             good_var = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_good_var.pick')))
             vcf.good_var = good_var
             vcf.bad_pos = bad_pos
+            logger.info('Checking the length of the VCF')
             snpdb.check_len_vcf(vcf)
+            logger.info('Uploading to SNPdb')
             snpdb.snpdb_upload(vcf)
         else:
+            logger.info('There are no serialised variants, parsing config dict')
             vcf.parse_config_dict(config_dict)
+            logger.info('Reading vcf')
             vcf.read_vcf()
+            logger.info('Checking length of vcf')
             snpdb.check_len_vcf(vcf)
+            logger.info('Serialising variants and ignored positions')
             vcf.pickle_variants_and_ignored_pos(args)
+            logger.info('Uploading to SNPdb')
             snpdb.snpdb_upload(vcf)
-            '''
-            Parse vcf and get good_var and ignored_pos
-            '''
 
 def make_snpdb(config_dict):
     snpdb = SNPdb(config_dict)
