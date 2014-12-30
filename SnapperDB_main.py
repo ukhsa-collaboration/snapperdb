@@ -19,12 +19,6 @@ from snapperdb import __version__, parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, parse_vcf_for_mixed
 from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, update_clusters
 
-
-class ArgumentParserWithDefaults(argparse.ArgumentParser):
-    def __init__(self, *args, **kwargs):
-        super(ArgumentParserWithDefaults, self).__init__(*args, **kwargs)
-        self.add_argument("-q", "--quiet", help="Do not output warnings to stderr", action="store_true", dest="quiet")
-
 def run_command(args):
     config_dict = parse_config(args)
 
@@ -63,11 +57,11 @@ def run_command(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog='snapperdb', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(prog='snapperdb')
     parser.add_argument("-v", "--version", help="Installed snapperdb version", action="version",
                         version="%(prog)s " + str(__version__))
 
-    subparsers = parser.add_subparsers(title='[sub-commands]', dest='command', parser_class=ArgumentParserWithDefaults)
+    subparsers = parser.add_subparsers(title='[sub-commands]', dest='command')
 
     # # metavar is a variable name for use in help
     # # nargs = '+' means that fastqs will take mutliple files and return a list and return an error if not at least 1

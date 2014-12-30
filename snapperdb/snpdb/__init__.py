@@ -154,13 +154,16 @@ class SNPdb:
     def check_len_vcf(self, vcf):
         vcf_len = len(vcf.depth)
         ref_genome_path = os.path.join(self.ref_genome_dir, self.reference_genome + '.fa')
-        with open(ref_genome_path, 'r') as fi:
-            ref_fasta = SeqIO.parse(fi, 'fasta')
-            if len(ref_fasta) == vcf_len:
-                pass
-            else:
-                sys.stderr.write('VCF length and reference fasta length are not the same\n')
-                sys.exit()
+        print ref_genome_path
+        fi = open(ref_genome_path)
+        ref_fasta = SeqIO.read(fi, 'fasta')
+        print len(ref_fasta.seq), len(vcf.depth)
+        if len(ref_fasta.seq) == vcf_len:
+            pass
+        else:
+            sys.stderr.write('VCF length and reference fasta length are not the same\n')
+            sys.exit()
+        fi.close()
 
     def check_duplicate(self, vcf):
         dup = False
@@ -860,6 +863,7 @@ def vcf_to_db(args, config_dict, vcf):
         vcf = Vcf()
         snpdb.define_class_variables_and_make_output_files(args, vcf)
         if os.path.exists(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')):
+            print os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')
             bad_pos = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')))
             good_var = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_good_var.pick')))
             vcf.good_var = good_var
@@ -869,6 +873,8 @@ def vcf_to_db(args, config_dict, vcf):
         else:
             vcf.parse_config_dict(config_dict)
             vcf.read_vcf()
+            snpdb.check_len_vcf(vcf)
+            vcf.pickle_variants_and_ignored_pos(args)
             snpdb.snpdb_upload(vcf)
             '''
             Parse vcf and get good_var and ignored_pos

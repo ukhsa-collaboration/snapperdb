@@ -4,8 +4,8 @@ import os
 import sys
 
 __version__ = "0.1.1"
-__config_dir__ = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'user_configs')
-__ref_genome_dir__ = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'reference_genomes')
+__config_dir__ = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'user_configs')
+__ref_genome_dir__ = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'reference_genomes')
 
 
 def parse_config(args):
