@@ -16,18 +16,24 @@ Also, should work the other way around and given an ebg, tell you the most frequ
 import argparse
 import logging
 import os
+import datetime
 from snapperdb import __version__, parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, parse_vcf_for_mixed
 from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, update_clusters
 
 def setup_logging(args):
     log_dir = None
+    cwd_logs = ['update_distance_matrix', 'qsub_to_check_matrix', 'update_clusters', 'make_snpdb', 'check_vcf_for_mixed']
     if args.command.startswith('fastq'):
         log_dir = os.path.join(os.path.dirname(args.fastqs[0]), 'logs')
     elif args.command == 'vcf_to_db':
         log_dir = os.path.join(os.path.dirname(os.path.dirname(args.vcf)), 'logs')
+    elif args.command in cwd_logs:
+        log_dir = os.getcwd()
+
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
+
 
     logger = logging.getLogger('snapperdb')
     logging.basicConfig(filename='%s/snapperdb.log' % (log_dir), level=logging.DEBUG,
@@ -36,20 +42,18 @@ def setup_logging(args):
 
 def run_command(args):
     config_dict = parse_config(args)
+    setup_logging(args)
 
     if args.command == 'fastq_to_db':
         args.fastqs = sorted(args.fastqs)
-        setup_logging(args)
         vcf = fastq_to_vcf(args, config_dict)
         vcf_to_db(args, config_dict, vcf)
 
     elif args.command == 'fastq_to_vcf':
         args.fastqs = sorted(args.fastqs)
-        setup_logging(args)
         fastq_to_vcf(args, config_dict)
 
     elif args.command == 'vcf_to_db':
-        setup_logging(args)
         # # third argument is for an instance of a vcf class, which doesnt exist in this case
         vcf_to_db(args, config_dict, None)
 
@@ -66,6 +70,7 @@ def run_command(args):
         make_snpdb(config_dict)
 
     elif args.command == 'get_the_snps':
+        args.out = '%s.%s.%s' % (str(datetime.datetime.now()).split(' ')[0], config_dict['snpdb_name'], args.strain_list)
         print str(args.out)
         get_the_snps(args, config_dict)
 

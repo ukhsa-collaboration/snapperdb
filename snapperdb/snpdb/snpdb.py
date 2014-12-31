@@ -9,6 +9,7 @@ import os
 import sys
 from Bio import SeqIO
 import psycopg2, psycopg2.extras
+import logging
 
 import snapperdb
 
@@ -39,6 +40,7 @@ class SNPdb:
     depth_cutoff = None
     mq_cutoff = None
     ad_cutoff = None
+
 
     def __init__(self, config_dict):
         """
@@ -118,6 +120,15 @@ class SNPdb:
     def _write_conn_string(self):
         self.conn_string = 'host=\'{0}\' dbname={1} user=\'{2}\' password=\'{3}\''.format(self.pg_host, self.snpdb_name,
                                                                                           self.pg_uname, self.pg_pword)
+        does_snpdb_exist = self._check_if_snpdb_exists()
+        if does_snpdb_exist == True:
+
+            self.snpdb_conn = psycopg2.connect(self.conn_string)
+        else:
+            '''
+            How to handle logging within the class?
+            '''
+            pass
 
     def _check_if_snpdb_exists(self):
         try:
