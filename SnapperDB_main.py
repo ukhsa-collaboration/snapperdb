@@ -22,19 +22,18 @@ from snapperdb.gbru_vcf import fastq_to_vcf, parse_vcf_for_mixed
 from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, update_clusters
 
 def setup_logging(args):
-    log_dir = None
-    cwd_logs = ['update_distance_matrix', 'qsub_to_check_matrix', 'update_clusters', 'make_snpdb', 'check_vcf_for_mixed']
+    cwd_logs = ['update_distance_matrix', 'qsub_to_check_matrix',
+                'update_clusters', 'make_snpdb', '', 'get_the_snps']
     if args.command.startswith('fastq'):
         log_dir = os.path.join(os.path.dirname(args.fastqs[0]), 'logs')
     elif args.command == 'vcf_to_db':
         log_dir = os.path.join(os.path.dirname(os.path.dirname(args.vcf)), 'logs')
+    elif args.command == 'check_vcf_for_mixed':
+        log_dir = os.path.join(os.path.dirname(args.outdir), 'logs')
     elif args.command in cwd_logs:
         log_dir = os.getcwd()
-
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-
-
     logger = logging.getLogger('snapperdb')
     logging.basicConfig(filename='%s/snapperdb.log' % (log_dir), level=logging.DEBUG,
                         format='%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s')
@@ -45,36 +44,54 @@ def run_command(args):
     setup_logging(args)
 
     if args.command == 'fastq_to_db':
+        logger = logging.getLogger('snapperdb.fastq_to_db')
         args.fastqs = sorted(args.fastqs)
+        logger.info('PARAMS: config = %s; fastqs = %s' % (args.config_file, str(args.fastqs)))
         vcf = fastq_to_vcf(args, config_dict)
         vcf_to_db(args, config_dict, vcf)
 
     elif args.command == 'fastq_to_vcf':
+        logger = logging.getLogger('snapperdb.fastq_to_vcf')
         args.fastqs = sorted(args.fastqs)
+        logger.info('PARAMS: config = %s; fastqs = %s' % (args.config_file, str(args.fastqs)))
         fastq_to_vcf(args, config_dict)
 
     elif args.command == 'vcf_to_db':
+        logger = logging.getLogger('snapperdb.vcf_to_db')
+        logger.info('PARAMS: config = %s; vcf = %s' % (args.config_file, args.vcf))
         # # third argument is for an instance of a vcf class, which doesnt exist in this case
         vcf_to_db(args, config_dict, None)
 
     elif args.command == 'update_distance_matrix':
+        logger = logging.getLogger('snapperdb.update_distance_matrix')
+        logger.info('PARAMS: config = %s; multiple_threads = %s' % (args.config_file, args.hpc))
         update_distance_matrix(config_dict, args)
 
     elif args.command == 'qsub_to_check_matrix':
+        ## Hmmm, how does logging get handled here? all the qsubs will have their own logging processes but will be writing
+        # to the same file
         qsub_to_check_matrix(config_dict, args)
 
     elif args.command == 'update_clusters':
+        logger = logging.getLogger('snapperdb.update_clusters')
+        logger.info('PARAMS: config = %s' % (args.config_file))
         update_clusters(config_dict)
 
     elif args.command == 'make_snpdb':
+        logger = logging.getLogger('snapperdb.make_snpdb')
+        logger.info('PARAMS: config = %s' % (args.config_file))
         make_snpdb(config_dict)
 
     elif args.command == 'get_the_snps':
+        logger = logging.getLogger('snapperdb.get_the_snps')
+        logger.info('PARAMS: config = %s; list = %s; snp_cutoff = %s' % (args.config_file, args.strain_list, args.snp_co))
         args.out = '%s.%s.%s' % (str(datetime.datetime.now()).split(' ')[0], config_dict['snpdb_name'], args.strain_list)
-        print str(args.out)
         get_the_snps(args, config_dict)
 
     elif args.command == 'check_vcf_for_mixed':
+        logger = logging.getLogger('snapperdb.check_vcf_for_mixed')
+        logger.info('PARAMS: config = %s; vcf = %s; AD ratio = %s; recombination_file = %s' % (args.config_file, args.vcf_file,
+                                                                                  args.ad_ratio, args.rec_file))
         parse_vcf_for_mixed(args, config_dict)
 
 

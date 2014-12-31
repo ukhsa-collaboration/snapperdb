@@ -1,6 +1,5 @@
 __author__ = 'flashton'
 
-from variant import Variant
 
 from datetime import datetime
 import errno
@@ -10,8 +9,9 @@ import sys
 from Bio import SeqIO
 import psycopg2, psycopg2.extras
 import logging
-
+from variant import Variant
 import snapperdb
+
 
 
 class SNPdb:
@@ -40,6 +40,7 @@ class SNPdb:
     depth_cutoff = None
     mq_cutoff = None
     ad_cutoff = None
+
 
 
     def __init__(self, config_dict):
@@ -117,7 +118,7 @@ class SNPdb:
         vcf.sorted_bamfile = os.path.join(vcf.tmp_dir, vcf.sample_name + '.sorted' + '.bam')
         vcf.vcf_filehandle = os.path.join(vcf.tmp_dir, os.path.pardir, '{0}.vcf'.format(vcf.sample_name))
 
-    def _write_conn_string(self):
+    def _connect_to_snpdb(self):
         self.conn_string = 'host=\'{0}\' dbname={1} user=\'{2}\' password=\'{3}\''.format(self.pg_host, self.snpdb_name,
                                                                                           self.pg_uname, self.pg_pword)
         does_snpdb_exist = self._check_if_snpdb_exists()
@@ -278,7 +279,8 @@ class SNPdb:
 
     # # functions below here are for querying the snpdb
 
-    def get_background(self, cur, strain_list, args):
+    def get_background(self, strain_list, args):
+        cur = self.snpdb_conn.cursor()
         sql = "select distinct(" + args.back_flag + ") from strain_clusters"
         cur.execute(sql)
         rows = cur.fetchall()
@@ -305,7 +307,8 @@ class SNPdb:
         sql += ") and icount(" + name + ") < " + co
         return sql
 
-    def get_all_good_ids(self, cur, strain_list, snp_co):
+    def get_all_good_ids(self, strain_list, snp_co):
+        cur = self.snpdb_conn.cursor()
         strain_snps = {}
         totlist = []
         # # this could be replaced by where like any (array[strain_list]) - I think
@@ -318,7 +321,8 @@ class SNPdb:
             strain_snps[row[1]] = row[0]
         return totlist, strain_snps
 
-    def get_variants(self, cur):
+    def get_variants(self):
+        cur = self.snpdb_conn.cursor()
         variant_container = {}
         pos_2_id_list = {}
         sql = "select pos , id, ref_base, var_base, gene,product, amino_acid from variants"
@@ -342,7 +346,8 @@ class SNPdb:
                     pos_2_id_list[row[0]].append(row[1])
         return variant_container, pos_2_id_list
 
-    def get_bad_pos_for_strain_get_the_vars(self, cur, strain, totlist):
+    def get_bad_pos_for_strain_get_the_vars(self, strain, totlist):
+        cur = self.snpdb_conn.cursor()
         strain_ig = {}
         sql = "select ignored_pos, icount(ignored_pos), name as count from strains_snps where name =\'" + strain + "\'"
         cur.execute(sql)
@@ -352,14 +357,15 @@ class SNPdb:
             strain_ig = row[0]
         return totlist, strain_ig
 
-    def make_consensus(self, ref_seq, ref_flag, cur):
+    def make_consensus(self, ref_seq, ref_flag):
+        cur = self.snpdb_conn.cursor()
         fasta = {}
         var_id_list = []
         var_look = {}
         n_look = {}
         badlist = []
         for strain in self.strains_snps:
-            badlist, strains_ig = self.get_bad_pos_for_strain_get_the_vars(cur, strain, badlist)
+            badlist, strains_ig = self.get_bad_pos_for_strain_get_the_vars(strain, badlist)
             if strain not in fasta:
                 fasta[strain] = ref_seq[:]
             for ids in self.strains_snps[strain]:
@@ -392,28 +398,28 @@ class SNPdb:
 
         return diff_matrix
 
-    def parse_args_for_get_the_snps(self, args, cur, strain_list, ref_seq):
+    def parse_args_for_get_the_snps(self, args, strain_list, ref_seq):
+        logger = logging.getLogger('snapperdb.SNPdb.parse_args_for_get_the_snps')
+
         # # this populates class variables specific to querying the SNPdb
         if args.back_flag != 'N':
-            print "###  Getting background strains:" + str(datetime.now())
-            strain_list = self.get_background(cur, strain_list, args)
-
-        print "###  Getting good positions:" + str(datetime.now())
-        self.goodids, self.strains_snps = self.get_all_good_ids(cur, strain_list, args.snp_co)
-
-        print "Variable positions: " + str(len(self.goodids))
+            logger.info('Getting background strains')
+            strain_list = self.get_background(strain_list, args)
+        logger.info('Getting good positions')
+        self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, args.snp_co)
+        logger.info('Variable positions: ' + str(len(self.goodids)))
 
         if len(self.goodids) == 0:
-            print "###  No variable positions found: EXITING " + str(datetime.now())
+            logger.error('No variable positions found: EXITING')
             sys.exit()
-        print str(len(self.strains_snps)) + " strains used out of " + str(len(strain_list))
-        print "###  Getting variants:" + str(datetime.now())
-        self.variants, self.posIDMap = self.get_variants(cur)
-        print "###  Making consensus:" + str(datetime.now())
-        self.fasta, self.var_look, self.n_look, self.badlist, self.var_id_list = self.make_consensus(ref_seq, args.ref_flag, cur)
-        print "Ignored positions: " + str(len(self.badlist))
+        logger.info(str(len(self.strains_snps)) + ' strains used out of ' + str(len(strain_list)))
+        logger.info('Getting variants')
+        self.variants, self.posIDMap = self.get_variants()
+        logger.info('Making consensus')
+        self.fasta, self.var_look, self.n_look, self.badlist, self.var_id_list = self.make_consensus(ref_seq, args.ref_flag)
+        logger.info('Ignored positions' + str(len(self.badlist)))
         if args.mat_flag == 'Y':
-            print "###  Making Distance Matrix: " + str(datetime.now())
+            logger.info('Making Distance Matrix')
             self.matrix = self.calc_matrix()
 
     def print_fasta(self, out, flag, rec_list, ref_flag):
@@ -472,7 +478,8 @@ class SNPdb:
 
     # # functions below here are from update_distance_matrix
 
-    def get_strains(self, cur):
+    def get_strains(self):
+        cur = self.snpdb_conn.cursor()
         strain_list = []
         sql = " select name from strain_stats where ignore is NULL"
         cur.execute(sql)
@@ -490,15 +497,16 @@ class SNPdb:
 
         return strain_list, update_strain
 
-    def parse_args_for_update_matrix(self, cur, snp_co, strain_list):
+    def parse_args_for_update_matrix(self, snp_co, strain_list):
         # # this populates class variables specific to querying the SNPdb
-
+        cur = self.snpdb_conn.cursor()
         print "###  Getting good positions:" + str(datetime.now())
-        self.goodids, self.strains_snps = self.get_all_good_ids(cur, strain_list, snp_co)
+        self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, snp_co)
         print "###  Getting variants:" + str(datetime.now())
-        self.variants, self.posIDMap = self.get_variants(cur)
+        self.variants, self.posIDMap = self.get_variants()
 
-    def get_bad_pos_for_strain_update_matrix(self, cur, strain):
+    def get_bad_pos_for_strain_update_matrix(self, strain):
+        cur = self.snpdb_conn.cursor()
         strain_ig = []
         sql = "select ignored_pos, icount(ignored_pos), name from strains_snps where name =\'" + strain + "\'"
         cur.execute(sql)
@@ -507,17 +515,18 @@ class SNPdb:
             strain_ig = row[0]
         return strain_ig
 
-    def check_matrix(self, cur, data_list, update_strain):
+    def check_matrix(self, data_list, update_strain):
+        cur = self.snpdb_conn.cursor()
         seen_strain = []
         for strain1 in update_strain:
             seen_strain.append(strain1)
             print "Populating matrix for: " + strain1
             strain1_good_var = self.strains_snps[strain1]
-            strain1_ig_pos = self.get_bad_pos_for_strain_update_matrix(cur, strain1)
+            strain1_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain1)
             for strain2 in data_list:
                 if strain1 != strain2 and strain2 not in seen_strain:
                     strain2_good_var = self.strains_snps[strain2]
-                    strain2_ig_pos = self.get_bad_pos_for_strain_update_matrix(cur, strain2)
+                    strain2_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain2)
                     # getunion of bad_pos
                     all_bad_pos = set(strain1_ig_pos) | set(strain2_ig_pos)
 
@@ -601,7 +610,8 @@ class SNPdb:
 
     # ## all functions below here are to do with the clustering
 
-    def get_input(self, cur):
+    def get_input(self):
+        cur = self.snpdb_conn.cursor()
         profile_dict = {}
         sql = "select strain1, strain2, snp_dist from dist_matrix"
         cur.execute(sql)
@@ -619,10 +629,9 @@ class SNPdb:
                 profile_dict[row[1]][row[0]] = row[2]
         return profile_dict
 
-    def get_cutoffs(self, cur):
+    def get_cutoffs(self):
+        cur = self.snpdb_conn.cursor()
         co = []
-        cluster_dict = {}
-        cluster_strain_list = {}
         # get columns names
         sql = "SELECT * FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'strain_clusters'"
         cur.execute(sql)
@@ -716,7 +725,8 @@ class SNPdb:
             print strain + "\t",
             print hier[:-1]
 
-    def add_clusters_to_table(self, cur, clusters, levels):
+    def add_clusters_to_table(self, clusters, levels):
+        cur = self.snpdb_conn.cursor()
         strain_list = {}
         for i, l in enumerate(levels):
             levels[i] = 't%s' % l
@@ -744,7 +754,8 @@ class SNPdb:
             cur.execute(sql)
             self.snpdb_conn.commit()
 
-    def add_clusters_to_existing_table(self, clusters, profile_dict, levels, cur, cluster_strain_list):
+    def add_clusters_to_existing_table(self, clusters, profile_dict, levels, cluster_strain_list):
+        cur = self.snpdb_conn.cursor()
         strain_list = {}
         for co in (sorted(clusters, key=clusters.get)):
             for i, cluster in enumerate(clusters[co]):
@@ -773,8 +784,8 @@ class SNPdb:
                 self.snpdb_conn.commit()
         return strain_list
 
-    def get_clusters(self, cur, co):
-
+    def get_clusters(self, co):
+        cur = self.snpdb_conn.cursor()
         cluster_dict = {}
         cluster_strain_list = {}
         sql = "SELECT name, "
@@ -804,7 +815,8 @@ class SNPdb:
 
         return cluster_strain_list, cluster_dict
 
-    def merged_clusters(self, cluster_strain_list, strain_list, cur):
+    def merged_clusters(self, cluster_strain_list, strain_list):
+        cur = self.snpdb_conn.cursor()
         for strain in cluster_strain_list:
             if tuple(cluster_strain_list[strain]) != tuple(strain_list[strain]):
                 sql = "insert into cluster_logs (name, old_cluster, new_cluster, date) VALUES (\'%s\',\'%s\' ,\'%s\' ,\'%s\')" % (strain, str(tuple(cluster_strain_list[strain])), str(tuple(strain_list[strain])), str(datetime.now()))
@@ -812,7 +824,8 @@ class SNPdb:
                 self.snpdb_conn.commit()
                 print "!    cluster merge " + strain + " " + str(tuple(cluster_strain_list[strain])) + " to " + str(tuple(strain_list[strain]))
 
-    def update_clusters(self, cur):
+    def update_clusters(self):
+        cur = self.snpdb_conn.cursor()
         cur.execute('select * from strain_clusters')
         row = cur.fetchall()
         if not row:
@@ -821,22 +834,22 @@ class SNPdb:
             '''
             print 'strain_clusters empty'
             print "###  Fetching Matrix:" + str(datetime.now())
-            profile_dict = self.get_input(cur)
-            cluster_co = self.get_cutoffs(cur)
+            profile_dict = self.get_input()
+            cluster_co = self.get_cutoffs()
             clean_clusters = {}
             for cuts in cluster_co:
                 links = self.make_links(profile_dict, cuts)
                 clusters = self.define_clusters(links)
                 clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
             # self.print_slv_clusters(clean_clusters, cluster_co)
-            self.add_clusters_to_table(cur, clean_clusters, cluster_co)
+            self.add_clusters_to_table(clean_clusters, cluster_co)
         else:
             '''
             run update_clusters_db
             '''
-            profile_dict = self.get_input(cur)
-            cluster_co = self.get_cutoffs(cur)
-            cluster_strain_list, cluster_dict = self.get_clusters(cur, cluster_co)
+            profile_dict = self.get_input()
+            cluster_co = self.get_cutoffs()
+            cluster_strain_list, cluster_dict = self.get_clusters(cluster_co)
             clean_clusters = {}
             for i, cuts in enumerate(sorted(cluster_co, reverse=True, key=int)):
                 print "###  Cluster level " + str(cuts) + " :" + str(datetime.now())
@@ -844,5 +857,5 @@ class SNPdb:
                 clusters = self.define_clusters(links)
                 clean_clusters[cuts] = self.remove_duplicate_clusters_update(clusters)
 
-            strain_list = self.add_clusters_to_existing_table(clean_clusters, profile_dict, cluster_co, cur, cluster_strain_list)
-            self.merged_clusters(cluster_strain_list, strain_list, cur)
+            strain_list = self.add_clusters_to_existing_table(clean_clusters, profile_dict, cluster_co, cluster_strain_list)
+            self.merged_clusters(cluster_strain_list, strain_list, )

@@ -15,12 +15,12 @@ from snapperdb.gbru_vcf import Vcf
 
 
 def vcf_to_db(args, config_dict, vcf):
-    logger = logging.getLogger('snapperdb.vcf_to_db')
+    logger = logging.getLogger('snapperdb.snpdb.vcf_to_db')
     logger.info('Initialising SNPdb class')
     snpdb = SNPdb(config_dict)
     logger.info('Parsing config dict')
     snpdb.parse_config_dict(config_dict)
-    snpdb._write_conn_string()
+    snpdb._connect_to_snpdb()
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
     if inspect.stack()[0][3] == 'fastq_to_db':
         logger.info('You are running fastq_to_db. Checking length of VCF.')
@@ -62,7 +62,7 @@ def vcf_to_db(args, config_dict, vcf):
 
 def make_snpdb(config_dict):
     snpdb = SNPdb(config_dict)
-    snpdb._write_conn_string()
+    snpdb._connect_to_snpdb()
     snpdb.make_snpdb()
 
 def read_file(file_name):
@@ -105,48 +105,45 @@ def read_rec_file(rec_file):
     return rec_list
 
 def get_the_snps(args, config_dict):
-    print "###  START: " + str(datetime.now())
-    print "###  Inititialising SnpDB Class:" + str(datetime.now())
+    logger = logging.getLogger('snapperdb.snpdb.get_the_snps')
+    logger.info('Inititialising SnpDB Class')
     snpdb = SNPdb(config_dict)
     snpdb.parse_config_dict(config_dict)
     strain_list = read_file(args.strain_list)
-    snpdb._write_conn_string()
-    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
-    cur = snpdb.snpdb_conn.cursor()
+    snpdb._connect_to_snpdb()
     ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
     ref_seq = read_fasta(ref_seq_file)
     if args.rec_file != 'N':
-        print "###  Reading recombination list:" + str(datetime.now())
+        logger.info('Reading recombination list')
         rec_list = read_rec_file(args.rec_file)
     else:
         rec_list = []
-    snpdb.parse_args_for_get_the_snps(args, cur, strain_list, ref_seq)
-    print "###  Printing FASTA: " + str(datetime.now())
+    snpdb.parse_args_for_get_the_snps(args, strain_list, ref_seq)
+    logger.info('Printing FASTA')
     snpdb.print_fasta(args.out, args.alignment_type, rec_list, args.ref_flag)
     if args.mat_flag == 'Y':
-        print "###  Printing Matrix: " + str(datetime.now())
+        logger.info('Printing Matrix')
         snpdb.print_matrix(args.out)
     if args.var_flag == 'Y':
-        print "###  Printing Variants: " + str(datetime.now())
+        logger.info('Printing variants')
         snpdb.print_vars(args.out, args.alignment_type, rec_list, args.ref_flag)
 
 def update_distance_matrix(config_dict, args):
-    print "###  Inititialising SnpDB Class:" + str(datetime.now())
+    logger = logging.getLogger('snapperdb.snpdb.update_distance_matrix')
+    logger.info('Inititialising SnpDB Class')
     snpdb = SNPdb(config_dict)
     snpdb.parse_config_dict(config_dict)
-    snpdb._write_conn_string()
-    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
-    cur = snpdb.snpdb_conn.cursor()
-    print '### Getting strains ' + str(datetime.now())
-    strain_list, update_strain = snpdb.get_strains(cur)
+    snpdb._connect_to_snpdb()
+    logger.info('Getting strains')
+    strain_list, update_strain = snpdb.get_strains()
     # # get_all_good_ids from snpdb2 takes a snp cutoff as well, here, we don't have a SNP cutoff so we set it arbitrarily high.
     snp_co = '1000000'
     print "###  Populating distance matrix: " + str(datetime.now())
-    snpdb.parse_args_for_update_matrix(cur, snp_co, strain_list)
+    snpdb.parse_args_for_update_matrix(snp_co, strain_list)
     if args.hpc == 'N':
         print '### Launching serial update_distance_matrix ' + str(datetime.now())
-        snpdb.check_matrix(cur, strain_list, update_strain)
-        snpdb.update_clusters(cur)
+        snpdb.check_matrix(strain_list, update_strain)
+        snpdb.update_clusters()
     else:
         try:
             print '### Launching parallele update_distance_matrix ' + str(datetime.now())
@@ -154,7 +151,7 @@ def update_distance_matrix(config_dict, args):
             short_strain_list = set(strain_list) - set(update_strain)
             snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain, config_dict['snpdb_name'])
             # # on cluster version this will have to be subject to a qsub hold - no it wont, can just run on headnode
-            snpdb.check_matrix(cur, update_strain, update_strain)
+            snpdb.check_matrix(update_strain, update_strain)
         except ValueError as e:
             print '\n#### Error ####'
             print e, '-m has to be an integer'
@@ -162,9 +159,7 @@ def update_distance_matrix(config_dict, args):
 def qsub_to_check_matrix(config_dict, args):
     snpdb = SNPdb(config_dict)
     snpdb.parse_config_dict(config_dict)
-    snpdb._write_conn_string()
-    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
-    cur = snpdb.snpdb_conn.cursor()
+    snpdb._connect_to_snpdb()
     snp_co = '1000000'
     strain_list = []
     with open(args.strain_list) as fi:
@@ -178,8 +173,8 @@ def qsub_to_check_matrix(config_dict, args):
     with open(args.update_list) as fi:
         for x in fi.readlines():
             update_strain.append(x.strip())
-    snpdb.parse_args_for_update_matrix(cur, snp_co, strain_list)
-    snpdb.check_matrix(cur, short_strain_list, update_strain)
+    snpdb.parse_args_for_update_matrix(snp_co, strain_list)
+    snpdb.check_matrix(short_strain_list, update_strain)
 
     # # need to clean up as otherwise the glob
     os.system('rm -f {0}'.format(args.strain_list))
@@ -191,8 +186,6 @@ def qsub_to_check_matrix(config_dict, args):
 def update_clusters(config_dict):
     snpdb = SNPdb(config_dict)
     snpdb.parse_config_dict(config_dict)
-    snpdb._write_conn_string()
-    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
-    cur = snpdb.snpdb_conn.cursor()
-    snpdb.update_clusters(cur)
+    snpdb._connect_to_snpdb()
+    snpdb.update_clusters()
 
