@@ -2,9 +2,11 @@ __author__ = 'flashton'
 
 import errno
 import os
+import pickle
 import re
 import subprocess
 import sys
+
 import snapperdb
 
 
