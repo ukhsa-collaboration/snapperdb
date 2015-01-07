@@ -229,10 +229,16 @@ class Vcf:
                 sys.exit()
 
     def run_bwa(self, fastq_1, fastq_2, out_dir):
-        header = '@RG\tID:1\tSM:%s' % self.sample_name
-        process = subprocess.Popen(['bwa', 'mem', '-R', header, self.ref_genome_path,
-                                    fastq_1, fastq_2],
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        header = '\'@RG\\tID:1\\tSM:%s\'' % (self.sample_name)
+	#print header
+	#print self.ref_genome_path
+	#print 'bwa mem -R %s %s %s %s' % (header, self.ref_genome_path, fastq_1, fastq_2)
+        #process = subprocess.Popen(['bwa', 'mem', '-R', header , self.ref_genome_path,
+        #                            fastq_1, fastq_2],
+        #                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        process = subprocess.Popen('bwa mem -R %s %s %s %s' % (header, self.ref_genome_path, fastq_1, fastq_2),
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+
         stdout, stderr = process.communicate()
         if process.returncode != 0:
             sys.stderr.write('Problem with bwa mapping\n')

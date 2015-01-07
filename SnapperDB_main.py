@@ -27,7 +27,7 @@ def setup_logging(args):
     if args.command.startswith('fastq'):
         log_dir = os.path.join(os.path.dirname(args.fastqs[0]), 'logs')
     elif args.command == 'vcf_to_db':
-        log_dir = os.path.join(os.path.dirname(os.path.dirname(args.vcf)), 'logs')
+        log_dir = os.path.join(os.path.dirname(os.path.dirname(args.vcf[0])), 'logs')
     elif args.command == 'check_vcf_for_mixed':
         log_dir = os.path.join(os.path.dirname(args.outdir), 'logs')
     elif args.command in cwd_logs:
