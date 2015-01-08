@@ -145,10 +145,6 @@ class Vcf:
         self.get_average_and_sd_depth()
         openfile.close()
 
-    def get_length_of_ref(self):
-        ref_len = len(self.depth)
-        return ref_len
-
     def get_average_and_sd_depth(self):
         ref_len = len(self.depth)
         total = 0

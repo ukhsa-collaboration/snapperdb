@@ -1,0 +1,8 @@
+snpdb_name test_snps
+reference_genome AM933172
+pg_uname philip
+pg_pword 20031986
+pg_host 158.119.147.166
+depth_cutoff 10
+mq_cutoff 30
+ad_cutoff 0.9

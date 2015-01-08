@@ -6,13 +6,13 @@ import subprocess
 
 ## in order to include the commit number in the version, need to
 ## store the current working direcotory
-original_wd = os.getcwd()
+#original_wd = os.getcwd()
 ## change wd to the parent script directory e.g. snapperdb
-os.chdir(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+#os.chdir(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 ## the version is digits + the output of the git rev-parse function
-__version__ = "v0.1.1 " + subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'])
+__version__ = "v0.1.1 " # + subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'])
 ## change wd back to original_wd
-os.chdir(original_wd)
+#os.chdir(original_wd)
 
 
 __config_dir__ = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'user_configs')

@@ -45,7 +45,6 @@ def vcf_to_db(args, config_dict, vcf):
             vcf.good_var = good_var
             vcf.bad_pos = bad_pos
             logger.info('Checking the length of the VCF')
-            snpdb.check_len_vcf(vcf)
             logger.info('Uploading to SNPdb')
             snpdb.snpdb_upload(vcf)
         else:

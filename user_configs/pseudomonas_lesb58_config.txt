@@ -1,0 +1,8 @@
+snpdb_name pseudomonas_lesb58_snpdb
+reference_genome LESB58
+pg_uname philip
+pg_pword 20031986
+pg_host 158.119.147.166
+depth_cutoff 10
+mq_cutoff 30
+ad_cutoff 0.9

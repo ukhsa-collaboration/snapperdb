@@ -161,7 +161,9 @@ class SNPdb:
             conn.close()
 
     def check_len_vcf(self, vcf):
+
         vcf_len = len(vcf.depth)
+        print vcf_len
         ref_genome_path = os.path.join(self.ref_genome_dir, self.reference_genome + '.fa')
         print ref_genome_path
         fi = open(ref_genome_path)
