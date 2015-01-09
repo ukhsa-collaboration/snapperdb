@@ -21,11 +21,13 @@ def fastq_to_vcf(args, config_dict):
     fastq_bam_vcf.make_sorted_bam(args)
     logger.info('Making vcf')
     fastq_bam_vcf.make_vcf(args)
+    logger.info('Checking VCF length')
+    fastq_bam_vcf.check_len_vcf()
     logger.info('Parsing vcf')
     fastq_bam_vcf.read_vcf()
     if args.command == 'fastq_to_vcf':
         logger.info('Pickling variants and ignored positions')
-        fastq_bam_vcf.pickle_variants_and_ignored_pos(args)
+        fastq_bam_vcf.pickle_variants_and_ignored_pos()
     elif args.command == 'fastq_to_db':
         logger.info('Returning instance of Vcf class')
         return fastq_bam_vcf
@@ -43,6 +45,7 @@ def parse_vcf_for_mixed(args, config_dict):
     vcf.vcf_filehandle = args.vcf_file
     # vcf.read_rec_file(args.rec_file)
     vcf.read_vcf()
+    print 'There are ', vcf.number_mixed_positions, ' mixed positions.'
 
     with open('{0}/{1}.positions.pick'.format(args.outdir, vcf.sample_name), 'wb') as fo:
         vcf.mixed_positions = pickle.dump(vcf.mixed_positions, fo)

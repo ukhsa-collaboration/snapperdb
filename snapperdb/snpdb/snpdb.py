@@ -1,17 +1,16 @@
 __author__ = 'flashton'
 
-
 from datetime import datetime
 import errno
 import glob
 import os
 import sys
 from Bio import SeqIO
-import psycopg2, psycopg2.extras
+import psycopg2
+import psycopg2.extras
 import logging
 from variant import Variant
 import snapperdb
-
 
 
 class SNPdb:
@@ -40,8 +39,6 @@ class SNPdb:
     depth_cutoff = None
     mq_cutoff = None
     ad_cutoff = None
-
-
 
     def __init__(self, config_dict):
         """
@@ -123,7 +120,6 @@ class SNPdb:
                                                                                           self.pg_uname, self.pg_pword)
         does_snpdb_exist = self._check_if_snpdb_exists()
         if does_snpdb_exist == True:
-
             self.snpdb_conn = psycopg2.connect(self.conn_string)
         else:
             '''
@@ -160,22 +156,6 @@ class SNPdb:
             conn.commit()
             conn.close()
 
-    def check_len_vcf(self, vcf):
-
-        vcf_len = len(vcf.depth)
-        print vcf_len
-        ref_genome_path = os.path.join(self.ref_genome_dir, self.reference_genome + '.fa')
-        print ref_genome_path
-        fi = open(ref_genome_path)
-        ref_fasta = SeqIO.read(fi, 'fasta')
-        print len(ref_fasta.seq), len(vcf.depth)
-        if len(ref_fasta.seq) == vcf_len:
-            pass
-        else:
-            sys.stderr.write('VCF length and reference fasta length are not the same\n')
-            sys.exit()
-        fi.close()
-
     def check_duplicate(self, vcf):
         dup = False
         dict_cursor = self.snpdb_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -185,11 +165,11 @@ class SNPdb:
         dict_cursor.close()
         return dup
 
-    def add_depth_to_strain_stats(self, vcf):
+    def add_info_to_strain_stats(self, vcf):
         time_now = datetime.now()
         time_now = str(time_now)
-        insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload) VALUES (\'%s\', %s, \'%s\')' % (
-            vcf.sample_name, vcf.depth_average, time_now)
+        insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions) VALUES (\'%s\', ' \
+                           '%s, \'%s\', \'%s\')' % (vcf.sample_name, vcf.depth_average, time_now, vcf.number_mixed_positions)
         cur = self.snpdb_conn.cursor()
         cur.execute(insert_statement)
         self.snpdb_conn.commit()
@@ -274,10 +254,13 @@ class SNPdb:
 
     def snpdb_upload(self, vcf):
         if self.check_duplicate(vcf) == False:
-            self.add_depth_to_strain_stats(vcf)
-            self.add_to_snpdb(vcf)
+            self.add_info_to_strain_stats(vcf)
+            if vcf.depth_average >= 30:
+                self.add_to_snpdb(vcf)
+            else:
+                sys.stderr.write('average depth below cutoff, not added to SNPdb')
         elif self.check_duplicate(vcf) == True:
-            sys.stderr.write('Sample is already in SNPdb\n')
+            sys.stderr.write('%s is already in SNPdb %s\n' % (vcf.sample_name, self.reference_genome))
 
     # # functions below here are for querying the snpdb
 

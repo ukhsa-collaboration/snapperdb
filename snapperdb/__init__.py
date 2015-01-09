@@ -40,7 +40,10 @@ def parse_config(args):
                 if line.startswith('mq_cutoff'):
                     config_dict['mq_cutoff'] = line.strip().split()[-1]
                 if line.startswith('ad_cutoff'):
-                    config_dict['ad_cutoff'] = line.strip().split()[-1]
+                    config_dict['ad_cutoff'] = float(line.strip().split(' ')[-1])
+                if line.startswith('average_depth_cutoff'):
+                    config_dict['average_depth_cutoff'] = line.strip().split()[-1]
+
     except IOError:
         print 'Cannot find {0}'.format(path_to_config)
         sys.exit()

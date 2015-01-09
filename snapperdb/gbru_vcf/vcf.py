@@ -6,6 +6,7 @@ import pickle
 import re
 import subprocess
 import sys
+from Bio import SeqIO
 
 import snapperdb
 
@@ -137,13 +138,23 @@ class Vcf:
 
         self.bad_depth = self.return_positions_with_low_depth(self.depth_cutoff)
         self.bad_qual = self.return_positions_with_low_mq(self.mq_cutoff)
-        self.bad_var, self.good_var = self.return_bad_pos_good_vars(self.depth_cutoff,
-                                                                                                           self.mq_cutoff,
-                                                                                                           self.ad_cutoff)
+        self.bad_var, self.good_var = self.return_bad_pos_good_vars(self.depth_cutoff, self.mq_cutoff, self.ad_cutoff)
         self.bad_pos = set(self.bad_depth) | set(self.bad_qual) | set(self.bad_var)
-
+        self.number_mixed_positions = len(self.mixed_positions)
         self.get_average_and_sd_depth()
         openfile.close()
+
+    def check_len_vcf(self):
+        vcf_len = len(self.depth)
+        fi = open(self.ref_genome_path)
+        ref_fasta = SeqIO.read(fi, 'fasta')
+        print len(ref_fasta.seq), len(self.depth)
+        if len(ref_fasta.seq) == vcf_len:
+            pass
+        else:
+            sys.stderr.write('VCF length and reference fasta length are not the same\n')
+            sys.exit()
+        fi.close()
 
     def get_average_and_sd_depth(self):
         ref_len = len(self.depth)
@@ -151,11 +162,9 @@ class Vcf:
         for pos in self.depth:
             total += float(self.depth[pos])
         self.depth_average = float(total) / float(ref_len)
-
         sd_tot = 0
         for pos in sorted(self.depth, key=int):
             sd_tot = sd_tot + (float(self.depth[pos]) - float(self.depth_average)) ** 2
-
         self.depth_sd = (float(sd_tot) / float(ref_len)) ** 0.5
 
     def return_positions_with_low_depth(self, cutoff):
@@ -188,15 +197,20 @@ class Vcf:
                 good_dict[pos] = self.var[pos]
         return bad_list, good_dict
 
-    def pickle_variants_and_ignored_pos(self, args):
-        args.bad_pos_pick = os.path.join(self.tmp_dir, '{0}_bad_pos.pick'.format(os.path.split(self.sample_name)[
+    def pickle_variants_and_ignored_pos(self):
+        bad_pos_pick = os.path.join(self.tmp_dir, '{0}_bad_pos.pick'.format(os.path.split(self.sample_name)[
             1]))
-        args.good_var_pick = os.path.join(self.tmp_dir, '{0}_good_var.pick'.format(os.path.split(self.sample_name)[
+        good_var_pick = os.path.join(self.tmp_dir, '{0}_good_var.pick'.format(os.path.split(self.sample_name)[
             1]))
-        with open(args.bad_pos_pick, 'wb') as fo:
+        ancillary_info_pick = os.path.join(self.tmp_dir, '{0}_anc_info.pick'.format(os.path.split(self.sample_name)[
+            1]))
+        with open(bad_pos_pick, 'wb') as fo:
             pickle.dump(self.bad_pos, fo, -1)
-        with open(args.good_var_pick, 'wb') as fo:
+        with open(good_var_pick, 'wb') as fo:
             pickle.dump(self.good_var, fo, -1)
+        with open(ancillary_info_pick, 'wb') as fo:
+            pickle.dump(self.number_mixed_positions, fo, -1)
+            pickle.dump(self.depth_average, fo, -1)
 
     def define_class_variables_and_make_output_files(self, args):
         try:
@@ -226,15 +240,14 @@ class Vcf:
 
     def run_bwa(self, fastq_1, fastq_2, out_dir):
         header = '\'@RG\\tID:1\\tSM:%s\'' % (self.sample_name)
-	#print header
-	#print self.ref_genome_path
-	#print 'bwa mem -R %s %s %s %s' % (header, self.ref_genome_path, fastq_1, fastq_2)
+        #print header
+        #print self.ref_genome_path
+        #print 'bwa mem -R %s %s %s %s' % (header, self.ref_genome_path, fastq_1, fastq_2)
         #process = subprocess.Popen(['bwa', 'mem', '-R', header , self.ref_genome_path,
         #                            fastq_1, fastq_2],
         #                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         process = subprocess.Popen('bwa mem -R %s %s %s %s' % (header, self.ref_genome_path, fastq_1, fastq_2),
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-
         stdout, stderr = process.communicate()
         if process.returncode != 0:
             sys.stderr.write('Problem with bwa mapping\n')

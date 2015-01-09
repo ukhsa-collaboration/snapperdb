@@ -1,2 +1,2 @@
-@HD	VN:1.4	SO:unsorted
-@SQ	SN:gi|206707319|emb|AM933172.1|	LN:4685848	M5:b69ed3e835e92e117a051437eb11b15a	UR:file:/Users/flashton/Dropbox/PyCharm_projects/SnapperDB/reference_genomes/AM933172.fa
+@HD	VN:1.0	SO:unsorted
+@SQ	SN:gi|206707319|emb|AM933172.1|	LN:4685848	UR:file:/Volumes/NGS2_DataRAID/projects/tim/colindale_ngs_salm/enteritidis/../refs/AM933172.fa	M5:b69ed3e835e92e117a051437eb11b15a

@@ -8,7 +8,6 @@ import re
 import sys
 import logging
 import psycopg2, psycopg2.extras
-
 from snpdb import SNPdb
 import snapperdb
 from snapperdb.gbru_vcf import Vcf
@@ -24,15 +23,13 @@ def vcf_to_db(args, config_dict, vcf):
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
     if inspect.stack()[0][3] == 'fastq_to_db':
         logger.info('You are running fastq_to_db. Checking length of VCF.')
-        snpdb.check_len_vcf(vcf)
         logger.info('Serialising variants and ignored positions')
         vcf.pickle_variants_and_ignored_pos(args)
         logger.info('Uploading to SNPdb')
         snpdb.snpdb_upload(vcf)
-        pass
     elif inspect.stack()[0][3] == 'vcf_to_db':
         ## there is no existing vcf class here, but there will definitely be a vcf, and there may be a pickle.
-        logger.info('You are running vcf_to_db. Initialising Vcf class')
+        logger.info('You are running vcf_to_db. Initialising Vcf class.')
         vcf = Vcf()
         logger.info('Making SNPdb variables and output files')
         snpdb.define_class_variables_and_make_output_files(args, vcf)
@@ -40,10 +37,11 @@ def vcf_to_db(args, config_dict, vcf):
             logger.info('There are already serialised variants and ignored positions for this sample')
             print os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')
             logger.info('Loading serialised variants and ignored positions')
-            bad_pos = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')))
-            good_var = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_good_var.pick')))
-            vcf.good_var = good_var
-            vcf.bad_pos = bad_pos
+            vcf.bad_pos = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')))
+            vcf.good_var = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_good_var.pick')))
+            with open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_anc_info.pick'), 'rb') as fi:
+                vcf.number_mixed_positions = pickle.load(fi)
+                vcf.depth_average = pickle.load(fi)
             logger.info('Checking the length of the VCF')
             logger.info('Uploading to SNPdb')
             snpdb.snpdb_upload(vcf)
@@ -52,10 +50,8 @@ def vcf_to_db(args, config_dict, vcf):
             vcf.parse_config_dict(config_dict)
             logger.info('Reading vcf')
             vcf.read_vcf()
-            logger.info('Checking length of vcf')
-            snpdb.check_len_vcf(vcf)
             logger.info('Serialising variants and ignored positions')
-            vcf.pickle_variants_and_ignored_pos(args)
+            vcf.pickle_variants_and_ignored_pos()
             logger.info('Uploading to SNPdb')
             snpdb.snpdb_upload(vcf)
 
