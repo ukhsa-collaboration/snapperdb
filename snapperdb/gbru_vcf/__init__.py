@@ -21,10 +21,10 @@ def fastq_to_vcf(args, config_dict):
     fastq_bam_vcf.make_sorted_bam(args)
     logger.info('Making vcf')
     fastq_bam_vcf.make_vcf(args)
-    logger.info('Checking VCF length')
-    fastq_bam_vcf.check_len_vcf()
     logger.info('Parsing vcf')
     fastq_bam_vcf.read_vcf()
+    logger.info('Checking VCF length')
+    fastq_bam_vcf.check_len_vcf()
     if args.command == 'fastq_to_vcf':
         logger.info('Pickling variants and ignored positions')
         fastq_bam_vcf.pickle_variants_and_ignored_pos()
