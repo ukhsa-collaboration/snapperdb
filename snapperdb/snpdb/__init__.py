@@ -133,23 +133,28 @@ def update_distance_matrix(config_dict, args):
     strain_list, update_strain = snpdb.get_strains()
     # # get_all_good_ids from snpdb2 takes a snp cutoff as well, here, we don't have a SNP cutoff so we set it arbitrarily high.
     snp_co = '1000000'
-    print "###  Populating distance matrix: " + str(datetime.now())
-    snpdb.parse_args_for_update_matrix(snp_co, strain_list)
-    if args.hpc == 'N':
-        print '### Launching serial update_distance_matrix ' + str(datetime.now())
-        snpdb.check_matrix(strain_list, update_strain)
-        snpdb.update_clusters()
+    if update_strain: 
+	    print "###  Populating distance matrix: " + str(datetime.now())
+	    snpdb.parse_args_for_update_matrix(snp_co, strain_list)
+	    if args.hpc == 'N':
+		print '### Launching serial update_distance_matrix ' + str(datetime.now())
+		snpdb.check_matrix(strain_list, update_strain)
+		snpdb.update_clusters()
+	    else:
+		try:
+		    print '### Launching parallele update_distance_matrix ' + str(datetime.now())
+		    args.hpc = int(args.hpc)
+		    short_strain_list = set(strain_list) - set(update_strain)
+		    snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain, config_dict['snpdb_name'])
+		    # # on cluster version this will have to be subject to a qsub hold - no it wont, can just run on headnode
+		    snpdb.check_matrix(update_strain, update_strain)
+		except ValueError as e:
+		    print '\n#### Error ####'
+		    print e, '-m has to be an integer'
     else:
-        try:
-            print '### Launching parallele update_distance_matrix ' + str(datetime.now())
-            args.hpc = int(args.hpc)
-            short_strain_list = set(strain_list) - set(update_strain)
-            snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain, config_dict['snpdb_name'])
-            # # on cluster version this will have to be subject to a qsub hold - no it wont, can just run on headnode
-            snpdb.check_matrix(update_strain, update_strain)
-        except ValueError as e:
-            print '\n#### Error ####'
-            print e, '-m has to be an integer'
+    	    print '### Nothing to update ' + str(datetime.now())
+
+		    
 
 def qsub_to_check_matrix(config_dict, args):
     snpdb = SNPdb(config_dict)

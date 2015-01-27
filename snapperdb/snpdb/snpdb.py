@@ -476,7 +476,7 @@ class SNPdb:
         for strain1 in strain_list:
             sql = "select * from dist_matrix where strain1 = '%s' or strain2 = '%s' limit 1" % (strain1, strain1)
             cur.execute(sql)
-            row = cur.fetchall()
+            row = cur.fetchone()
             if not row:
                 update_strain.append(strain1)
 
