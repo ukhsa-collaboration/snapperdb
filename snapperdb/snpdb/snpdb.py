@@ -541,6 +541,7 @@ class SNPdb:
         this_dir = os.path.dirname(os.path.realpath(__file__))
         snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
+	## Need to ask Phil think this is a bug
         for i, each in enumerate(self.chunks(update_strain, args.hpc)):
             with open('{0}/update_list_{1}'.format(this_dir, i), 'w') as fo:
                 for x in each:
