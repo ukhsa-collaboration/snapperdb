@@ -90,6 +90,8 @@ class SNPdb:
                 self.pg_pword = config_dict[attr]
             if attr == 'pg_host':
                 self.pg_host = config_dict[attr]
+            if attr == 'average_depth_cutoff':
+                self.average_depth_cutoff = config_dict[attr]
 
     def mkdir_p(self, path):
         try:
@@ -255,9 +257,15 @@ class SNPdb:
     def snpdb_upload(self, vcf):
         if self.check_duplicate(vcf) == False:
             self.add_info_to_strain_stats(vcf)
-            if vcf.depth_average >= 30:
+            if vcf.depth_average >= self.average_depth_cutoff:
                 self.add_to_snpdb(vcf)
             else:
+                update_statement = 'UPDATE strain_stats SET ignore = \'i - average depth below cutoff\' where name = \'%s\' ' \
+                                   % (vcf.sample_name)
+                cur = self.snpdb_conn.cursor()
+                cur.execute(update_statement)
+                self.snpdb_conn.commit()
+                cur.close()
                 sys.stderr.write('average depth below cutoff, not added to SNPdb')
         elif self.check_duplicate(vcf) == True:
             sys.stderr.write('%s is already in SNPdb %s\n' % (vcf.sample_name, self.reference_genome))
@@ -476,7 +484,7 @@ class SNPdb:
         for strain1 in strain_list:
             sql = "select * from dist_matrix where strain1 = '%s' or strain2 = '%s' limit 1" % (strain1, strain1)
             cur.execute(sql)
-            row = cur.fetchone()
+            row = cur.fetchall()
             if not row:
                 update_strain.append(strain1)
 
@@ -541,7 +549,6 @@ class SNPdb:
         this_dir = os.path.dirname(os.path.realpath(__file__))
         snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-	## Need to ask Phil think this is a bug
         for i, each in enumerate(self.chunks(update_strain, args.hpc)):
             with open('{0}/update_list_{1}'.format(this_dir, i), 'w') as fo:
                 for x in each:
@@ -565,7 +572,7 @@ class SNPdb:
                        '#$ -N up_mat_{2}_{3}\n\n'
                        '. /etc/profile.d/modules.sh\n'
                        'module load {7}/.module_files/snapperdb/1-0\n'
-                       'python /home/tim/git_reps/snapperdb/SnapperDB_main.py'
+                       'python SnapperDB_main.py'
                        ' qsub_to_check_matrix -c {4}'
                        ' -l {5}/strain_list'
                        ' -s {5}/short_strain_list'
