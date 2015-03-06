@@ -227,7 +227,9 @@ CREATE TABLE strain_stats (
     total_reads integer,
     mapped_reads integer,
     av_cov double precision,
-    time_of_upload timestamp without time zone
+    time_of_upload timestamp without time zone,
+    ignore character varying,
+    number_mixed_positions integer
 );
 
 
@@ -486,8 +488,7 @@ CREATE INDEX strain_name_index ON strains_snps USING btree (name);
 --
 
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON SCHEMA public FROM flashton;
-GRANT ALL ON SCHEMA public TO flashton;
+
 GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
