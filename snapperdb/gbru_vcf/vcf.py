@@ -217,8 +217,16 @@ class Vcf:
             self.sample_name = os.path.basename(args.vcf[0]).split(os.extsep)[0]
         except AttributeError:
             self.sample_name = os.path.basename(args.fastqs[0]).split(os.extsep)[0]
+        try:
+            if os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')):
+                self.ref_genome_path = os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')
+            elif os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fasta')):
+                self.ref_genome_path = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fasta'))
+            elif os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome)):
+                self.ref_genome_path = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome))
+        except IOError:
+            sys.stderr.write('Cant find reference genome %s' % self.reference_genome)
 
-        self.ref_genome_path = os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')
         self.make_tmp_dir(args)
         self.sorted_bamfile = os.path.join(self.tmp_dir, self.sample_name + '.sorted' + '.bam')
         self.vcf_filehandle = os.path.join(self.tmp_dir, os.path.pardir, '{0}.vcf'.format(self.sample_name))
