@@ -257,6 +257,7 @@ class SNPdb:
     def snpdb_upload(self, vcf):
         if self.check_duplicate(vcf) == False:
             self.add_info_to_strain_stats(vcf)
+            print 'depth is', vcf.depth_average, self.average_depth_cutoff
             if vcf.depth_average >= self.average_depth_cutoff:
                 self.add_to_snpdb(vcf)
             else:

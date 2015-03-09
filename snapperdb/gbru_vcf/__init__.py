@@ -29,6 +29,8 @@ def fastq_to_vcf(args, config_dict):
         logger.info('Pickling variants and ignored positions')
         fastq_bam_vcf.pickle_variants_and_ignored_pos()
     elif args.command == 'fastq_to_db':
+        logger.info('Pickling variants and ignored positions')
+        fastq_bam_vcf.pickle_variants_and_ignored_pos()
         logger.info('Returning instance of Vcf class')
         return fastq_bam_vcf
 
