@@ -278,7 +278,7 @@ class SNPdb:
         cur.execute(sql)
         rows = cur.fetchall()
         for row in rows:
-            sql2 = "select sc.name from strain_clusters sc , strain_meta sm where sm.name = sc.name and " + args.back_flag + "=" + str(
+            sql2 = "select sc.name from strain_clusters sc where " + args.back_flag + "=" + str(
                 row[0]) + " "
             if args.meta_flag != 'N':
                 temp = args.meta_flag.split(',')
@@ -286,7 +286,6 @@ class SNPdb:
                     temp2 = meta.split(':')
                     sql2 = sql2 + "and " + temp2[0] + "=\'" + str(temp2[1]) + "\' "
                 sql2 = sql2 + " limit 1"
-            # print sql2
             cur.execute(sql2)
             rows2 = cur.fetchone()
             if rows2:
