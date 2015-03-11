@@ -45,6 +45,7 @@ class Vcf:
         self.mixed_positions = []
         self.rec_list = []
         self.vcf_max_pos = None
+        self.mixed_pos_list = []
 
     def parse_config_dict(self, config_dict):
         # # we loop through thusly in case not all these things are in the config
@@ -134,6 +135,7 @@ class Vcf:
                         self.mixed_positions.append(pos)
                         # if pos not in self.rec_list:
                         #    self.number_mixed_positions += 1
+                        self.mixed_pos_list.append(pos)
                     self.var[pos] = var_call
                     self.ref_base[pos] = ref_call
         ## as
@@ -205,15 +207,15 @@ class Vcf:
             1]))
         good_var_pick = os.path.join(self.tmp_dir, '{0}_good_var.pick'.format(os.path.split(self.sample_name)[
             1]))
-        ancillary_info_pick = os.path.join(self.tmp_dir, '{0}_anc_info.pick'.format(os.path.split(self.sample_name)[
+        ancillary_info_text = os.path.join(self.tmp_dir, '{0}_anc_info.txt'.format(os.path.split(self.sample_name)[
             1]))
         with open(bad_pos_pick, 'wb') as fo:
             pickle.dump(self.bad_pos, fo, -1)
         with open(good_var_pick, 'wb') as fo:
             pickle.dump(self.good_var, fo, -1)
-        with open(ancillary_info_pick, 'wb') as fo:
-            pickle.dump(self.number_mixed_positions, fo, -1)
-            pickle.dump(self.depth_average, fo, -1)
+        with open(ancillary_info_text, 'w') as fo:
+            fo.write('number_mixed_positions\t%s\n' % self.number_mixed_positions)
+            fo.write('depth_average\t%s\n' % self.depth_average)
 
     def define_class_variables_and_make_output_files(self, args):
         try:

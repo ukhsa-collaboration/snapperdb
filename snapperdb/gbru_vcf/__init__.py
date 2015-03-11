@@ -36,10 +36,8 @@ def fastq_to_vcf(args, config_dict):
 
 def parse_vcf_for_mixed(args, config_dict):
     if args.vcf_file.endswith('.gz'):
-
         os.system('gunzip {0}'.format(args.vcf_file))
         args.vcf_file = os.path.splitext(args.vcf_file)[0]
-
     vcf = Vcf()
     vcf.parse_config_dict(config_dict)
     vcf.sample_name = os.path.basename(args.vcf_file[0]).split(os.extsep)[0]

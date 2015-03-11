@@ -48,7 +48,6 @@ def parse_config(args):
     except IOError:
         print 'Cannot find {0}'.format(path_to_config)
         sys.exit()
-
     return config_dict
 
     # # don't need to check the below here necassarily, probably checked later.
@@ -58,3 +57,12 @@ def parse_config(args):
     # else:
     #     sys.stderr.write('Ref genome dir not found\n')
     #     sys.exit()
+
+
+def parse_ancillary_info(infile):
+    res_dict = {}
+    with open(infile, 'r') as fi:
+        for line in fi.readlines():
+            split = line.split('\t')
+            res_dict[split[0]] = split[1]
+    return res_dict

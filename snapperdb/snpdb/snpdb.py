@@ -35,7 +35,7 @@ class SNPdb:
     pg_pword = None
     pg_host = None
     conn_string = None
-    # # concious design decision to make cutoffs part of the SNPdb module rather than vcf, as should be consistent within a db
+    # # conscious design decision to make cutoffs part of the SNPdb module rather than vcf, as should be consistent within a db
     depth_cutoff = None
     mq_cutoff = None
     ad_cutoff = None
@@ -170,13 +170,17 @@ class SNPdb:
     def add_info_to_strain_stats(self, vcf):
         time_now = datetime.now()
         time_now = str(time_now)
-        insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions) VALUES (\'%s\', ' \
-                           '%s, \'%s\', \'%s\')' % (vcf.sample_name, vcf.depth_average, time_now, vcf.number_mixed_positions)
+        # insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
+        #                    'VALUES (\'%s\', ' \
+        #                    '%s, \'%s\', \'%s\', %s)' % (vcf.sample_name, vcf.depth_average, time_now,
+        #                                                 vcf.number_mixed_positions, vcf.mixed_pos_list)
+        insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
+                           'VALUES (%s, %s, %s, %s, %s)'
         cur = self.snpdb_conn.cursor()
-        cur.execute(insert_statement)
+        cur.execute(insert_statement, (vcf.sample_name, vcf.depth_average, time_now, vcf.number_mixed_positions,
+                                       vcf.mixed_pos_list))
         self.snpdb_conn.commit()
         cur.close()
-        pass
 
     def add_new_variants(self, pos, contig, good_var):
         var_base = good_var[pos]

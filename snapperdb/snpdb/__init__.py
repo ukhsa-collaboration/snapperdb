@@ -39,9 +39,9 @@ def vcf_to_db(args, config_dict, vcf):
             logger.info('Loading serialised variants and ignored positions')
             vcf.bad_pos = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')))
             vcf.good_var = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_good_var.pick')))
-            with open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_anc_info.pick'), 'rb') as fi:
-                vcf.number_mixed_positions = pickle.load(fi)
-                vcf.depth_average = pickle.load(fi)
+            res_dict = snapperdb.parse_ancillary_info(os.path.join(vcf.tmp_dir, vcf.sample_name + '_anc_info.txt'))
+            vcf.number_mixed_positions = res_dict['number_mixed_positions']
+            vcf.depth_average = res_dict['depth_average']
             logger.info('Checking the length of the VCF')
             logger.info('Uploading to SNPdb')
             snpdb.snpdb_upload(vcf)
@@ -134,27 +134,25 @@ def update_distance_matrix(config_dict, args):
     # # get_all_good_ids from snpdb2 takes a snp cutoff as well, here, we don't have a SNP cutoff so we set it arbitrarily high.
     snp_co = '1000000'
     if update_strain: 
-	    print "###  Populating distance matrix: " + str(datetime.now())
-	    snpdb.parse_args_for_update_matrix(snp_co, strain_list)
-	    if args.hpc == 'N':
-		print '### Launching serial update_distance_matrix ' + str(datetime.now())
-		snpdb.check_matrix(strain_list, update_strain)
-		snpdb.update_clusters()
-	    else:
-		try:
-		    print '### Launching parallele update_distance_matrix ' + str(datetime.now())
-		    args.hpc = int(args.hpc)
-		    short_strain_list = set(strain_list) - set(update_strain)
-		    snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain, config_dict['snpdb_name'])
-		    # # on cluster version this will have to be subject to a qsub hold - no it wont, can just run on headnode
-		    snpdb.check_matrix(update_strain, update_strain)
-		except ValueError as e:
-		    print '\n#### Error ####'
-		    print e, '-m has to be an integer'
+        print "###  Populating distance matrix: " + str(datetime.now())
+        snpdb.parse_args_for_update_matrix(snp_co, strain_list)
+        if args.hpc == 'N':
+            print '### Launching serial update_distance_matrix ' + str(datetime.now())
+            snpdb.check_matrix(strain_list, update_strain)
+            snpdb.update_clusters()
+        else:
+            try:
+                print '### Launching parallel update_distance_matrix ' + str(datetime.now())
+                args.hpc = int(args.hpc)
+                short_strain_list = set(strain_list) - set(update_strain)
+                snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain, config_dict['snpdb_name'])
+                # # on cluster version this will have to be subject to a qsub hold - no it wont, can just run on headnode
+                snpdb.check_matrix(update_strain, update_strain)
+            except ValueError as e:
+                print '\n#### Error ####'
+                print e, '-m has to be an integer'
     else:
-    	    print '### Nothing to update ' + str(datetime.now())
-
-		    
+            print '### Nothing to update ' + str(datetime.now())
 
 def qsub_to_check_matrix(config_dict, args):
     snpdb = SNPdb(config_dict)
