@@ -178,7 +178,7 @@ class SNPdb:
                            'VALUES (%s, %s, %s, %s, %s)'
         cur = self.snpdb_conn.cursor()
         cur.execute(insert_statement, (vcf.sample_name, vcf.depth_average, time_now, vcf.number_mixed_positions,
-                                       vcf.mixed_pos_list))
+                                       vcf.mixed_positions))
         self.snpdb_conn.commit()
         cur.close()
 

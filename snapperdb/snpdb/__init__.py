@@ -152,7 +152,7 @@ def update_distance_matrix(config_dict, args):
                 print '\n#### Error ####'
                 print e, '-m has to be an integer'
     else:
-            print '### Nothing to update ' + str(datetime.now())
+        print '### Nothing to update ' + str(datetime.now())
 
 def qsub_to_check_matrix(config_dict, args):
     snpdb = SNPdb(config_dict)

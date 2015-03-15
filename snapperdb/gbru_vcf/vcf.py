@@ -45,7 +45,6 @@ class Vcf:
         self.mixed_positions = []
         self.rec_list = []
         self.vcf_max_pos = None
-        self.mixed_pos_list = []
 
     def parse_config_dict(self, config_dict):
         # # we loop through thusly in case not all these things are in the config
@@ -135,7 +134,6 @@ class Vcf:
                         self.mixed_positions.append(pos)
                         # if pos not in self.rec_list:
                         #    self.number_mixed_positions += 1
-                        self.mixed_pos_list.append(pos)
                     self.var[pos] = var_call
                     self.ref_base[pos] = ref_call
         ## as

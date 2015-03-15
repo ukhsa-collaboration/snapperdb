@@ -107,6 +107,8 @@ Now, you should have lots of lovely data in your SNPdb, get it out by
 ```sh
 SnapperDB_main.py get_the_snps -c gas_config.txt -l strain_list
 ```
-where the strain_list is a list of strain ids that are in your SNPdb. There are lots of other options in get_the_snps. To see them, supply -h. There are sensible-ish defaults for most of these.
+where the strain_list is a list of strain ids that are in your SNPdb. There are lots of other options in get_the_snps. To see them, supply -h. There are sensible-ish defaults for most of these. One of the most relevant to your final phylogeny of all of these is ALIGNMENT_TYPE (-a), which defaults to core. This means that only positions that were present in each isolate in your analysis will be included in your alignment. If you set this to A (i.e. -a A) then SNPs in positions that were only present in a single isolate will be included. Core is the default because it is more robust to strains that have a large number of SNPs in spurious positions. However, Accessory is a very useful option as it is more robust to strains that ignore positions that are true SNPs, that contribute to your phylogeny, possibly because the original isolate was a mix of two strains, leading to bad AD ratios for those positions. With core, if they are ignored in one strain, they are ignored in all strains and so your tree will collapse.
 
 get_the_snps will output you a fasta file that is suitable for running through e.g. FasTree or Raxml.
+
+

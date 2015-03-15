@@ -48,7 +48,8 @@ def parse_vcf_for_mixed(args, config_dict):
     print 'There are ', vcf.number_mixed_positions, ' mixed positions.'
 
     with open('{0}/{1}.positions.pick'.format(args.outdir, vcf.sample_name), 'wb') as fo:
-        vcf.mixed_positions = pickle.dump(vcf.mixed_positions, fo)
+        pickle.dump(vcf.mixed_positions, fo)
+        # pickle.dump(vcf.number_mixed_positions)
 
 
     # with open('{0}/{1}.positions.txt'.format(args.outdir, vcf.sample_name), 'w') as fo:
