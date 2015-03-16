@@ -158,29 +158,32 @@ class SNPdb:
             conn.commit()
             conn.close()
 
-    def check_duplicate(self, vcf):
+    def check_duplicate(self, vcf, database):
         dup = False
         dict_cursor = self.snpdb_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        dict_cursor.execute("select distinct(name) FROM strains_snps where name = \'%s\'" % vcf.sample_name)
+        dict_cursor.execute("select distinct(name) FROM %s where name = \'%s\'" % (database, vcf.sample_name))
         for row in dict_cursor:
             dup = True
         dict_cursor.close()
         return dup
 
     def add_info_to_strain_stats(self, vcf):
-        time_now = datetime.now()
-        time_now = str(time_now)
-        # insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
-        #                    'VALUES (\'%s\', ' \
-        #                    '%s, \'%s\', \'%s\', %s)' % (vcf.sample_name, vcf.depth_average, time_now,
-        #                                                 vcf.number_mixed_positions, vcf.mixed_pos_list)
-        insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
-                           'VALUES (%s, %s, %s, %s, %s)'
-        cur = self.snpdb_conn.cursor()
-        cur.execute(insert_statement, (vcf.sample_name, vcf.depth_average, time_now, vcf.number_mixed_positions,
-                                       vcf.mixed_positions))
-        self.snpdb_conn.commit()
-        cur.close()
+        if self.check_duplicate(vcf, 'strain_stats') == False:
+            time_now = datetime.now()
+            time_now = str(time_now)
+            # insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
+            #                    'VALUES (\'%s\', ' \
+            #                    '%s, \'%s\', \'%s\', %s)' % (vcf.sample_name, vcf.depth_average, time_now,
+            #                                                 vcf.number_mixed_positions, vcf.mixed_pos_list)
+            insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
+                               'VALUES (%s, %s, %s, %s, %s)'
+            cur = self.snpdb_conn.cursor()
+            cur.execute(insert_statement, (vcf.sample_name, vcf.depth_average, time_now, vcf.number_mixed_positions,
+                                           vcf.mixed_positions))
+            self.snpdb_conn.commit()
+            cur.close()
+        elif self.check_duplicate(vcf) == True:
+            sys.stderr.write('%s is already in SNPdb strain_stats %s\n' % (vcf.sample_name, self.reference_genome))
 
     def add_new_variants(self, pos, contig, good_var):
         var_base = good_var[pos]
@@ -259,7 +262,7 @@ class SNPdb:
             self.snpdb_conn.close()
 
     def snpdb_upload(self, vcf):
-        if self.check_duplicate(vcf) == False:
+        if self.check_duplicate(vcf, 'strains_snps') == False:
             self.add_info_to_strain_stats(vcf)
             print 'depth is', vcf.depth_average, self.average_depth_cutoff
             if vcf.depth_average >= self.average_depth_cutoff:
@@ -273,7 +276,7 @@ class SNPdb:
                 cur.close()
                 sys.stderr.write('average depth below cutoff, not added to SNPdb')
         elif self.check_duplicate(vcf) == True:
-            sys.stderr.write('%s is already in SNPdb %s\n' % (vcf.sample_name, self.reference_genome))
+            sys.stderr.write('%s is already in SNPdb strains_snps %s\n' % (vcf.sample_name, self.reference_genome))
 
     # # functions below here are for querying the snpdb
 
