@@ -21,7 +21,8 @@ import os
 import datetime
 from snapperdb import __version__, parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, parse_vcf_for_mixed
-from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, update_clusters
+from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, \
+    update_clusters, get_variants_of_interest
 
 def setup_logging(args):
     cwd_logs = ['update_distance_matrix', 'qsub_to_check_matrix',
@@ -95,6 +96,12 @@ def run_command(args):
         logger.info('PARAMS: config = %s; vcf = %s; AD ratio = %s; recombination_file = %s' % (args.config_file, args.vcf_file,
                                                                                   args.ad_ratio, args.rec_file))
         parse_vcf_for_mixed(args, config_dict)
+
+    elif args.command == 'get_variants_of_interest':
+        get_variants_of_interest(args, config_dict)
+
+
+
 
 
 
@@ -189,6 +196,16 @@ def main():
                                                                                      'written to?')
     parser_check_vcf_for_mixed.add_argument('-r', dest='rec_file', help='File with positions to be ignored because of '
                                                                         'phage/recombination.')
+    parser_get_variants_of_interest = subparsers.add_parser('get_variants_of_interest',
+                                                            help='Given 2 strain lists, get_variants_of_interest will find high '
+                                                                 'quality variants that differ between the two. One of the '
+                                                                 'lists should be background, the other \'of interest\'. '
+                                                                 'Varaints present in the strains of interest will be printed. '
+                                                                 'This function is in development and should be used with care.')
+    parser_get_variants_of_interest.add_argument('-c', dest='config_file', required=True, help='The name of a config '
+                                                                    'file in the user_configs directory (not the full path)')
+    parser_get_variants_of_interest.add_argument('-background', dest='background_list')
+    parser_get_variants_of_interest.add_argument('-of_interest', dest='of_interest_list')
 
     args = parser.parse_args()
 

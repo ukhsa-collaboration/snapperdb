@@ -187,3 +187,14 @@ def update_clusters(config_dict):
     snpdb._connect_to_snpdb()
     snpdb.update_clusters()
 
+def get_variants_of_interest(config_dict, args):
+    background_list = read_file(args.background_list)
+    of_interest_list = read_file(args.of_interest_list)
+
+
+    '''
+    To do
+    1. for each list, get the good quality variants for each isolate into {strain:[good, vars], ...}
+    2.
+
+    '''

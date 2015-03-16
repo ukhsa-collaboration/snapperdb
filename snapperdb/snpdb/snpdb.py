@@ -856,3 +856,11 @@ class SNPdb:
 
             strain_list = self.add_clusters_to_existing_table(clean_clusters, profile_dict, cluster_co, cluster_strain_list)
             self.merged_clusters(cluster_strain_list, strain_list, )
+
+    ## functions below here are for getting variants of interest
+
+    def x(self):
+        '''
+        To do
+        '''
+        pass
