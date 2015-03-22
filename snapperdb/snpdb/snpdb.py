@@ -39,6 +39,7 @@ class SNPdb:
     depth_cutoff = None
     mq_cutoff = None
     ad_cutoff = None
+    total_av_depth_co = None
 
     def __init__(self, config_dict):
         """
@@ -90,6 +91,8 @@ class SNPdb:
                 self.pg_pword = config_dict[attr]
             if attr == 'pg_host':
                 self.pg_host = config_dict[attr]
+	    if attr == 'average_depth_cutoff':
+		self.total_av_depth_co = config_dict[attr]
 
     def mkdir_p(self, path):
         try:
@@ -255,7 +258,7 @@ class SNPdb:
     def snpdb_upload(self, vcf):
         if self.check_duplicate(vcf) == False:
             self.add_info_to_strain_stats(vcf)
-            if vcf.depth_average >= 30:
+            if vcf.depth_average >= int(self.total_av_depth_co):
                 self.add_to_snpdb(vcf)
             else:
                 sys.stderr.write('average depth below cutoff, not added to SNPdb')
