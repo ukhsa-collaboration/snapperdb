@@ -35,7 +35,7 @@ class SNPdb:
     pg_pword = None
     pg_host = None
     conn_string = None
-    # # concious design decision to make cutoffs part of the SNPdb module rather than vcf, as should be consistent within a db
+    # # conscious design decision to make cutoffs part of the SNPdb module rather than vcf, as should be consistent within a db
     depth_cutoff = None
     mq_cutoff = None
     ad_cutoff = None
@@ -91,8 +91,9 @@ class SNPdb:
                 self.pg_pword = config_dict[attr]
             if attr == 'pg_host':
                 self.pg_host = config_dict[attr]
-	    if attr == 'average_depth_cutoff':
-		self.total_av_depth_co = config_dict[attr]
+            if attr == 'average_depth_cutoff':
+                self.average_depth_cutoff = config_dict[attr]
+
 
     def mkdir_p(self, path):
         try:
@@ -159,25 +160,32 @@ class SNPdb:
             conn.commit()
             conn.close()
 
-    def check_duplicate(self, vcf):
+    def check_duplicate(self, vcf, database):
         dup = False
         dict_cursor = self.snpdb_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        dict_cursor.execute("select distinct(name) FROM strains_snps where name = \'%s\'" % vcf.sample_name)
+        dict_cursor.execute("select distinct(name) FROM %s where name = \'%s\'" % (database, vcf.sample_name))
         for row in dict_cursor:
             dup = True
         dict_cursor.close()
         return dup
 
     def add_info_to_strain_stats(self, vcf):
-        time_now = datetime.now()
-        time_now = str(time_now)
-        insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions) VALUES (\'%s\', ' \
-                           '%s, \'%s\', \'%s\')' % (vcf.sample_name, vcf.depth_average, time_now, vcf.number_mixed_positions)
-        cur = self.snpdb_conn.cursor()
-        cur.execute(insert_statement)
-        self.snpdb_conn.commit()
-        cur.close()
-        pass
+        if self.check_duplicate(vcf, 'strain_stats') == False:
+            time_now = datetime.now()
+            time_now = str(time_now)
+            # insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
+            #                    'VALUES (\'%s\', ' \
+            #                    '%s, \'%s\', \'%s\', %s)' % (vcf.sample_name, vcf.depth_average, time_now,
+            #                                                 vcf.number_mixed_positions, vcf.mixed_pos_list)
+            insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
+                               'VALUES (%s, %s, %s, %s, %s)'
+            cur = self.snpdb_conn.cursor()
+            cur.execute(insert_statement, (vcf.sample_name, vcf.depth_average, time_now, vcf.number_mixed_positions,
+                                           vcf.mixed_positions))
+            self.snpdb_conn.commit()
+            cur.close()
+        elif self.check_duplicate(vcf) == True:
+            sys.stderr.write('%s is already in SNPdb strain_stats %s\n' % (vcf.sample_name, self.reference_genome))
 
     def add_new_variants(self, pos, contig, good_var):
         var_base = good_var[pos]
@@ -256,14 +264,21 @@ class SNPdb:
             self.snpdb_conn.close()
 
     def snpdb_upload(self, vcf):
-        if self.check_duplicate(vcf) == False:
+        if self.check_duplicate(vcf, 'strains_snps') == False:
             self.add_info_to_strain_stats(vcf)
-            if vcf.depth_average >= int(self.total_av_depth_co):
+            print 'depth is', vcf.depth_average, self.average_depth_cutoff
+            if vcf.depth_average >= int(self.average_depth_cutoff):
                 self.add_to_snpdb(vcf)
             else:
+                update_statement = 'UPDATE strain_stats SET ignore = \'i - average depth below cutoff\' where name = \'%s\' ' \
+                                   % (vcf.sample_name)
+                cur = self.snpdb_conn.cursor()
+                cur.execute(update_statement)
+                self.snpdb_conn.commit()
+                cur.close()
                 sys.stderr.write('average depth below cutoff, not added to SNPdb')
         elif self.check_duplicate(vcf) == True:
-            sys.stderr.write('%s is already in SNPdb %s\n' % (vcf.sample_name, self.reference_genome))
+            sys.stderr.write('%s is already in SNPdb strains_snps %s\n' % (vcf.sample_name, self.reference_genome))
 
     # # functions below here are for querying the snpdb
 
@@ -273,7 +288,7 @@ class SNPdb:
         cur.execute(sql)
         rows = cur.fetchall()
         for row in rows:
-            sql2 = "select sc.name from strain_clusters sc , strain_meta sm where sm.name = sc.name and " + args.back_flag + "=" + str(
+            sql2 = "select sc.name from strain_clusters sc where " + args.back_flag + "=" + str(
                 row[0]) + " "
             if args.meta_flag != 'N':
                 temp = args.meta_flag.split(',')
@@ -281,7 +296,6 @@ class SNPdb:
                     temp2 = meta.split(':')
                     sql2 = sql2 + "and " + temp2[0] + "=\'" + str(temp2[1]) + "\' "
                 sql2 = sql2 + " limit 1"
-            # print sql2
             cur.execute(sql2)
             rows2 = cur.fetchone()
             if rows2:
@@ -479,7 +493,7 @@ class SNPdb:
         for strain1 in strain_list:
             sql = "select * from dist_matrix where strain1 = '%s' or strain2 = '%s' limit 1" % (strain1, strain1)
             cur.execute(sql)
-            row = cur.fetchone()
+            row = cur.fetchall()
             if not row:
                 update_strain.append(strain1)
 
@@ -544,7 +558,9 @@ class SNPdb:
         this_dir = os.path.dirname(os.path.realpath(__file__))
         snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-	## Need to ask Phil think this is a bug
+        os.system('rm -rf {0}/update_list*'.format(this_dir))
+        os.system('rm -rf {0}/update_matrix_*'.format(this_dir))
+
         for i, each in enumerate(self.chunks(update_strain, args.hpc)):
             with open('{0}/update_list_{1}'.format(this_dir, i), 'w') as fo:
                 for x in each:
@@ -568,7 +584,7 @@ class SNPdb:
                        '#$ -N up_mat_{2}_{3}\n\n'
                        '. /etc/profile.d/modules.sh\n'
                        'module load {7}/.module_files/snapperdb/1-0\n'
-                       'python /home/tim/git_reps/snapperdb/SnapperDB_main.py'
+                       'python SnapperDB_main.py'
                        ' qsub_to_check_matrix -c {4}'
                        ' -l {5}/strain_list'
                        ' -s {5}/short_strain_list'
@@ -848,3 +864,11 @@ class SNPdb:
 
             strain_list = self.add_clusters_to_existing_table(clean_clusters, profile_dict, cluster_co, cluster_strain_list)
             self.merged_clusters(cluster_strain_list, strain_list, )
+
+    ## functions below here are for getting variants of interest
+
+    def x(self):
+        '''
+        To do
+        '''
+        pass

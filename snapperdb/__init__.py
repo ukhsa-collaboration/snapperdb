@@ -20,7 +20,9 @@ __ref_genome_dir__ = os.path.join(os.path.dirname(os.path.dirname(os.path.realpa
 
 
 def parse_config(args):
-    path_to_config = os.path.join(__config_dir__, args.config_file)
+    path_to_config = os.path.join(__config_dir__, args.config_file) # - deprecating this as need to handle not having configs
+    ## in the user_configs that can be found relative to the script dir.
+    ## however, can still use just the name of the file as user_configs in the module dir is in the path when you load the module
     config_dict = {}
     try:
         with open(path_to_config, 'r') as fi:
@@ -36,18 +38,16 @@ def parse_config(args):
                 if line.startswith('pg_host'):
                     config_dict['pg_host'] = line.strip().split()[-1]
                 if line.startswith('depth_cutoff'):
-                    config_dict['depth_cutoff'] = line.strip().split()[-1]
+                    config_dict['depth_cutoff'] = float(line.strip().split()[-1])
                 if line.startswith('mq_cutoff'):
-                    config_dict['mq_cutoff'] = line.strip().split()[-1]
+                    config_dict['mq_cutoff'] = float(line.strip().split()[-1])
                 if line.startswith('ad_cutoff'):
                     config_dict['ad_cutoff'] = float(line.strip().split(' ')[-1])
                 if line.startswith('average_depth_cutoff'):
-                    config_dict['average_depth_cutoff'] = line.strip().split()[-1]
-
+                    config_dict['average_depth_cutoff'] = float(line.strip().split()[-1])
     except IOError:
         print 'Cannot find {0}'.format(path_to_config)
         sys.exit()
-
     return config_dict
 
     # # don't need to check the below here necassarily, probably checked later.
@@ -57,3 +57,12 @@ def parse_config(args):
     # else:
     #     sys.stderr.write('Ref genome dir not found\n')
     #     sys.exit()
+
+
+def parse_ancillary_info(infile):
+    res_dict = {}
+    with open(infile, 'r') as fi:
+        for line in fi.readlines():
+            split = line.split('\t')
+            res_dict[split[0]] = split[1]
+    return res_dict

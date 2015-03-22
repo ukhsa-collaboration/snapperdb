@@ -44,6 +44,7 @@ class Vcf:
         self.number_mixed_positions = 0
         self.mixed_positions = []
         self.rec_list = []
+        self.vcf_max_pos = None
 
     def parse_config_dict(self, config_dict):
         # # we loop through thusly in case not all these things are in the config
@@ -104,6 +105,7 @@ class Vcf:
                 self.ref = split_line[0]
                 # get pos
                 pos = split_line[1]
+
                 # get depth
                 matchObj = re.match(r'.*DP=(\d*)', line)
                 try:
@@ -134,8 +136,8 @@ class Vcf:
                         #    self.number_mixed_positions += 1
                     self.var[pos] = var_call
                     self.ref_base[pos] = ref_call
-
-
+        ## as
+        self.vcf_max_pos = pos
         self.bad_depth = self.return_positions_with_low_depth(self.depth_cutoff)
         self.bad_qual = self.return_positions_with_low_mq(self.mq_cutoff)
         self.bad_var, self.good_var = self.return_bad_pos_good_vars(self.depth_cutoff, self.mq_cutoff, self.ad_cutoff)
@@ -145,11 +147,12 @@ class Vcf:
         openfile.close()
 
     def check_len_vcf(self):
-        vcf_len = len(self.depth)
+
         fi = open(self.ref_genome_path)
+        print self.ref_genome_path
         ref_fasta = SeqIO.read(fi, 'fasta')
-        print len(ref_fasta.seq), len(self.depth)
-        if len(ref_fasta.seq) == vcf_len:
+        print len(ref_fasta.seq), self.vcf_max_pos
+        if len(ref_fasta.seq) == int(self.vcf_max_pos):
             pass
         else:
             sys.stderr.write('VCF length and reference fasta length are not the same\n')
@@ -202,23 +205,31 @@ class Vcf:
             1]))
         good_var_pick = os.path.join(self.tmp_dir, '{0}_good_var.pick'.format(os.path.split(self.sample_name)[
             1]))
-        ancillary_info_pick = os.path.join(self.tmp_dir, '{0}_anc_info.pick'.format(os.path.split(self.sample_name)[
+        ancillary_info_text = os.path.join(self.tmp_dir, '{0}_anc_info.txt'.format(os.path.split(self.sample_name)[
             1]))
         with open(bad_pos_pick, 'wb') as fo:
             pickle.dump(self.bad_pos, fo, -1)
         with open(good_var_pick, 'wb') as fo:
             pickle.dump(self.good_var, fo, -1)
-        with open(ancillary_info_pick, 'wb') as fo:
-            pickle.dump(self.number_mixed_positions, fo, -1)
-            pickle.dump(self.depth_average, fo, -1)
+        with open(ancillary_info_text, 'w') as fo:
+            fo.write('number_mixed_positions\t%s\n' % self.number_mixed_positions)
+            fo.write('depth_average\t%s\n' % self.depth_average)
 
     def define_class_variables_and_make_output_files(self, args):
         try:
             self.sample_name = os.path.basename(args.vcf[0]).split(os.extsep)[0]
         except AttributeError:
             self.sample_name = os.path.basename(args.fastqs[0]).split(os.extsep)[0]
+        try:
+            if os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')):
+                self.ref_genome_path = os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')
+            elif os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fasta')):
+                self.ref_genome_path = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fasta'))
+            elif os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome)):
+                self.ref_genome_path = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome))
+        except IOError:
+            sys.stderr.write('Cant find reference genome %s' % self.reference_genome)
 
-        self.ref_genome_path = os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')
         self.make_tmp_dir(args)
         self.sorted_bamfile = os.path.join(self.tmp_dir, self.sample_name + '.sorted' + '.bam')
         self.vcf_filehandle = os.path.join(self.tmp_dir, os.path.pardir, '{0}.vcf'.format(self.sample_name))
@@ -284,9 +295,13 @@ class Vcf:
             sys.exit()
 
     def make_sorted_bam(self, args):
-        self.check_reference_bwa_indexed()
-        self.run_bwa(args.fastqs[0], args.fastqs[1], self.tmp_dir)
-        self.convert_sort_index(args)
+        ## if the sorted bam already exists, dont bother trying to make it
+        if os.path.exists(self.sorted_bamfile):
+            pass
+        else:
+            self.check_reference_bwa_indexed()
+            self.run_bwa(args.fastqs[0], args.fastqs[1], self.tmp_dir)
+            self.convert_sort_index(args)
 
     def check_reference_gatk_indexed(self):
         indicies = ['dict', 'fa.fai']
@@ -310,8 +325,12 @@ class Vcf:
             sys.exit()
 
     def make_vcf(self, args):
-        self.check_reference_gatk_indexed()
-        self.run_gatk(args)
+        ## if the vcf already exists, don't bother trying to make it.
+        if os.path.exists(self.vcf_filehandle):
+            pass
+        else:
+            self.check_reference_gatk_indexed()
+            self.run_gatk(args)
 
     def read_rec_file(self, rec_file):
         try:
