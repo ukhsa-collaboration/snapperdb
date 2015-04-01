@@ -131,7 +131,7 @@ class Vcf:
                     ad_string = format_string[1].split(',')
                     self.hap_var_count[pos] = float(ad_string[1]) / float(self.depth[pos])
                     if self.hap_var_count[pos] < self.ad_cutoff:
-                        self.mixed_positions.append(pos)
+                        self.mixed_positions.append(int(pos))
                         # if pos not in self.rec_list:
                         #    self.number_mixed_positions += 1
                     self.var[pos] = var_call
@@ -178,7 +178,7 @@ class Vcf:
         return bad_list
 
     def return_positions_with_low_mq(self, cutoff):
-        bad_list = []
+        bad_list = []                                                                  
         for pos in self.qual:
             if float(self.qual[pos]) < float(cutoff):
                 bad_list.append(pos)

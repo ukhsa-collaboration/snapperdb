@@ -277,7 +277,11 @@ class SNPdb:
                 self.snpdb_conn.commit()
                 cur.close()
                 sys.stderr.write('average depth below cutoff, not added to SNPdb')
+<<<<<<< HEAD
         elif self.check_duplicate(vcf, 'strains_snps') == True:
+=======
+        elif self.check_duplicate(vcf,'strains_snps') == True:
+>>>>>>> e95ab8db767b22e296437e3bccdd7ee12f67b096
             sys.stderr.write('%s is already in SNPdb strains_snps %s\n' % (vcf.sample_name, self.reference_genome))
 
     # # functions below here are for querying the snpdb
@@ -584,7 +588,7 @@ class SNPdb:
                        '#$ -N up_mat_{2}_{3}\n\n'
                        '. /etc/profile.d/modules.sh\n'
                        'module load {7}/.module_files/snapperdb/1-0\n'
-                       'python SnapperDB_main.py'
+                       'python /home/tim/git_reps/snapperdb/SnapperDB_main.py'
                        ' qsub_to_check_matrix -c {4}'
                        ' -l {5}/strain_list'
                        ' -s {5}/short_strain_list'
