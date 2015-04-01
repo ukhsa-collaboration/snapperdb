@@ -184,7 +184,7 @@ class SNPdb:
                                            vcf.mixed_positions))
             self.snpdb_conn.commit()
             cur.close()
-        elif self.check_duplicate(vcf) == True:
+        elif self.check_duplicate(vcf, 'strain_stats') == True:
             sys.stderr.write('%s is already in SNPdb strain_stats %s\n' % (vcf.sample_name, self.reference_genome))
 
     def add_new_variants(self, pos, contig, good_var):
@@ -277,7 +277,7 @@ class SNPdb:
                 self.snpdb_conn.commit()
                 cur.close()
                 sys.stderr.write('average depth below cutoff, not added to SNPdb')
-        elif self.check_duplicate(vcf) == True:
+        elif self.check_duplicate(vcf, 'strains_snps') == True:
             sys.stderr.write('%s is already in SNPdb strains_snps %s\n' % (vcf.sample_name, self.reference_genome))
 
     # # functions below here are for querying the snpdb
