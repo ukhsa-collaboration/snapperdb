@@ -278,7 +278,11 @@ class SNPdb:
                 cur.close()
                 sys.stderr.write('average depth below cutoff, not added to SNPdb')
 <<<<<<< HEAD
+<<<<<<< HEAD
         elif self.check_duplicate(vcf, 'strains_snps') == True:
+=======
+        elif self.check_duplicate(vcf,'strains_snps') == True:
+>>>>>>> e95ab8db767b22e296437e3bccdd7ee12f67b096
 =======
         elif self.check_duplicate(vcf,'strains_snps') == True:
 >>>>>>> e95ab8db767b22e296437e3bccdd7ee12f67b096
