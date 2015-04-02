@@ -39,9 +39,11 @@ def vcf_to_db(args, config_dict, vcf):
             logger.info('Loading serialised variants and ignored positions')
             vcf.bad_pos = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')))
             vcf.good_var = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_good_var.pick')))
+            vcf.mixed_positions = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_mixed_pos.pick')))
             res_dict = snapperdb.parse_ancillary_info(os.path.join(vcf.tmp_dir, vcf.sample_name + '_anc_info.txt'))
             vcf.number_mixed_positions = res_dict['number_mixed_positions']
             vcf.depth_average = res_dict['depth_average']
+
             logger.info('Checking the length of the VCF')
             logger.info('Uploading to SNPdb')
             snpdb.snpdb_upload(vcf)

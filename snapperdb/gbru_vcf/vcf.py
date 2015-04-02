@@ -205,12 +205,16 @@ class Vcf:
             1]))
         good_var_pick = os.path.join(self.tmp_dir, '{0}_good_var.pick'.format(os.path.split(self.sample_name)[
             1]))
+        mixed_pos_pick = os.path.join(self.tmp_dir, '{0}_mixed_pos.pick'.format(os.path.split(self.sample_name)[
+            1]))
         ancillary_info_text = os.path.join(self.tmp_dir, '{0}_anc_info.txt'.format(os.path.split(self.sample_name)[
             1]))
         with open(bad_pos_pick, 'wb') as fo:
             pickle.dump(self.bad_pos, fo, -1)
         with open(good_var_pick, 'wb') as fo:
             pickle.dump(self.good_var, fo, -1)
+        with open(mixed_pos_pick, 'wb') as fo:
+            pickle.dump(self.mixed_positions, fo, -1)
         with open(ancillary_info_text, 'w') as fo:
             fo.write('number_mixed_positions\t%s\n' % self.number_mixed_positions)
             fo.write('depth_average\t%s\n' % self.depth_average)
@@ -345,3 +349,4 @@ class Vcf:
                 rec_range = range((int(temp[0]) - 1), (int(temp[1]) - 1))
                 rec_list = set(rec_list) | set(rec_range)
         self.rec_list = rec_list
+

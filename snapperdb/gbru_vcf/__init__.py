@@ -46,15 +46,9 @@ def parse_vcf_for_mixed(args, config_dict):
     # vcf.read_rec_file(args.rec_file)
     vcf.read_vcf()
     print 'There are ', vcf.number_mixed_positions, ' mixed positions.'
-
     with open('{0}/{1}.positions.pick'.format(args.outdir, vcf.sample_name), 'wb') as fo:
         pickle.dump(vcf.mixed_positions, fo)
         # pickle.dump(vcf.number_mixed_positions)
-
-
     # with open('{0}/{1}.positions.txt'.format(args.outdir, vcf.sample_name), 'w') as fo:
     #    fo.write('{0}\t{1}\n'.format(vcf.sample_name, vcf.number_mixed_positions))
-
-
-
     # os.system('gzip {0}'.format(args.vcf_file))
