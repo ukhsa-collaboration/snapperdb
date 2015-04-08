@@ -176,9 +176,9 @@ def main():
                                                                  'recombination', default='N')
     parser_get_the_snps.add_argument('-b', dest='back_flag', help='Would you like a background cluster level? SNP cluster level '
                                                                  'from which to take one representative/N', default='N')
-    parser_get_the_snps.add_argument('-e', dest='meta_flag', help='some value from the metadata in strain_stats, '
-                                                                  'every strain with this meta-data will be included. '
-                                                                  'e.g. (e.g. stx:2a,pt:8,row:value)', default='N')
+    # parser_get_the_snps.add_argument('-e', dest='meta_flag', help='some value from the metadata in strain_stats, '
+    #                                                               'every strain with this meta-data will be included. '
+    #                                                               'e.g. (e.g. stx:2a,pt:8,row:value)', default='N')
     parser_update_clusters = subparsers.add_parser('update_clusters', help='Given a config file, updates the SNP clustering '
                                                                            'associated with the SNPdb specified in the config.')
     parser_update_clusters.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '

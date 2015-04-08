@@ -284,22 +284,15 @@ class SNPdb:
 
     def get_background(self, strain_list, args):
         cur = self.snpdb_conn.cursor()
-        sql = "select distinct(" + args.back_flag + ") from strain_clusters"
+        sql = 'SELECT name FROM strain_clusters WHERE id IN (SELECT MIN(id) FROM strain_clusters GROUP BY %s)' % args.back_flag
+        # sql = "select distinct(%s) from strain_clusters"
         cur.execute(sql)
         rows = cur.fetchall()
         for row in rows:
-            sql2 = "select sc.name from strain_clusters sc where " + args.back_flag + "=" + str(
-                row[0]) + " "
-            if args.meta_flag != 'N':
-                temp = args.meta_flag.split(',')
-                for meta in temp:
-                    temp2 = meta.split(':')
-                    sql2 = sql2 + "and " + temp2[0] + "=\'" + str(temp2[1]) + "\' "
-                sql2 = sql2 + " limit 1"
-            cur.execute(sql2)
-            rows2 = cur.fetchone()
-            if rows2:
-                strain_list.append(rows2[0])
+            strain_list.append(row[0])
+
+        ## not currently handling meta - perhaps should add?
+
         return strain_list
 
     def add_strains_to_sql_co(self, sql, strain_list, co, name):
