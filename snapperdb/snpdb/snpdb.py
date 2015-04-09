@@ -576,12 +576,12 @@ class SNPdb:
                        '#$ -wd {1}\n'
                        '#$ -N up_mat_{2}_{3}\n\n'
                        '. /etc/profile.d/modules.sh\n'
-                       'module load {7}/.module_files/snapperdb/1-0\n'
-                       'python SnapperDB_main.py'
+                       'module load snapperdb/0.1\n'
+                       'SnapperDB_main.py'
                        ' qsub_to_check_matrix -c {4}'
                        ' -l {5}/strain_list'
                        ' -s {5}/short_strain_list'
-                       ' -u {6}\n'.format(logs_dir, snapperdb_dir, snpdb, i, args.config_file, this_dir, update_list, home_dir))
+                       ' -u {6}\n'.format(logs_dir, snapperdb_dir, snpdb, i, args.config_file, this_dir, update_list))
 
             with open('{0}/update_matrix_{1}.sh'.format(this_dir, i), 'w') as fo:
                 fo.write(command)
