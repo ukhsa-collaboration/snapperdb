@@ -551,7 +551,7 @@ class SNPdb:
         this_dir = os.path.dirname(os.path.realpath(__file__))
         snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-        os.system('rm -rf {0} /update_list*'.format(this_dir))
+        os.system('rm -rf {0}/update_list*'.format(this_dir))
         os.system('rm -rf {0}/update_matrix_*'.format(this_dir))
 
         for i, each in enumerate(self.chunks(update_strain, args.hpc)):
