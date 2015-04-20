@@ -2,3 +2,4 @@
 .project
 .idea
 .pydevproject
+.DS_store
