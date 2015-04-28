@@ -125,9 +125,7 @@ class SNPdb:
         if does_snpdb_exist == True:
             self.snpdb_conn = psycopg2.connect(self.conn_string)
         else:
-            '''
-            How to handle logging within the class?
-            '''
+            print 'Cant find snpdb %s' % self.snpdb_name
             pass
 
     def _check_if_snpdb_exists(self):
