@@ -143,6 +143,7 @@ def main():
     parser_update_distance_matrix.add_argument('-m', dest='hpc', default='N', help='This is a PHE only function <int>/N, '
                                                                                    'where int is the number of comparisons you '
                                                                                    'want to do on each core')
+    parser_update_distance_matrix.add_argument('-n', dest='now', default=None, help='This is a PHE only function for use when passing hpc')
     parser_qsub_to_check_matrix = subparsers.add_parser('qsub_to_check_matrix', help='This is only for internal use by snapperdb'
                                                                                ' when update matrix is being run in hpc mode.')
     parser_qsub_to_check_matrix.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a'
