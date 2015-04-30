@@ -545,31 +545,33 @@ class SNPdb:
         2. for each in lists, qsub
         '''
         home_dir = os.path.expanduser('~')
-        logs_dir = os.path.join(home_dir, 'logs')
+        logs_dir = '/phengs/hpc_projects/routine_salmonella_snapperdb/logs_chron_jobs'
+        scripts_dir = '/phengs/hpc_projects/routine_salmonella_snapperdb/scripts_chron_job/non_fastq_to_vcf'
         this_dir = os.path.dirname(os.path.realpath(__file__))
         snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-        os.system('rm -rf {0}/update_list*'.format(this_dir))
-        os.system('rm -rf {0}/update_matrix_*'.format(this_dir))
+        # os.system('rm -rf {0}/update_list*'.format(this_dir))
+        # os.system('rm -rf {0}/update_matrix_*'.format(this_dir))
+
 
         for i, each in enumerate(self.chunks(update_strain, args.hpc)):
-            with open('{0}/update_list_{1}'.format(this_dir, i), 'w') as fo:
+            with open('{0}/{1}.{3}.update_list_{2}'.format(scripts_dir, args.now, i, self.snpdb_name), 'w') as fo:
                 for x in each:
                     fo.write(x + '\n')
-        with open('{0}/short_strain_list'.format(this_dir), 'w') as fo:
+        with open('{0}/{1}.{2}.short_strain_list'.format(scripts_dir, args.now, self.snpdb_name), 'w') as fo:
             for x in short_strain_list:
                 fo.write(x + '\n')
 
-        with open('{0}/strain_list'.format(this_dir), 'w') as fo:
+        with open('{0}/{1}.{2}.strain_list'.format(scripts_dir, args.now, self.snpdb_name), 'w') as fo:
             for x in strain_list:
                 fo.write(x + '\n')
 
-        res = sorted(glob.glob('{0}/update_list*'.format(this_dir)))
+        res = sorted(glob.glob('{0}/{1}.{2}.update_list*'.format(scripts_dir, args.now, self.snpdb_name)))
 
         for i, update_list in enumerate(res):
             command = ('#! /bin/bash\n'
-                       '#$ -o {0}/check_matrix.stdout\n'
-                       '#$ -e {0}/check_matrix.stderr\n'
+                       '#$ -o {0}/{7}.check_matrix.stdout\n'
+                       '#$ -e {0}/{7}.check_matrix.stderr\n'
                        '#$ -m e\n'
                        '#$ -wd {1}\n'
                        '#$ -N up_mat_{2}_{3}\n\n'
@@ -577,13 +579,13 @@ class SNPdb:
                        'module load snapperdb/0.1\n'
                        'SnapperDB_main.py'
                        ' qsub_to_check_matrix -c {4}'
-                       ' -l {5}/strain_list'
-                       ' -s {5}/short_strain_list'
-                       ' -u {6}\n'.format(logs_dir, snapperdb_dir, snpdb, i, args.config_file, this_dir, update_list))
+                       ' -l {5}/{7}.{8}.strain_list'
+                       ' -s {5}/{7}.{8}.short_strain_list'
+                       ' -u {6}\n'.format(logs_dir, logs_dir, snpdb, i, args.config_file, scripts_dir, update_list, args.now, self.snpdb_name))
 
-            with open('{0}/update_matrix_{1}.sh'.format(this_dir, i), 'w') as fo:
+            with open('{0}/{2}.{3}.update_mat_{1}.sh'.format(scripts_dir, i, args.now, self.snpdb_name), 'w') as fo:
                 fo.write(command)
-            os.system('qsub {0}/update_matrix_{1}.sh'.format(this_dir, i))
+            os.system('qsub {0}/{2}.{3}.update_mat_{1}.sh'.format(scripts_dir, i, args.now, self.snpdb_name))
 
 
             # os.system('chmod u+x {0}/update_matrix_{1}.sh'.format(this_dir, i))
