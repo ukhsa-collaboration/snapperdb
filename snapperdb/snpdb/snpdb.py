@@ -585,7 +585,7 @@ class SNPdb:
 
             with open('{0}/{2}.{3}.update_mat_{1}.sh'.format(scripts_dir, i, args.now, self.snpdb_name), 'w') as fo:
                 fo.write(command)
-            os.system('qsub {0}/{2}.{3}.update_mat_{1}.sh'.format(this_dir, i, args.now, self.snpdb_name))
+            os.system('qsub {0}/{2}.{3}.update_mat_{1}.sh'.format(scripts_dir, i, args.now, self.snpdb_name))
 
 
             # os.system('chmod u+x {0}/update_matrix_{1}.sh'.format(this_dir, i))
