@@ -579,9 +579,9 @@ class SNPdb:
                        'module load snapperdb/0.1\n'
                        'SnapperDB_main.py'
                        ' qsub_to_check_matrix -c {4}'
-                       ' -l {5}/{7}.strain_list'
-                       ' -s {5}/{7}.short_strain_list'
-                       ' -u {6}\n'.format(logs_dir, logs_dir, snpdb, i, args.config_file, scripts_dir, update_list, args.now))
+                       ' -l {5}/{7}.{8}.strain_list'
+                       ' -s {5}/{7}.{8}.short_strain_list'
+                       ' -u {6}\n'.format(logs_dir, logs_dir, snpdb, i, args.config_file, scripts_dir, update_list, args.now, self.snpdb_name))
 
             with open('{0}/{2}.{3}.update_mat_{1}.sh'.format(scripts_dir, i, args.now, self.snpdb_name), 'w') as fo:
                 fo.write(command)
