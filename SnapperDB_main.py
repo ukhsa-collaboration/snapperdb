@@ -22,29 +22,26 @@ import datetime
 from snapperdb import __version__, parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, parse_vcf_for_mixed
 from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, \
-    update_clusters, get_variants_of_interest
+    update_clusters, get_variants_of_interest, upload_indels
 
 def setup_logging(args):
-    cwd_logs = ['update_distance_matrix', 'qsub_to_check_matrix',
-                'update_clusters', 'make_snpdb', '', 'get_the_snps']
     if args.command.startswith('fastq'):
-        log_dir = os.path.join(os.path.dirname(args.fastqs[0]), 'logs')
+        args.log_dir = os.path.join(os.path.dirname(args.fastqs[0]), 'logs')
     elif args.command == 'vcf_to_db':
-        log_dir = os.path.join(os.path.dirname(os.path.dirname(args.vcf[0])), 'logs')
+        args.log_dir = os.path.join(os.path.dirname(os.path.dirname(args.vcf[0])), 'logs')
     elif args.command == 'check_vcf_for_mixed':
-        log_dir = os.path.join(os.path.dirname(args.outdir), 'logs')
-    elif args.command in cwd_logs:
-        log_dir = os.getcwd()
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+        args.log_dir = os.path.join(os.path.dirname(args.outdir), 'logs')
+    if not os.path.exists(args.log_dir):
+        os.makedirs(args.log_dir)
     logger = logging.getLogger('snapperdb')
-    logging.basicConfig(filename='%s/snapperdb.log' % (log_dir), level=logging.DEBUG,
+    now = str(datetime.datetime.now()).split('.')[0].replace(' ', '_').replace(':', '.')
+    logging.basicConfig(filename='%s/%s.snapperdb.log' % (args.log_dir, now), level=logging.DEBUG,
                         format='%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s')
     return logger
 
 def run_command(args):
     config_dict = parse_config(args)
-    setup_logging(args)
+    # setup_logging(args)
 
     if args.command == 'fastq_to_db':
         logger = logging.getLogger('snapperdb.fastq_to_db')
@@ -66,8 +63,8 @@ def run_command(args):
         vcf_to_db(args, config_dict, None)
 
     elif args.command == 'update_distance_matrix':
-        logger = logging.getLogger('snapperdb.update_distance_matrix')
-        logger.info('PARAMS: config = %s; multiple_threads = %s' % (args.config_file, args.hpc))
+        # logger = logging.getLogger('snapperdb.update_distance_matrix')
+        # logger.info('PARAMS: config = %s; multiple_threads = %s' % (args.config_file, args.hpc))
         update_distance_matrix(config_dict, args)
 
     elif args.command == 'qsub_to_check_matrix':
@@ -100,9 +97,8 @@ def run_command(args):
     elif args.command == 'get_variants_of_interest':
         get_variants_of_interest(args, config_dict)
 
-
-
-
+    elif args.command == 'upload_indels':
+        upload_indels(config_dict, args)
 
 
 def main():
@@ -125,12 +121,15 @@ def main():
     parser_fastq_to_vcf.add_argument('fastqs', metavar='FASTQ file(s)', nargs='+', help='At least one fastq file')
     parser_fastq_to_vcf.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
                                                                         'file in the user_configs directory (not the full path)')
+    parser_fastq_to_vcf.add_argument('-g', dest = 'log_dir', default = None,
+                                     help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
     parser_vcf_to_db = subparsers.add_parser('vcf_to_db', help='Takes a vcf and a config file, parses the vcf and then adds to '
                                                                'snpdb specified in the config file')
-    parser_vcf_to_db.add_argument('vcf', metavar='VCF file', nargs='+', help='A vcf file (generated using '
-                                                                                'emit_all_positions?)')
+    parser_vcf_to_db.add_argument('vcf', metavar='VCF file', nargs='+', help='A vcf file (generated using emit_all_positions?)')
     parser_vcf_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
                                                                     'file in the user_configs directory (not the full path)')
+    parser_vcf_to_db.add_argument('-g', dest = 'log_dir', default = None,
+                                     help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
     parser_make_snpdb = subparsers.add_parser('make_snpdb', help='Takes a config and makes a snpdb')
     parser_make_snpdb.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
                                                                     'file in the user_configs directory (not the full path)')
@@ -143,7 +142,8 @@ def main():
     parser_update_distance_matrix.add_argument('-m', dest='hpc', default='N', help='This is a PHE only function <int>/N, '
                                                                                    'where int is the number of comparisons you '
                                                                                    'want to do on each core')
-    parser_update_distance_matrix.add_argument('-n', dest='now', default=None, help='This is a PHE only function for use when passing hpc')
+    parser_update_distance_matrix.add_argument('-g', dest = 'log_dir', default = os.path.join(os.path.expanduser('~'), 'logs'),
+                                     help='Where do you want the logs written to? Will default to a /user/home/logs')
     parser_qsub_to_check_matrix = subparsers.add_parser('qsub_to_check_matrix', help='This is only for internal use by snapperdb'
                                                                                ' when update matrix is being run in hpc mode.')
     parser_qsub_to_check_matrix.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a'
@@ -154,6 +154,8 @@ def main():
                                                                                             'already in the distance matrix')
     parser_qsub_to_check_matrix.add_argument('-u', dest='update_list', required=True, help='The list of all the strains to be '
                                                                                         'added to the distance matrix')
+    parser_qsub_to_check_matrix.add_argument('-g', dest = 'log_dir', default = os.path.join(os.path.expanduser('~'), 'logs'),
+                                     help='Where do you want the logs written to? Will default to a /user/home/logs')
     parser_get_the_snps = subparsers.add_parser('get_the_snps', help='Takes a config file, a list, and a bunch of other flags '
                                                                     'and provides you with snps and more')
     parser_get_the_snps.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
@@ -177,6 +179,8 @@ def main():
                                                                  'recombination', default='N')
     parser_get_the_snps.add_argument('-b', dest='back_flag', help='Would you like a background cluster level? SNP cluster level '
                                                                  'from which to take one representative/N', default='N')
+    parser_get_the_snps.add_argument('-g', dest = 'log_dir', default = os.path.join(os.path.expanduser('~'), 'logs'),
+                                     help='Where do you want the logs written to? Will default to a /user/home/logs')
     # parser_get_the_snps.add_argument('-e', dest='meta_flag', help='some value from the metadata in strain_stats, '
     #                                                               'every strain with this meta-data will be included. '
     #                                                               'e.g. (e.g. stx:2a,pt:8,row:value)', default='N')
@@ -184,6 +188,8 @@ def main():
                                                                            'associated with the SNPdb specified in the config.')
     parser_update_clusters.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a config '
                                                                         'file in the user_configs directory (not the full path)')
+    parser_update_clusters.add_argument('-g', dest = 'log_dir', default = os.path.join(os.path.expanduser('~'), 'logs'),
+                                     help='Where do you want the logs written to? Will default to a /user/home/logs')
     parser_check_vcf_for_mixed = subparsers.add_parser('check_vcf_for_mixed', help='Given the path to a vcf file, '
                                                                                    'it will check the number of positions in '
                                                                                    'the vcf that have an AD ratio less than '
@@ -197,6 +203,8 @@ def main():
                                                                                      'written to?')
     parser_check_vcf_for_mixed.add_argument('-r', dest='rec_file', help='File with positions to be ignored because of '
                                                                         'phage/recombination.')
+    parser_check_vcf_for_mixed.add_argument('-g', dest = 'log_dir', default = os.path.join(os.path.expanduser('~'), 'logs'),
+                                     help='Where do you want the logs written to? Will default to a /user/home/logs')
     parser_get_variants_of_interest = subparsers.add_parser('get_variants_of_interest',
                                                             help='Given 2 strain lists, get_variants_of_interest will find high '
                                                                  'quality variants that differ between the two. One of the '
@@ -207,6 +215,15 @@ def main():
                                                                     'file in the user_configs directory (not the full path)')
     parser_get_variants_of_interest.add_argument('-background', dest='background_list')
     parser_get_variants_of_interest.add_argument('-of_interest', dest='of_interest_list')
+    parser_get_variants_of_interest.add_argument('-g', dest = 'log_dir', default = os.path.join(os.path.expanduser('~'), 'logs'),
+                                     help='Where do you want the logs written to? Will default to a /user/home/logs')
+    parser_upload_indels = subparsers.add_parser('upload_indels', help = 'Takes a indel vcf and uploads to a SNPdb with ')
+    parser_upload_indels.add_argument('-c', dest='config_file', required=True, help='The name of a config '
+                                                                    'file in the user_configs directory (not the full path)')
+    parser_upload_indels.add_argument('-v', dest='vcf', nargs='+', required=True, help='Path to a vcf with indels called')
+    parser_upload_indels.add_argument('-g', dest = 'log_dir', default = os.path.join(os.path.expanduser('~'), 'logs'),
+                                     help='Where do you want the logs written to? Will default to a /user/home/logs')
+
 
     args = parser.parse_args()
 

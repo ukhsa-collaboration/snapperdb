@@ -43,7 +43,6 @@ def vcf_to_db(args, config_dict, vcf):
             res_dict = snapperdb.parse_ancillary_info(os.path.join(vcf.tmp_dir, vcf.sample_name + '_anc_info.txt'))
             vcf.number_mixed_positions = res_dict['number_mixed_positions']
             vcf.depth_average = res_dict['depth_average']
-
             logger.info('Checking the length of the VCF')
             logger.info('Uploading to SNPdb')
             snpdb.snpdb_upload(vcf)
@@ -135,7 +134,7 @@ def update_distance_matrix(config_dict, args):
     strain_list, update_strain = snpdb.get_strains()
     # # get_all_good_ids from snpdb2 takes a snp cutoff as well, here, we don't have a SNP cutoff so we set it arbitrarily high.
     snp_co = '1000000'
-    if update_strain: 
+    if update_strain:
         print "###  Populating distance matrix: " + str(datetime.now())
         snpdb.parse_args_for_update_matrix(snp_co, strain_list)
         if args.hpc == 'N':
@@ -200,3 +199,26 @@ def get_variants_of_interest(config_dict, args):
     2.
 
     '''
+
+def upload_indels(config_dict, args):
+    snpdb = SNPdb(config_dict)
+    snpdb._connect_to_snpdb()
+    vcf = Vcf()
+    vcf.parse_config_dict(config_dict)
+    snpdb.define_class_variables_and_make_output_files_indels(args, vcf)
+    snpdb.add_indels_to_snpdb(vcf)
+
+
+
+    '''
+    1. parse vcf for indels - have different function based on parse_vcf for now
+        a. check that length of ref and alt are different
+        b. then apply normal quality filters - dp, ad, gq
+
+    2. get all indels from indels table in snpdb
+        a. run equivalent of snpdb.add_to_snpdb for indels
+
+    science - need to check how often indels start at the same or similar (within a few positions) positions
+
+    '''
+    pass
