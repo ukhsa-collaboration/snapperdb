@@ -41,7 +41,7 @@ def setup_logging(args):
 
 def run_command(args):
     config_dict = parse_config(args)
-    # setup_logging(args)
+    setup_logging(args)
 
     if args.command == 'fastq_to_db':
         logger = logging.getLogger('snapperdb.fastq_to_db')
