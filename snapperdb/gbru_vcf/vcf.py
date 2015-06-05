@@ -45,6 +45,7 @@ class Vcf:
         self.mixed_positions = []
         self.rec_list = []
         self.vcf_max_pos = None
+        self.ref = None
 
     def parse_config_dict(self, config_dict):
         # # we loop through thusly in case not all these things are in the config
@@ -97,7 +98,7 @@ class Vcf:
         # # bit pointless but maintains 'query' syntax of the original
         self.query = self.sample_name
         print self.query
-
+        depth_list = []
         for line in openfile:
             if not re.match(r'^#', line):
                 split_line = line.split()
@@ -110,6 +111,7 @@ class Vcf:
                 matchObj = re.match(r'.*DP=(\d*)', line)
                 try:
                     self.depth[pos] = matchObj.group(1)
+                    depth_list.append(int(matchObj.group(1)))
                 except:
                     self.depth[pos] = 0
                 # get map quality
@@ -126,7 +128,7 @@ class Vcf:
                     matchObvar = re.match(r'.*GT:AD:DP:GQ:PL\s+(.*)', line)
                     format_string = matchObvar.group(1).split(':')
                     self.hap_call[pos] = format_string[0]
-                    self.hap_depth [pos] = format_string[2]
+                    self.hap_depth[pos] = format_string[2]
                     self.hap_qual[pos] = format_string[3]
                     ad_string = format_string[1].split(',')
                     self.hap_var_count[pos] = float(ad_string[1]) / float(self.depth[pos])
@@ -143,32 +145,127 @@ class Vcf:
         self.bad_var, self.good_var = self.return_bad_pos_good_vars(self.depth_cutoff, self.mq_cutoff, self.ad_cutoff)
         self.bad_pos = set(self.bad_depth) | set(self.bad_qual) | set(self.bad_var)
         self.number_mixed_positions = len(self.mixed_positions)
-        self.get_average_and_sd_depth()
+        ref_len = len(self.depth)
+        self.get_average_and_sd_depth(ref_len, depth_list)
         openfile.close()
 
-    def check_len_vcf(self):
+    def read_multi_contig_vcf(self):
+
+        try:
+            os.path.exists(self.vcf_filehandle)
+        except IOError:
+            print self.vcf_filehandle + " not found ... "
+
+        if self.vcf_filehandle.endswith('.gz'):
+            os.system('gunzip {0}'.format(self.vcf_filehandle))
+            self.vcf_filehandle = os.path.splitext(self.vcf_filehandle)[0]
+
+        try:
+            openfile = open(self.vcf_filehandle, 'r')
+        except:
+            print self.vcf_filehandle + " not found ... "
+            sys.exit()
+        self.sample_name = os.path.splitext(os.path.basename(self.vcf_filehandle))[0]
+        # # bit pointless but maintains 'query' syntax of the original
+        self.query = self.sample_name
+        vcf_container = []
+        total_len = 0
+        oref = ''
+        for line in openfile:
+            if not re.match(r'^#', line):
+                total_len += 1
+                split_line = line.split()
+                # get reference
+                ref = split_line[0]
+                if ref != oref:
+                    if oref != '':
+                        vcf_container.append(new_vcf)
+                    new_vcf = Vcf()
+                    oref = ref
+                    new_vcf.ref = ref
+                    new_vcf.query = self.query
+                else:
+                    pos = split_line[1]
+                    # get depth
+                    matchObj = re.match(r'.*DP=(\d*)', line)
+                    try:
+                        new_vcf.depth[pos] = matchObj.group(1)
+                    except AttributeError:
+                        new_vcf.depth[pos] = 0
+                    # get map quality
+                    matchObj = re.match(r'.*MQ=(\d*\.\d*)', line)
+                    try:
+                        new_vcf.qual[pos] = matchObj.group(1)
+                    except AttributeError:
+                        new_vcf.qual[pos] = 0
+                    # get var call
+                    var_call = split_line[4]
+                    ref_call = split_line[3]
+                    # if not wild type
+                    if var_call != '.':
+                        matchObvar = re.match(r'.*GT:AD:DP:GQ:PL\s+(.*)', line)
+                        format_string = matchObvar.group(1).split(':')
+                        new_vcf.hap_call[pos] = format_string[0]
+                        new_vcf.hap_depth[pos] = format_string[2]
+                        new_vcf.hap_qual[pos] = format_string[3]
+                        ad_string = format_string[1].split(',')
+                        new_vcf.hap_var_count[pos] = float(ad_string[1]) / float(new_vcf.depth[pos])
+                        if new_vcf.hap_var_count[pos] < self.ad_cutoff:
+                            new_vcf.mixed_positions.append(int(pos))
+                            # if pos not in self.rec_list:
+                            #    self.number_mixed_positions += 1
+                        new_vcf.var[pos] = var_call
+                        new_vcf.ref_base[pos] = ref_call
+        # self.vcf_max_pos = pos
+        depth_list = []
+        for vcf in vcf_container:
+            # total_len += len(vcf.depth)
+            for pos in vcf.depth:
+                depth_list.append(int(vcf.depth[pos]))
+            vcf.bad_depth = vcf.return_positions_with_low_depth(self.depth_cutoff)
+            vcf.bad_qual = vcf.return_positions_with_low_mq(self.mq_cutoff)
+            vcf.bad_var, vcf.good_var = self.return_bad_pos_good_vars(self.depth_cutoff, self.mq_cutoff, self.ad_cutoff)
+            vcf.bad_pos = set(vcf.bad_depth) | set(vcf.bad_qual) | set(vcf.bad_var)
+            vcf.number_mixed_positions = len(vcf.mixed_positions)
+
+        self.vcf_max_pos = total_len
+        self.get_average_and_sd_depth(total_len, depth_list)
+
+        openfile.close()
+        return vcf_container
+
+    def check_len_vcf(self, config_dict):
 
         fi = open(self.ref_genome_path)
-        print self.ref_genome_path
-        ref_fasta = SeqIO.read(fi, 'fasta')
-        print len(ref_fasta.seq), self.vcf_max_pos
-        if len(ref_fasta.seq) == int(self.vcf_max_pos):
-            pass
-        else:
-            sys.stderr.write('VCF length and reference fasta length are not the same\n')
-            sys.exit()
-        fi.close()
 
-    def get_average_and_sd_depth(self):
-        ref_len = len(self.depth)
-        total = 0
-        for pos in self.depth:
-            total += float(self.depth[pos])
+        if config_dict['multi_contig_reference'] == 'N':
+            ref_fasta = SeqIO.read(fi, 'fasta')
+            #print len(ref_fasta.seq), self.vcf_max_pos
+            if len(ref_fasta.seq) == int(self.vcf_max_pos):
+                pass
+            else:
+                sys.stderr.write('VCF length and reference fasta length are not the same\n')
+                sys.exit()
+            fi.close()
+        elif config_dict['multi_contig_reference'] == 'Y':
+            ref_fasta = SeqIO.parse(fi, 'fasta')
+            ref_len = 0
+            for contig in ref_fasta:
+                ref_len += len(contig)
+            if ref_len == int(self.vcf_max_pos):
+                pass
+            else:
+                sys.stderr.write('VCF length and reference fasta length are not the same\n')
+                sys.exit()
+
+    def get_average_and_sd_depth(self, ref_len, depth_list):
+
+        total = sum(depth_list)
         self.depth_average = float(total) / float(ref_len)
-        sd_tot = 0
-        for pos in sorted(self.depth, key=int):
-            sd_tot = sd_tot + (float(self.depth[pos]) - float(self.depth_average)) ** 2
-        self.depth_sd = (float(sd_tot) / float(ref_len)) ** 0.5
+        # sd_tot = 0
+        # for pos in sorted(self.depth, key=int):
+            # sd_tot = sd_tot + (float(self.depth[pos]) - float(self.depth_average)) ** 2
+        # self.depth_sd = (float(sd_tot) / float(ref_len)) ** 0.5
 
     def return_positions_with_low_depth(self, cutoff):
         bad_list = []
@@ -178,7 +275,7 @@ class Vcf:
         return bad_list
 
     def return_positions_with_low_mq(self, cutoff):
-        bad_list = []                                                                  
+        bad_list = []
         for pos in self.qual:
             if float(self.qual[pos]) < float(cutoff):
                 bad_list.append(pos)
@@ -202,13 +299,13 @@ class Vcf:
 
     def pickle_variants_and_ignored_pos(self):
         bad_pos_pick = os.path.join(self.tmp_dir, '{0}_bad_pos.pick'.format(os.path.split(self.sample_name)[
-            1]))
+                                                                                1]))
         good_var_pick = os.path.join(self.tmp_dir, '{0}_good_var.pick'.format(os.path.split(self.sample_name)[
-            1]))
+                                                                                  1]))
         mixed_pos_pick = os.path.join(self.tmp_dir, '{0}_mixed_pos.pick'.format(os.path.split(self.sample_name)[
-            1]))
+                                                                                    1]))
         ancillary_info_text = os.path.join(self.tmp_dir, '{0}_anc_info.txt'.format(os.path.split(self.sample_name)[
-            1]))
+                                                                                       1]))
         with open(bad_pos_pick, 'wb') as fo:
             pickle.dump(self.bad_pos, fo, -1)
         with open(good_var_pick, 'wb') as fo:
@@ -244,8 +341,9 @@ class Vcf:
             if os.path.exists(self.ref_genome_path + '.' + i):
                 pass
             else:
-                process = subprocess.Popen(['bwa', 'index', self.ref_genome_path],
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                os.system('bwa index %s' % self.ref_genome_path)
+                # process = subprocess.Popen(['bwa', 'index', self.ref_genome_path],
+                #                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         for i in indices:
             if os.path.exists(self.ref_genome_path + '.' + i):
                 pass
@@ -253,12 +351,12 @@ class Vcf:
                 sys.stderr.write('Reference not indexed, you need to index with `bwa index <ref_genome.fa>`')
                 sys.exit()
 
-    def run_bwa(self, fastq_1, fastq_2, out_dir):
-        header = '\'@RG\\tID:1\\tSM:%s\'' % (self.sample_name)
-        #print header
-        #print self.ref_genome_path
-        #print 'bwa mem -R %s %s %s %s' % (header, self.ref_genome_path, fastq_1, fastq_2)
-        #process = subprocess.Popen(['bwa', 'mem', '-R', header , self.ref_genome_path,
+    def old_run_bwa(self, fastq_1, fastq_2, out_dir):
+        header = '\'@RG\\tID:1\\tSM:%s\'' % self.sample_name
+        # print header
+        # print self.ref_genome_path
+        # print 'bwa mem -R %s %s %s %s' % (header, self.ref_genome_path, fastq_1, fastq_2)
+        # process = subprocess.Popen(['bwa', 'mem', '-R', header , self.ref_genome_path,
         #                            fastq_1, fastq_2],
         #                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         process = subprocess.Popen('bwa mem -R %s %s %s %s' % (header, self.ref_genome_path, fastq_1, fastq_2),
@@ -271,6 +369,17 @@ class Vcf:
         samfile = os.path.join(out_dir, '{0}.sam'.format(self.sample_name))
         with open(samfile, 'w') as fo:
             fo.write(stdout)
+
+    def map_sort_index(self, args):
+        samfile = os.path.join(self.tmp_dir, self.sample_name + '.sam')
+        bamfile = os.path.join(self.tmp_dir, self.sample_name + '.bam')
+        tmp_sorted_bamfile = os.path.join(self.tmp_dir, self.sample_name + '.sorted')
+        header = '\'@RG\\tID:1\\tSM:%s\'' % self.sample_name
+        os.system('bwa mem -R %s %s %s %s > %s'
+                  % (header, self.ref_genome_path, args.fastqs[0], args.fastqs[1], samfile))
+        os.system('samtools view -bS -o %s %s' % (bamfile, samfile))
+        os.system('samtools sort %s %s' % (bamfile, tmp_sorted_bamfile))
+        os.system('samtools index %s' % self.sorted_bamfile)
 
     def convert_sort_index(self, args):
         samfile = os.path.join(self.tmp_dir, self.sample_name + '.sam')
@@ -298,17 +407,34 @@ class Vcf:
             sys.stderr.write('{0}\n'.format(stderr))
             sys.exit()
 
+    def new_map_sort_index_not_working(self, args, out_dir):
+        header = '\'@RG\\tID:1\\tSM:%s\'' % self.sample_name
+        sorted_bam = os.path.join(out_dir, '{0}.sorted.bam'.format(self.sample_name))
+        os.system('bwa mem -R %s %s %s %s | samtools view -bS | samtools sort - %s'
+                  % (header, self.ref_genome_path, args.fastqs[0], args.fastqs[1], sorted_bam))
+
     def make_sorted_bam(self, args):
         ## if the sorted bam already exists, dont bother trying to make it
         if os.path.exists(self.sorted_bamfile):
             pass
         else:
             self.check_reference_bwa_indexed()
-            self.run_bwa(args.fastqs[0], args.fastqs[1], self.tmp_dir)
-            self.convert_sort_index(args)
+            # self.run_bwa(args.fastqs[0], args.fastqs[1], self.tmp_dir)
+            # self.convert_sort_index(args)
+            self.map_sort_index(args, self.tmp_dir)
+            if not os.path.exists(self.sorted_bamfile):
+                sys.stderr.write('Problem with map_sort_index\n')
 
     def check_reference_gatk_indexed(self):
         indicies = ['dict', 'fa.fai']
+        for i in indicies:
+            if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + i):
+                pass
+            else:
+                picard_dict_path = os.path.splitext(self.ref_genome_path)[0]
+                os.system('java -jar CreateSequenceDictionary.jar R= %s O= %s.dict'
+                          % (self.ref_genome_path, picard_dict_path))
+                os.system('samtools faidx %s' % self.ref_genome_path)
         for i in indicies:
             if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + i):
                 pass
@@ -320,7 +446,8 @@ class Vcf:
     def run_gatk(self, args):
         process = subprocess.Popen(['java', '-Xmx30g', '-jar',
                                     '/phengs/hpc_software/gatk/2.6.5/GenomeAnalysisTK.jar', '-T',
-                                    'UnifiedGenotyper', '-nt', '1', '-out_mode', 'EMIT_ALL_SITES', '-R', self.ref_genome_path,
+                                    'UnifiedGenotyper', '-nt', '1', '-out_mode', 'EMIT_ALL_SITES', '-R',
+                                    self.ref_genome_path,
                                     '-I', self.sorted_bamfile, '-o', self.vcf_filehandle], stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
         if process.returncode != 0:
@@ -349,4 +476,3 @@ class Vcf:
                 rec_range = range((int(temp[0]) - 1), (int(temp[1]) - 1))
                 rec_list = set(rec_list) | set(rec_range)
         self.rec_list = rec_list
-

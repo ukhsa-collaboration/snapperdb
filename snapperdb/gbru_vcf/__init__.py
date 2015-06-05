@@ -24,7 +24,7 @@ def fastq_to_vcf(args, config_dict):
     logger.info('Parsing vcf')
     fastq_bam_vcf.read_vcf()
     logger.info('Checking VCF length')
-    fastq_bam_vcf.check_len_vcf()
+    fastq_bam_vcf.check_len_vcf(config_dict)
     if args.command == 'fastq_to_vcf':
         logger.info('Pickling variants and ignored positions')
         fastq_bam_vcf.pickle_variants_and_ignored_pos()
@@ -33,6 +33,19 @@ def fastq_to_vcf(args, config_dict):
         fastq_bam_vcf.pickle_variants_and_ignored_pos()
         logger.info('Returning instance of Vcf class')
         return fastq_bam_vcf
+
+def fastq_to_vcf_multi_contig(args, config_dict):
+    print 'running fastq_to_vcf_multi_contig'
+    fastq_bam_vcf = Vcf()
+    fastq_bam_vcf.parse_config_dict(config_dict)
+    fastq_bam_vcf.define_class_variables_and_make_output_files(args)
+    fastq_bam_vcf.make_sorted_bam(args)
+    fastq_bam_vcf.make_vcf(args)
+    vcf_container = fastq_bam_vcf.read_multi_contig_vcf()
+    fastq_bam_vcf.check_len_vcf(config_dict)
+    if args.command == 'fastq_to_vcf':
+        fastq_bam_vcf.pickle_variants_and_ignored_pos()
+
 
 def parse_vcf_for_mixed(args, config_dict):
     if args.vcf_file.endswith('.gz'):
