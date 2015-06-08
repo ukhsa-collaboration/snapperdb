@@ -222,3 +222,14 @@ def upload_indels(config_dict, args):
 
     '''
     pass
+
+def vcf_to_db_multi_contig(args, config_dict, vcf):
+    snpdb = SNPdb(config_dict)
+    snpdb._connect_to_snpdb()
+    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
+    if inspect.stack()[0][3] == 'fastq_to_db':
+        snpdb.snpdb_upload_multi_contig(vcf)
+
+    elif inspect.stack()[0][3] == 'vcf_to_db':
+        vcf = Vcf
+        snpdb.define_class_variables_and_make_output_files(args, vcf)

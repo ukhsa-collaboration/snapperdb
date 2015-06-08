@@ -24,7 +24,7 @@ import datetime
 from snapperdb import __version__, parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, parse_vcf_for_mixed, fastq_to_vcf_multi_contig
 from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, \
-    update_clusters, get_variants_of_interest, upload_indels
+    update_clusters, get_variants_of_interest, upload_indels, vcf_to_db_multi_contig
 
 
 def setup_logging(args):
@@ -70,7 +70,10 @@ def run_command(args):
         logger = logging.getLogger('snapperdb.vcf_to_db')
         logger.info('PARAMS: config = %s; vcf = %s' % (args.config_file, args.vcf))
         # third argument is for an instance of a vcf class, which doesnt exist in this case
-        vcf_to_db(args, config_dict, None)
+        if config_dict['multi_contig_reference'] == 'N':
+            vcf_to_db(args, config_dict, None)
+        elif config_dict['multi_contig_reference'] == 'Y':
+            vcf_to_db_multi_contig(args)
 
     elif args.command == 'update_distance_matrix':
         # logger = logging.getLogger('snapperdb.update_distance_matrix')

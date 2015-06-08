@@ -44,7 +44,7 @@ def fastq_to_vcf_multi_contig(args, config_dict):
     vcf_container = fastq_bam_vcf.read_multi_contig_vcf()
     fastq_bam_vcf.check_len_vcf(config_dict)
     if args.command == 'fastq_to_vcf':
-        fastq_bam_vcf.pickle_variants_and_ignored_pos()
+        fastq_bam_vcf.pickle_multi_contig_vcf_container(vcf_container)
 
 
 def parse_vcf_for_mixed(args, config_dict):

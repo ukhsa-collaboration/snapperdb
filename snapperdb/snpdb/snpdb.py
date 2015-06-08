@@ -189,7 +189,8 @@ class SNPdb:
         # fasta starts at 0, snpdb pos is worked out from a reference that starts at 1 (position in snpdb)
         ref_base = contig[int(pos) - 1]
         cursor = self.snpdb_conn.cursor()
-        cursor.execute("insert into variants (pos, var_base, ref_base) VALUES (%s,\'%s\',\'%s\')" % (pos, var_base, ref_base))
+        cursor.execute("insert into variants (pos, var_base, ref_base) VALUES (%s,\'%s\',\'%s\')" % (pos, var_base,
+                                                                                                     ref_base))
         self.snpdb_conn.commit()
 
         cursor.execute('select currval(\'variants_id_seq\')')

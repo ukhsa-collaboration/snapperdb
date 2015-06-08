@@ -159,7 +159,6 @@ class Vcf:
         if self.vcf_filehandle.endswith('.gz'):
             os.system('gunzip {0}'.format(self.vcf_filehandle))
             self.vcf_filehandle = os.path.splitext(self.vcf_filehandle)[0]
-
         try:
             openfile = open(self.vcf_filehandle, 'r')
         except:
@@ -226,11 +225,10 @@ class Vcf:
             vcf.bad_qual = vcf.return_positions_with_low_mq(self.mq_cutoff)
             vcf.bad_var, vcf.good_var = self.return_bad_pos_good_vars(self.depth_cutoff, self.mq_cutoff, self.ad_cutoff)
             vcf.bad_pos = set(vcf.bad_depth) | set(vcf.bad_qual) | set(vcf.bad_var)
-            vcf.number_mixed_positions = len(vcf.mixed_positions)
+            self.number_mixed_positions += len(vcf.mixed_positions)
 
         self.vcf_max_pos = total_len
         self.get_average_and_sd_depth(total_len, depth_list)
-
         openfile.close()
         return vcf_container
 
@@ -298,14 +296,10 @@ class Vcf:
         return bad_list, good_dict
 
     def pickle_variants_and_ignored_pos(self):
-        bad_pos_pick = os.path.join(self.tmp_dir, '{0}_bad_pos.pick'.format(os.path.split(self.sample_name)[
-                                                                                1]))
-        good_var_pick = os.path.join(self.tmp_dir, '{0}_good_var.pick'.format(os.path.split(self.sample_name)[
-                                                                                  1]))
-        mixed_pos_pick = os.path.join(self.tmp_dir, '{0}_mixed_pos.pick'.format(os.path.split(self.sample_name)[
-                                                                                    1]))
-        ancillary_info_text = os.path.join(self.tmp_dir, '{0}_anc_info.txt'.format(os.path.split(self.sample_name)[
-                                                                                       1]))
+        bad_pos_pick = os.path.join(self.tmp_dir, '{0}_bad_pos.pick'.format(os.path.split(self.sample_name)[1]))
+        good_var_pick = os.path.join(self.tmp_dir, '{0}_good_var.pick'.format(os.path.split(self.sample_name)[1]))
+        mixed_pos_pick = os.path.join(self.tmp_dir, '{0}_mixed_pos.pick'.format(os.path.split(self.sample_name)[1]))
+        ancillary_info_text = os.path.join(self.tmp_dir, '{0}_anc_info.txt'.format(os.path.split(self.sample_name)[1]))
         with open(bad_pos_pick, 'wb') as fo:
             pickle.dump(self.bad_pos, fo, -1)
         with open(good_var_pick, 'wb') as fo:
@@ -315,6 +309,32 @@ class Vcf:
         with open(ancillary_info_text, 'w') as fo:
             fo.write('number_mixed_positions\t%s\n' % self.number_mixed_positions)
             fo.write('depth_average\t%s\n' % self.depth_average)
+
+    def pickle_multi_contig_vcf_container(self, vcf_container):
+        mc_bad_pos_pick = os.path.join(self.tmp_dir, '{0}_mc_bad_pos.pick'.format(os.path.split(self.sample_name)[1]))
+        mc_good_var_pick = os.path.join(self.tmp_dir, '{0}_mc_good_var.pick'.format(os.path.split(self.sample_name)[1]))
+        mc_mixed_pos_pick = os.path.join(self.tmp_dir,
+                                         '{0}_mc_mixed_pos.pick'.format(os.path.split(self.sample_name)[1]))
+        mc_anc_info_txt = os.path.join(self.tmp_dir, '{0}_mc_anc_info.txt'.format(os.path.split(self.sample_name)[1]))
+        bad_pos_dict = {}
+        var_dict = {}
+        mixed_pos_dict = {}
+
+        for vcf in vcf_container:
+            bad_pos_dict[vcf.ref] = vcf.bad_pos
+            var_dict[vcf.ref] = vcf.var
+            mixed_pos_dict[vcf.ref] = vcf.mixed_positions
+
+        with open(mc_bad_pos_pick, 'wb') as bp:
+            pickle.dump(bad_pos_dict, bp, -1)
+        with open(mc_good_var_pick, 'wb') as gv:
+            pickle.dump(var_dict, gv, -1)
+        with open(mc_mixed_pos_pick, 'wb') as mp:
+            pickle.dump(mixed_pos_dict, mp, -1)
+
+        with open(mc_anc_info_txt, 'w') as ai:
+            ai.write('number_mixed_positions\t%s\n' % self.number_mixed_positions)
+            ai.write('depth_average\t%s\n' % self.depth_average)
 
     def define_class_variables_and_make_output_files(self, args):
         try:
