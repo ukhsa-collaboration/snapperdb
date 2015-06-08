@@ -167,13 +167,9 @@ class SNPdb:
         return dup
 
     def add_info_to_strain_stats(self, vcf):
-        if self.check_duplicate(vcf, 'strain_stats') == False:
+        if not self.check_duplicate(vcf, 'strain_stats'):
             time_now = datetime.now()
             time_now = str(time_now)
-            # insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
-            #                    'VALUES (\'%s\', ' \
-            #                    '%s, \'%s\', \'%s\', %s)' % (vcf.sample_name, vcf.depth_average, time_now,
-            #                                                 vcf.number_mixed_positions, vcf.mixed_pos_list)
             insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
                                'VALUES (%s, %s, %s, %s, %s)'
             cur = self.snpdb_conn.cursor()
@@ -181,8 +177,23 @@ class SNPdb:
                                            vcf.mixed_positions))
             self.snpdb_conn.commit()
             cur.close()
-        elif self.check_duplicate(vcf, 'strain_stats') == True:
+        elif self.check_duplicate(vcf, 'strain_stats'):
             sys.stderr.write('%s is already in SNPdb strain_stats %s\n' % (vcf.sample_name, self.reference_genome))
+
+    def add_info_to_strain_stats_mc(self, vcf, mixed_pos_dict):
+        if self.check_duplicate(vcf, 'strain_stats') == False:
+            mixed_pos_list = []
+            for contig in mixed_pos_dict:
+                for mixed_pos in mixed_pos_dict[contig]:
+                    mixed_pos_list.append('%s position %s' % (contig, mixed_pos))
+            time_now = str(datetime.now())
+            insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
+                               'VALUES (%s, %s, %s, %s, %s)'
+            cur = self.snpdb_conn.cursor()
+            cur.execute(insert_statement, (vcf.sample_name, vcf.depth_average, time_now,
+                                           vcf.number_mixed_positions, mixed_pos_list))
+            self.snpdb_conn.commit()
+            cur.close()
 
     def add_new_variants(self, pos, contig, good_var):
         var_base = good_var[pos]
@@ -196,6 +207,13 @@ class SNPdb:
         cursor.execute('select currval(\'variants_id_seq\')')
         seq_id = cursor.fetchall()
         seq_id = seq_id[0][0]
+        return seq_id
+
+    def add_new_variants(pos, vcf, conn):
+        conn.query("insert into variants (pos, var_base, ref_base, contig) VALUES (%s,\'%s\',\'%s\',\'%s\')" % (pos, vcf.var[pos], vcf.ref_base[pos], vcf.ref))
+        queryObj = conn.query("select currval(\'variants_id_seq\')")
+        res = queryObj.dictresult()
+        seq_id = str(res[0]['currval'])
         return seq_id
 
     def add_to_snpdb(self, vcf):
@@ -261,23 +279,82 @@ class SNPdb:
             cursor.close()
             self.snpdb_conn.close()
 
+    def add_to_snpdb_mc(self, bad_pos_dict, var_dict, mixed_pos_dict):
+        var_dic = {}
+        ig_dic = {}
+        ref_genome_path = os.path.join(self.ref_genome_dir, self.reference_genome + '.fa')
+        if os.path.exists(ref_genome_path):
+            pass
+        else:
+            sys.stderr.write('Could not find {0}, check your file extension (needs to be .fa)\n'.format(ref_genome_path))
+        cursor = self.snpdb_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        var_db_list = []
+        for contig in bad_pos_dict:
+            print contig
+            query = 'SELECT * FROM variants where contig = %s'
+            queryObj = cursor.execute(query, (contig,))
+            if queryObj != None:
+                res = queryObj.dictresult()
+                for row in res:
+                    if row['pos'] in var_dic:
+                        var_dic[row['pos']][row['var_base']] = row['id']
+                    else:
+                        var_dic[row['pos']] = {}
+                        var_dic[row['pos']][row['var_base']] = row['id']
+
+            query = 'SELECT * FROM ignored_pos where contig = %s'
+            queryObj = cursor.execute(query, (contig,))
+            if queryObj != None:
+                res = queryObj.dictresult()
+                for row in res:
+                    if row['pos'] in ig_dic:
+                        ig_dic[row['pos']][row['var_base']] = row['id']
+                    else:
+                        ig_dic[row['pos']] = {}
+                        ig_dic[row['pos']][row['var_base']] = row['id']
+
+            ## on the adding new variants bit
+
+            for pos in var_dict[contig]:
+                if int(pos) not in var_dic:
+                    seq_id = add_new_variants(pos, vcf, self.snpdb_conn)
+                    var_db_list.append(seq_id)
+                elif good_var[pos] not in var_dic[int(pos)]:
+                    seq_id = add_new_variants(pos, vcf, self.snpdb_conn)
+                    var_db_list.append(seq_id)
+                else:
+                    var_db_list.append(var_dic[int(pos)][good_var[pos]])
+
+
+
+
+
+
+
+
     def snpdb_upload(self, vcf):
-        if self.check_duplicate(vcf, 'strains_snps') == False:
+        if not self.check_duplicate(vcf, 'strains_snps'):
             self.add_info_to_strain_stats(vcf)
             print 'depth is', vcf.depth_average, self.average_depth_cutoff
             if vcf.depth_average >= int(self.average_depth_cutoff):
                 self.add_to_snpdb(vcf)
             else:
                 update_statement = 'UPDATE strain_stats SET ignore = \'i - average depth below cutoff\' where name = \'%s\' ' \
-                                   % (vcf.sample_name)
+                                   % vcf.sample_name
                 cur = self.snpdb_conn.cursor()
                 cur.execute(update_statement)
                 self.snpdb_conn.commit()
                 cur.close()
                 sys.stderr.write('average depth below cutoff, not added to SNPdb')
-
-        elif self.check_duplicate(vcf,'strains_snps') == True:
+        elif self.check_duplicate(vcf, 'strains_snps'):
             sys.stderr.write('%s is already in SNPdb strains_snps %s\n' % (vcf.sample_name, self.reference_genome))
+
+    def snpdb_upload_multi_contig(self, vcf, bad_pos_dict, var_dict, mixed_pos_dict):
+        if not self.check_duplicate(vcf, 'strains_snps'):
+            self.add_info_to_strain_stats_mc(vcf, mixed_pos_dict)
+            if vcf.depth_average >= int(self.average_depth_cutoff):
+                self.add_to_snpdb_mc(bad_pos_dict, var_dict, mixed_pos_dict)
+
 
     # # functions below here are for querying the snpdb
 

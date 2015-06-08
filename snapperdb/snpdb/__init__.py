@@ -11,6 +11,7 @@ import psycopg2, psycopg2.extras
 from snpdb import SNPdb
 import snapperdb
 from snapperdb.gbru_vcf import Vcf
+import glob
 
 
 def vcf_to_db(args, config_dict, vcf):
@@ -21,6 +22,7 @@ def vcf_to_db(args, config_dict, vcf):
     snpdb.parse_config_dict(config_dict)
     snpdb._connect_to_snpdb()
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
+    # psycopg2.extras.register_hstore(snpdb.snpdb_conn)
     if inspect.stack()[0][3] == 'fastq_to_db':
         logger.info('You are running fastq_to_db. Checking length of VCF.')
         logger.info('Serialising variants and ignored positions')
@@ -33,26 +35,36 @@ def vcf_to_db(args, config_dict, vcf):
         vcf = Vcf()
         logger.info('Making SNPdb variables and output files')
         snpdb.define_class_variables_and_make_output_files(args, vcf)
-        if os.path.exists(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')):
+        res = glob.glob(os.path.join(vcf.tmp_dir, vcf.sample_name + '*_bad_pos.pick'))
+        if len(res) != 0:
+
+        # if os.path.exists(os.path.join(vcf.tmp_dir, vcf.sample_name + '*_bad_pos.pick')):
             logger.info('There are already serialised variants and ignored positions for this sample')
-            print os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')
             logger.info('Loading serialised variants and ignored positions')
-            vcf.bad_pos = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick')))
-            vcf.good_var = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_good_var.pick')))
-            vcf.mixed_positions = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_mixed_pos.pick')))
             res_dict = snapperdb.parse_ancillary_info(os.path.join(vcf.tmp_dir, vcf.sample_name + '_anc_info.txt'))
             vcf.number_mixed_positions = res_dict['number_mixed_positions']
             vcf.depth_average = res_dict['depth_average']
-            logger.info('Checking the length of the VCF')
+            # logger.info('Checking the length of the VCF')
             logger.info('Uploading to SNPdb')
-            snpdb.snpdb_upload(vcf)
+            if config_dict['multi_contig_reference'] == 'N':
+                vcf.bad_pos = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick'), 'rb'))
+                vcf.good_var = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_good_var.pick'), 'rb'))
+                vcf.mixed_positions = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name
+                                                                    + '_mixed_pos.pick'), 'rb'))
+                snpdb.snpdb_upload(vcf)
+            elif config_dict['multi_contig_reference'] == 'Y':
+                bad_pos_dict = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_mc_bad_pos.pick'), 'rb'))
+                var_dict = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_mc_good_var.pick'), 'rb'))
+                mixed_pos_dict = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_mc_mixed_pos.pick'),
+                                                  'rb'))
+                snpdb.snpdb_upload_multi_contig(vcf, bad_pos_dict, var_dict, mixed_pos_dict)
         else:
             logger.info('There are no serialised variants, parsing config dict')
             vcf.parse_config_dict(config_dict)
             logger.info('Reading vcf')
             vcf.read_vcf()
             logger.info('Serialising variants and ignored positions')
-            vcf.pickle_variants_and_ignored_pos()
+            # vcf.pickle_variants_and_ignored_pos()
             logger.info('Uploading to SNPdb')
             snpdb.snpdb_upload(vcf)
 
@@ -223,13 +235,4 @@ def upload_indels(config_dict, args):
     '''
     pass
 
-def vcf_to_db_multi_contig(args, config_dict, vcf):
-    snpdb = SNPdb(config_dict)
-    snpdb._connect_to_snpdb()
-    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
-    if inspect.stack()[0][3] == 'fastq_to_db':
-        snpdb.snpdb_upload_multi_contig(vcf)
 
-    elif inspect.stack()[0][3] == 'vcf_to_db':
-        vcf = Vcf
-        snpdb.define_class_variables_and_make_output_files(args, vcf)

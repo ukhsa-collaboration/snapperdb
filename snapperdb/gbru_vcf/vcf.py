@@ -315,7 +315,7 @@ class Vcf:
         mc_good_var_pick = os.path.join(self.tmp_dir, '{0}_mc_good_var.pick'.format(os.path.split(self.sample_name)[1]))
         mc_mixed_pos_pick = os.path.join(self.tmp_dir,
                                          '{0}_mc_mixed_pos.pick'.format(os.path.split(self.sample_name)[1]))
-        mc_anc_info_txt = os.path.join(self.tmp_dir, '{0}_mc_anc_info.txt'.format(os.path.split(self.sample_name)[1]))
+        mc_anc_info_txt = os.path.join(self.tmp_dir, '{0}_anc_info.txt'.format(os.path.split(self.sample_name)[1]))
         bad_pos_dict = {}
         var_dict = {}
         mixed_pos_dict = {}

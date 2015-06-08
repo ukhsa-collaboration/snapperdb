@@ -65,6 +65,6 @@ def parse_ancillary_info(infile):
     res_dict = {}
     with open(infile, 'r') as fi:
         for line in fi.readlines():
-            split = line.split('\t')
+            split = line.strip().split('\t')
             res_dict[split[0]] = split[1]
     return res_dict
