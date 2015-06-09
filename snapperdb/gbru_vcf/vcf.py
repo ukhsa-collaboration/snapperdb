@@ -441,7 +441,7 @@ class Vcf:
             self.check_reference_bwa_indexed()
             # self.run_bwa(args.fastqs[0], args.fastqs[1], self.tmp_dir)
             # self.convert_sort_index(args)
-            self.map_sort_index(args, self.tmp_dir)
+            self.map_sort_index(args)
             if not os.path.exists(self.sorted_bamfile):
                 sys.stderr.write('Problem with map_sort_index\n')
 
@@ -480,7 +480,7 @@ class Vcf:
         if os.path.exists(self.vcf_filehandle):
             pass
         else:
-            self.check_reference_gatk_indexed()
+            # self.check_reference_gatk_indexed()
             self.run_gatk(args)
 
     def read_rec_file(self, rec_file):

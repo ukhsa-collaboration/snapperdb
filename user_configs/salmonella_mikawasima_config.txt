@@ -1,4 +1,4 @@
-snpdb_name mikawasima_snps
+snpdb_name test_multi_contig_snpdb
 reference_genome H124920565_mikawasima
 pg_uname philip
 pg_pword 20031986
