@@ -440,6 +440,34 @@ class SNPdb:
                     pos_2_id_list[row[0]].append(row[1])
         return variant_container, pos_2_id_list
 
+    def get_variants_mc(self):
+        cur = self.snpdb_conn.cursor()
+        variant_container = {}
+        pos_2_id_list = {}
+        sql = "select pos , id, ref_base, var_base, contig from variants"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            variant = Variant()
+            variant.pos = row[0]
+            variant.id = row[1]
+            variant.ref_base = row[2]
+            variant.var_base = row[3]
+            variant.contig = row[4]
+            variant_container[row[1]] = variant
+            if variant.id in self.goodids:
+                if row[4] in pos_2_id_list:
+                    if row[0] in pos_2_id_list[row[4]]:
+                        pos_2_id_list[row[4]][row[0]].append(row[1])
+                    else:
+                        pos_2_id_list[row[4]][row[0]] = []
+                        pos_2_id_list[row[4]][row[0]].append(row[1])
+                else:
+                    pos_2_id_list[row[4]] = {}
+                    pos_2_id_list[row[4]][row[0]] = []
+                    pos_2_id_list[row[4]][row[0]].append(row[1])
+        return variant_container, pos_2_id_list
+
     def get_bad_pos_for_strain_get_the_vars(self, strain, totlist):
         cur = self.snpdb_conn.cursor()
         strain_ig = {}
@@ -452,7 +480,6 @@ class SNPdb:
         return totlist, strain_ig
 
     def make_consensus(self, ref_seq, ref_flag):
-        cur = self.snpdb_conn.cursor()
         fasta = {}
         var_id_list = []
         var_look = {}
@@ -480,6 +507,42 @@ class SNPdb:
             fasta[self.reference_genome] = ref_seq
         return fasta, var_look, n_look, badlist, var_id_list
 
+    def make_consensus_mc(self, ref_seq, args, reference_genome_name):
+        fasta = {}
+        var_look = {}
+        n_look = {}
+        for strain in self.strains_snps:
+            if strain not in fasta:
+                fasta[strain] = dict(ref_seq)
+            for ids in sorted(self.strains_snps[strain]):
+                if self.variants[ids].var_base != fasta[strain][self.variants[ids].contig][self.variants[ids].pos-1] \
+                        and ids not in self.strains_snps[reference_genome_name]:
+                    fasta[strain][self.variants[ids].contig][self.variants[ids].pos-1] = self.variants[ids].var_base
+                    if self.variants[ids].pos-1:
+                        if self.variants[ids].contig not in var_look:
+                            var_look[self.variants[ids].contig] = {}
+                            var_look[self.variants[ids].contig][self.variants[ids].pos-1] = 'V'
+                        else:
+                            var_look[self.variants[ids].contig][self.variants[ids].pos-1] = 'V'
+
+            for bad_ids in self.igpos[strain]:
+                fasta[strain][self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
+                if self.IgPos_container[bad_ids].contig not in n_look:
+                    n_look[self.IgPos_container[bad_ids].contig] = {}
+                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
+                else:
+                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
+            for bad_ids in self.igpos[reference_genome_name]:
+                fasta[strain][self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
+                if self.IgPos_container[bad_ids].contig not in n_look:
+                    n_look[self.IgPos_container[bad_ids].contig] = {}
+                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
+                else:
+                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
+
+        # fasta['ref'] = deepcopy(ref_seq)
+        return fasta, var_look, n_look
+
     def calc_matrix(self):
         diff_matrix = {}
         for strain1 in self.fasta:
@@ -502,7 +565,6 @@ class SNPdb:
         logger.info('Getting good positions')
         self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, args.snp_co)
         logger.info('Variable positions: ' + str(len(self.goodids)))
-
         if len(self.goodids) == 0:
             logger.error('No variable positions found: EXITING')
             sys.exit()
@@ -510,11 +572,27 @@ class SNPdb:
         logger.info('Getting variants')
         self.variants, self.posIDMap = self.get_variants()
         logger.info('Making consensus')
-        self.fasta, self.var_look, self.n_look, self.badlist, self.var_id_list = self.make_consensus(ref_seq, args.ref_flag)
+        self.fasta, self.var_look, self.n_look, self.badlist, self.var_id_list = self.make_consensus(ref_seq,
+                                                                                                     args.ref_flag)
         logger.info('Ignored positions' + str(len(self.badlist)))
         if args.mat_flag == 'Y':
             logger.info('Making Distance Matrix')
             self.matrix = self.calc_matrix()
+
+    def parse_args_for_get_the_snps_mc(self, args, strain_list, ref_seq, reference_genome_name):
+        self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, args.snp_co)
+
+        if len(self.goodids) == 0:
+            print 'No variable positions found: EXITING'
+            # logger.error('No variable positions found: EXITING')
+            sys.exit()
+        print (str(len(self.strains_snps)) + ' strains used out of ' + str(len(strain_list)))
+        self.variants, self.posIDMap = self.get_variants_mc()
+        self.fasta, self.var_look, self.n_look, self.badlist, self.var_id_list = \
+            self.make_consensus_mc(ref_seq, args, reference_genome_name)
+
+
+
 
     def print_fasta(self, out, flag, rec_list, ref_flag):
         f = open(out + '.fa', 'w')

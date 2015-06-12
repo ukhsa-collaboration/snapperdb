@@ -47,6 +47,8 @@ def parse_config(args):
                     config_dict['average_depth_cutoff'] = float(line.strip().split()[-1])
                 if line.startswith('multi_contig_reference'):
                     config_dict['multi_contig_reference'] = line.strip().split()[-1]
+                if line.startswith('snpdb_reference_genome_name'):
+                    config_dict['snpdb_reference_genome_name'] = line.strip().split()[-1]
     except IOError:
         print 'Cannot find {0}'.format(path_to_config)
         sys.exit()

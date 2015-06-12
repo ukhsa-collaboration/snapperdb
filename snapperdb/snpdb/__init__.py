@@ -98,6 +98,24 @@ def read_fasta(ref):
                 ref_seq.append(n)
     return ref_seq
 
+def read_multi_contig_fasta(ref):
+    try:
+        openfile = open(ref, 'r')
+    except:
+        print (ref + " not found ... ")
+        sys.exit()
+    ref_seq = {}
+    contig = ""
+    for line in openfile:
+        matchObj = re.search('>', line)
+        if matchObj is None:
+            for n in line.strip():
+                ref_seq[contig[0]].append(n)
+        else:
+            contig = line[1:].strip().split()
+            ref_seq[contig[0]] = []
+    return ref_seq
+
 def read_rec_file(rec_file):
     try:
         openfile = open(rec_file, 'r')
@@ -120,21 +138,27 @@ def get_the_snps(args, config_dict):
     strain_list = read_file(args.strain_list)
     snpdb._connect_to_snpdb()
     ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
-    ref_seq = read_fasta(ref_seq_file)
-    if args.rec_file != 'N':
-        logger.info('Reading recombination list')
-        rec_list = read_rec_file(args.rec_file)
-    else:
-        rec_list = []
-    snpdb.parse_args_for_get_the_snps(args, strain_list, ref_seq)
-    logger.info('Printing FASTA')
-    snpdb.print_fasta(args.out, args.alignment_type, rec_list, args.ref_flag)
-    if args.mat_flag == 'Y':
-        logger.info('Printing Matrix')
-        snpdb.print_matrix(args.out)
-    if args.var_flag == 'Y':
-        logger.info('Printing variants')
-        snpdb.print_vars(args.out, args.alignment_type, rec_list, args.ref_flag)
+
+    if config_dict['multi_contig_reference'] == 'N':
+        ref_seq = read_fasta(ref_seq_file)
+        if args.rec_file != 'N':
+            logger.info('Reading recombination list')
+            rec_list = read_rec_file(args.rec_file)
+        else:
+            rec_list = []
+        snpdb.parse_args_for_get_the_snps(args, strain_list, ref_seq)
+        logger.info('Printing FASTA')
+        snpdb.print_fasta(args.out, args.alignment_type, rec_list, args.ref_flag)
+        if args.mat_flag == 'Y':
+            logger.info('Printing Matrix')
+            snpdb.print_matrix(args.out)
+        if args.var_flag == 'Y':
+            logger.info('Printing variants')
+            snpdb.print_vars(args.out, args.alignment_type, rec_list, args.ref_flag)
+
+    elif config_dict['multi_contig_reference'] == 'Y':
+        ref_seq = read_multi_contig_fasta(ref_seq_file)
+        snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, config_dict['snpdb_reference_genome_name'])
 
 def update_distance_matrix(config_dict, args):
     logger = logging.getLogger('snapperdb.snpdb.update_distance_matrix')

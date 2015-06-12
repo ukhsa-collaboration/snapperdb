@@ -46,6 +46,7 @@ class Vcf:
         self.rec_list = []
         self.vcf_max_pos = None
         self.ref = None
+        self.contig = None
 
     def parse_config_dict(self, config_dict):
         # # we loop through thusly in case not all these things are in the config
