@@ -321,6 +321,7 @@ class SNPdb:
                         existing_variants_dict[row['pos']][row['var_base']] = row['id']
             ## on the adding new variants bit
             contig_seq = ref_fasta_dict[contig]
+            print existing_variants_dict
             for pos in var_dict[contig]:
                 if int(pos) not in existing_variants_dict:
                     seq_id = self.add_new_variants_mc(pos, contig_seq, var_dict[contig][pos], contig, cursor)
@@ -333,7 +334,6 @@ class SNPdb:
 
         ig_db_list = []
         for contig in bad_pos_dict:
-            contig_seq = ref_fasta_dict[contig]
             ig_dic = {}
             query = 'SELECT * FROM ignored_pos where contig = %s'
             dict_cursor.execute(query, (contig,))
@@ -341,10 +341,10 @@ class SNPdb:
             if len(res) != 0:
                 for row in res:
                     if row['pos'] in ig_dic:
-                        ig_dic[row['pos']][row['var_base']] = row['id']
+                        ig_dic[row['pos']] = row['id']
                     else:
                         ig_dic[row['pos']] = {}
-                        ig_dic[row['pos']][row['var_base']] = row['id']
+                        ig_dic[row['pos']] = row['id']
 
             for pos in bad_pos_dict[contig]:
                 if pos not in ig_dic:
