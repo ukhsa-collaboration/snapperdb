@@ -37,7 +37,6 @@ def vcf_to_db(args, config_dict, vcf):
         snpdb.define_class_variables_and_make_output_files(args, vcf)
         res = glob.glob(os.path.join(vcf.tmp_dir, vcf.sample_name + '*_bad_pos.pick'))
         if len(res) != 0:
-
         # if os.path.exists(os.path.join(vcf.tmp_dir, vcf.sample_name + '*_bad_pos.pick')):
             logger.info('There are already serialised variants and ignored positions for this sample')
             logger.info('Loading serialised variants and ignored positions')
