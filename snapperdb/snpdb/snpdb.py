@@ -11,7 +11,13 @@ import psycopg2.extras
 import logging
 from variant import Variant
 import snapperdb
+from copy import deepcopy
 
+class Igpos:
+    def __init__(self):
+        self._pos = int
+        self._id = int
+        self._contig = str
 
 class SNPdb:
     """
@@ -480,6 +486,33 @@ class SNPdb:
             strain_ig = row[0]
         return totlist, strain_ig
 
+    def get_bad_pos_mc(self):
+        cur = self.snpdb_conn.cursor()
+        totlist = []
+        ig_pos = {}
+        query = 'select ignored_pos, icount(ignored_pos), name from strains_snps where name in %s'
+        strain_names = tuple(self.strains_snps.keys())
+        cur.execute(query, (strain_names,))
+        res = cur.fetchall()
+        for row in res:
+            totlist = set(totlist) | set(row[0])
+            ig_pos[row[2]] = row[0]
+        return totlist, ig_pos
+
+    def get_igs_mc(self):
+        cur = self.snpdb_conn.cursor()
+        igPos_container = {}
+        sql = "select pos, id, contig from ignored_pos"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            ig_pos = Igpos()
+            ig_pos.pos = row[0]
+            ig_pos.id = row[1]
+            ig_pos.contig = row[2]
+            igPos_container[row[1]] = ig_pos
+        return igPos_container
+
     def make_consensus(self, ref_seq, ref_flag):
         fasta = {}
         var_id_list = []
@@ -514,7 +547,7 @@ class SNPdb:
         n_look = {}
         for strain in self.strains_snps:
             if strain not in fasta:
-                fasta[strain] = dict(ref_seq)
+                fasta[strain] = deepcopy(ref_seq)
             for ids in sorted(self.strains_snps[strain]):
                 if self.variants[ids].var_base != fasta[strain][self.variants[ids].contig][self.variants[ids].pos-1] \
                         and ids not in self.strains_snps[reference_genome_name]:
@@ -541,7 +574,7 @@ class SNPdb:
                 else:
                     n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
 
-        # fasta['ref'] = deepcopy(ref_seq)
+        fasta['ref'] = deepcopy(ref_seq)
         return fasta, var_look, n_look
 
     def calc_matrix(self):
@@ -582,17 +615,18 @@ class SNPdb:
 
     def parse_args_for_get_the_snps_mc(self, args, strain_list, ref_seq, reference_genome_name):
         self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, args.snp_co)
-
         if len(self.goodids) == 0:
             print 'No variable positions found: EXITING'
             # logger.error('No variable positions found: EXITING')
             sys.exit()
         print (str(len(self.strains_snps)) + ' strains used out of ' + str(len(strain_list)))
+        print "###  Getting ignored positions:"+str(datetime.time(datetime.now()))
+        self.badlist, self.igpos = self.get_bad_pos_mc()
+        print "Ignored positions: "+ str(len(self.badlist))
         self.variants, self.posIDMap = self.get_variants_mc()
-        self.fasta, self.var_look, self.n_look, self.badlist, self.var_id_list = \
-            self.make_consensus_mc(ref_seq, args, reference_genome_name)
-
-
+        print "Variants: "+ str(len(self.variants))
+        self.IgPos_container = self.get_igs_mc()
+        self.fasta, self.var_look, self.n_look = self.make_consensus_mc(ref_seq, args, reference_genome_name)
 
 
     def print_fasta(self, out, flag, rec_list, ref_flag):
@@ -618,6 +652,30 @@ class SNPdb:
                             elif self.var_look[i] != len(self.strains_snps):
                                 f.write(self.fasta[strain][i - 1])
             f.write("\n")
+
+
+    def print_fasta_mc(self, out, flag):
+        f = open(out + '.fa', 'w')
+        for strain in self.fasta:
+            f.write(">" + strain + "\n")
+            for contig in sorted(self.fasta[strain]):
+                if flag == 'W':
+                    for i, seq in enumerate(self.fasta[strain][contig]):
+                        f.write(seq)
+                elif flag == 'A':
+                    if contig in self.var_look:
+                        for i in self.var_look[contig]:
+                            f.write(self.fasta[strain][contig][i])
+                elif flag == 'C':
+                    if contig in self.var_look:
+                        for i in self.var_look[contig]:
+                            if contig not in self.n_look:
+                                f.write(self.fasta[strain][contig][i])
+                            elif i not in self.n_look[contig]:
+                                f.write(self.fasta[strain][contig][i])
+            f.write("\n")
+
+
 
     def print_matrix(self, out):
         f = open(out + '.matrix', 'w')

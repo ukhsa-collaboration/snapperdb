@@ -137,7 +137,6 @@ def get_the_snps(args, config_dict):
     strain_list = read_file(args.strain_list)
     snpdb._connect_to_snpdb()
     ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
-
     if config_dict['multi_contig_reference'] == 'N':
         ref_seq = read_fasta(ref_seq_file)
         if args.rec_file != 'N':
@@ -154,10 +153,15 @@ def get_the_snps(args, config_dict):
         if args.var_flag == 'Y':
             logger.info('Printing variants')
             snpdb.print_vars(args.out, args.alignment_type, rec_list, args.ref_flag)
-
     elif config_dict['multi_contig_reference'] == 'Y':
         ref_seq = read_multi_contig_fasta(ref_seq_file)
         snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, config_dict['snpdb_reference_genome_name'])
+        snpdb.print_fasta_mc(args.out, args.alignment_type)
+        for strain in snpdb.fasta:
+            for contig in snpdb.fasta[strain]:
+                print strain, len(snpdb.fasta[strain][contig])
+
+
 
 def update_distance_matrix(config_dict, args):
     logger = logging.getLogger('snapperdb.snpdb.update_distance_matrix')
