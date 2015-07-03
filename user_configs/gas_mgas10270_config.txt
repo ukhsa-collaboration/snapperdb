@@ -1,4 +1,4 @@
-snpdb_name gas_mgas10270_snpdb
+snpdb_name gas_emm75_snpdb
 reference_genome MGAS10270
 pg_uname philip
 pg_pword 20031986
