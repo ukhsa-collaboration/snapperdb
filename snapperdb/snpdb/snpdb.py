@@ -327,7 +327,6 @@ class SNPdb:
                         existing_variants_dict[row['pos']][row['var_base']] = row['id']
             ## on the adding new variants bit
             contig_seq = ref_fasta_dict[contig]
-            print existing_variants_dict
             for pos in var_dict[contig]:
                 if int(pos) not in existing_variants_dict:
                     seq_id = self.add_new_variants_mc(pos, contig_seq, var_dict[contig][pos], contig, cursor)

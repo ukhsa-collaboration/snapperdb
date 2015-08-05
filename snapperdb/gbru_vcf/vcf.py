@@ -224,7 +224,7 @@ class Vcf:
                 depth_list.append(int(vcf.depth[pos]))
             vcf.bad_depth = vcf.return_positions_with_low_depth(self.depth_cutoff)
             vcf.bad_qual = vcf.return_positions_with_low_mq(self.mq_cutoff)
-            vcf.bad_var, vcf.good_var = self.return_bad_pos_good_vars(self.depth_cutoff, self.mq_cutoff, self.ad_cutoff)
+            vcf.bad_var, vcf.good_var = vcf.return_bad_pos_good_vars(self.depth_cutoff, self.mq_cutoff, self.ad_cutoff)
             vcf.bad_pos = set(vcf.bad_depth) | set(vcf.bad_qual) | set(vcf.bad_var)
             self.number_mixed_positions += len(vcf.mixed_positions)
 
@@ -234,9 +234,7 @@ class Vcf:
         return vcf_container
 
     def check_len_vcf(self, config_dict):
-
         fi = open(self.ref_genome_path)
-
         if config_dict['multi_contig_reference'] == 'N':
             ref_fasta = SeqIO.read(fi, 'fasta')
             #print len(ref_fasta.seq), self.vcf_max_pos
@@ -252,6 +250,7 @@ class Vcf:
             for contig in ref_fasta:
                 ref_len += len(contig)
             if ref_len == int(self.vcf_max_pos):
+                print 'len ok'
                 pass
             else:
                 sys.stderr.write('VCF length and reference fasta length are not the same\n')
@@ -323,7 +322,7 @@ class Vcf:
 
         for vcf in vcf_container:
             bad_pos_dict[vcf.ref] = vcf.bad_pos
-            var_dict[vcf.ref] = vcf.var
+            var_dict[vcf.ref] = vcf.good_var
             mixed_pos_dict[vcf.ref] = vcf.mixed_positions
 
         with open(mc_bad_pos_pick, 'wb') as bp:
