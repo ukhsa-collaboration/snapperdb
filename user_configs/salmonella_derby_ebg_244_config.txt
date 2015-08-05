@@ -1,0 +1,11 @@
+snpdb_name salmonella_derby_ebg_244_snps
+reference_genome 103725_H15166063301-2_EBG_244
+pg_uname philip
+pg_pword 20031986
+pg_host 158.119.147.166
+depth_cutoff 10
+mq_cutoff 30
+ad_cutoff 0.9
+average_depth_cutoff 20
+mixed_position_cutoff 1000
+multi_contig_reference Y
