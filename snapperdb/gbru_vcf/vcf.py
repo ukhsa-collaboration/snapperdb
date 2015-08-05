@@ -225,6 +225,8 @@ class Vcf:
             vcf.bad_depth = vcf.return_positions_with_low_depth(self.depth_cutoff)
             vcf.bad_qual = vcf.return_positions_with_low_mq(self.mq_cutoff)
             vcf.bad_var, vcf.good_var = self.return_bad_pos_good_vars(self.depth_cutoff, self.mq_cutoff, self.ad_cutoff)
+            print vcf.good_var
+
             vcf.bad_pos = set(vcf.bad_depth) | set(vcf.bad_qual) | set(vcf.bad_var)
             self.number_mixed_positions += len(vcf.mixed_positions)
 

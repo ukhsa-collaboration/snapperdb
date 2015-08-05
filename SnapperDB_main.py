@@ -65,7 +65,6 @@ def run_command(args):
             vcf = fastq_to_vcf(args, config_dict)
         elif config_dict['multi_contig_reference'] == 'Y':
             vcf = fastq_to_vcf_multi_contig(args, config_dict)
-            vcf_to_db(args, config_dict, vcf)
 
     elif args.command == 'vcf_to_db':
         logger = logging.getLogger('snapperdb.vcf_to_db')
