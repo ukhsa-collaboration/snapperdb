@@ -157,9 +157,8 @@ def get_the_snps(args, config_dict):
         ref_seq = read_multi_contig_fasta(ref_seq_file)
         snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, config_dict['snpdb_reference_genome_name'])
         snpdb.print_fasta_mc(args.out, args.alignment_type)
-        for strain in snpdb.fasta:
-            for contig in snpdb.fasta[strain]:
-                print strain, len(snpdb.fasta[strain][contig])
+ 	if args.mat_flag == 'Y':
+		snpdb.print_matrix(args.out)
 
 
 

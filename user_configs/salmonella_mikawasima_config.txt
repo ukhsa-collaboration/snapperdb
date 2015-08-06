@@ -1,5 +1,6 @@
 snpdb_name test_multi_contig_snpdb
 reference_genome H124920565_mikawasima
+snpdb_reference_genome_name H124920565-1
 pg_uname philip
 pg_pword 20031986
 pg_host 158.119.147.166

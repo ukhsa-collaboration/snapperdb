@@ -588,6 +588,19 @@ class SNPdb:
 
         return diff_matrix
 
+    def calc_matrix_mc(self):
+        diff_matrix = {}
+        for strain1 in self.fasta:
+            diff_matrix[strain1] = {}
+            for strain2 in self.fasta:
+                if strain2 in diff_matrix and strain1 not in diff_matrix[strain2]:
+                    diff_matrix[strain1][strain2] = 0
+                    for contig in self.var_look:
+                        for var in self.var_look[contig]:
+                            if self.fasta[strain1][contig][var] != self.fasta[strain2][contig][var] and self.fasta[strain1][contig][var] != 'N' and self.fasta[strain2][contig][var] !='N':                                
+                                diff_matrix[strain1][strain2]+=1
+        return diff_matrix
+
     def parse_args_for_get_the_snps(self, args, strain_list, ref_seq):
         logger = logging.getLogger('snapperdb.SNPdb.parse_args_for_get_the_snps')
 
@@ -626,7 +639,8 @@ class SNPdb:
         print "Variants: "+ str(len(self.variants))
         self.IgPos_container = self.get_igs_mc()
         self.fasta, self.var_look, self.n_look = self.make_consensus_mc(ref_seq, args, reference_genome_name)
-
+        if args.mat_flag == 'Y':
+            self.matrix = self.calc_matrix_mc()
 
     def print_fasta(self, out, flag, rec_list, ref_flag):
         f = open(out + '.fa', 'w')
