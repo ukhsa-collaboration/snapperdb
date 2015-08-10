@@ -1,6 +1,6 @@
-snpdb_name salmonella_muenchen_ebg_8_snps
-reference_genome 126777_H15264061601-1_contigs 
-snpdb_reference_genome_name 126777_H15264061601-1
+snpdb_name salmonella_bovis_morbificans_ebg_34_snps
+reference_genome 78709_H15010013101-2_EBG_34 
+snpdb_reference_genome_name 78709_H15010013101-2
 pg_uname philip
 pg_pword 20031986
 pg_host 158.119.147.166
