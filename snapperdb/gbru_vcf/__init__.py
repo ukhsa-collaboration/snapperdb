@@ -43,9 +43,9 @@ def fastq_to_vcf_multi_contig(args, config_dict):
     fastq_bam_vcf.make_vcf(args)
     vcf_container = fastq_bam_vcf.read_multi_contig_vcf()
     fastq_bam_vcf.check_len_vcf(config_dict)
+    fastq_bam_vcf.pickle_multi_contig_vcf_container(vcf_container)
     if args.command == 'fastq_to_vcf':
-        fastq_bam_vcf.pickle_multi_contig_vcf_container(vcf_container)
-
+        pass
 
 def parse_vcf_for_mixed(args, config_dict):
     if args.vcf_file.endswith('.gz'):

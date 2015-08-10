@@ -58,14 +58,20 @@ def vcf_to_db(args, config_dict, vcf):
                                                   'rb'))
                 snpdb.snpdb_upload_multi_contig(vcf, bad_pos_dict, var_dict, mixed_pos_dict)
         else:
-            logger.info('There are no serialised variants, parsing config dict')
-            vcf.parse_config_dict(config_dict)
-            logger.info('Reading vcf')
-            vcf.read_vcf()
-            logger.info('Serialising variants and ignored positions')
-            # vcf.pickle_variants_and_ignored_pos()
-            logger.info('Uploading to SNPdb')
-            snpdb.snpdb_upload(vcf)
+            if config_dict['multi_contig_reference'] == 'N':
+                logger.info('There are no serialised variants, parsing config dict')
+                vcf.parse_config_dict(config_dict)
+                logger.info('Reading vcf')
+                vcf.read_vcf()
+                logger.info('Serialising variants and ignored positions')
+                # vcf.pickle_variants_and_ignored_pos()
+                logger.info('Uploading to SNPdb')
+                snpdb.snpdb_upload(vcf)
+            elif config_dict['multi_contig_reference'] == 'Y':
+                print 'ERROR - SnapperDB needs to pickle files for the multi contig workflow'
+                logger.info('ERROR - SnapperDB needs to pickle files for the multi contig workflow')
+                sys.exit()
+                
 
 def make_snpdb(config_dict):
     snpdb = SNPdb(config_dict)
