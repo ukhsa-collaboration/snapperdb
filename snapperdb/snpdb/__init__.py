@@ -69,7 +69,7 @@ def vcf_to_db(args, config_dict, vcf):
                 snpdb.snpdb_upload(vcf)
             elif config_dict['multi_contig_reference'] == 'Y':
                 print 'ERROR - SnapperDB needs to pickle files for the multi contig workflow'
-                logger.info('ERROR - SnapperDB needs to pickle files for the multi contig workflow')
+                logger.info('ERROR - SnapperDB needs to pickle files for the multi contig workflow. Re-run fastq_to_vcf and ensure it produces the pickle files.')
                 sys.exit()
                 
 
@@ -163,8 +163,8 @@ def get_the_snps(args, config_dict):
         ref_seq = read_multi_contig_fasta(ref_seq_file)
         snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, config_dict['snpdb_reference_genome_name'])
         snpdb.print_fasta_mc(args.out, args.alignment_type)
- 	if args.mat_flag == 'Y':
-		snpdb.print_matrix(args.out)
+        if args.mat_flag == 'Y':
+            snpdb.print_matrix(args.out)
 
 
 

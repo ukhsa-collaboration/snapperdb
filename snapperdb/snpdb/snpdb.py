@@ -350,14 +350,13 @@ class SNPdb:
                     else:
                         ig_dic[row['pos']] = {}
                         ig_dic[row['pos']] = row['id']
-
             for pos in bad_pos_dict[contig]:
-                if pos not in ig_dic:
+                if int(pos) not in ig_dic:
                     seq_id = self.add_new_ig_pos_mc(cursor, contig, pos)
                     ig_db_list.append(seq_id)
                 else:
                     ig_db_list.append(ig_dic[int(pos)])
-
+        
         insert_statement = 'insert into strains_snps (name, variants_id, ignored_pos) values (%s, %s, %s)'
         cursor.execute(insert_statement, (sample_name, var_db_list, ig_db_list))
         self.snpdb_conn.commit()
