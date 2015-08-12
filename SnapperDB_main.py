@@ -151,6 +151,8 @@ def main():
     parser_make_snpdb = subparsers.add_parser('make_snpdb', help='Takes a config and makes a snpdb')
     parser_make_snpdb.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                    help='The name of a config file in the user_configs directory (not the full path)')
+    parser_make_snpdb.add_argument('-g', dest = 'log_dir', default = None,
+                                     help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
     parser_update_distance_matrix = subparsers.add_parser('update_distance_matrix',
                                                           help='Takes a config and updates the distance matrix in the '
                                                                'specified snpdb')
