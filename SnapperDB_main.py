@@ -34,6 +34,8 @@ def setup_logging(args):
         args.log_dir = os.path.join(os.path.dirname(os.path.dirname(args.vcf[0])), 'logs')
     elif args.command == 'check_vcf_for_mixed':
         args.log_dir = os.path.join(os.path.dirname(args.outdir), 'logs')
+    elif args.command == 'make_snpdb':
+        args.log_dir = os.path.join(os.path.dirname(os.path.dirname(args.config_file[0])), 'logs')
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir)
     logger = logging.getLogger('snapperdb')
