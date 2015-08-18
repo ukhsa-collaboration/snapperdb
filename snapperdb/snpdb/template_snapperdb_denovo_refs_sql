@@ -4,7 +4,7 @@
 
 -- Dumped from database version 9.1.14
 -- Dumped by pg_dump version 9.4.0
--- Started on 2015-08-10 17:15:59 BST
+-- Started on 2015-08-18 15:54:55 BST
 
 SET statement_timeout = 0;
 SET client_encoding = 'UTF8';
@@ -13,7 +13,7 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 --
--- TOC entry 171 (class 3079 OID 12506)
+-- TOC entry 177 (class 3079 OID 12506)
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -21,8 +21,8 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
 --
--- TOC entry 2934 (class 0 OID 0)
--- Dependencies: 171
+-- TOC entry 2964 (class 0 OID 0)
+-- Dependencies: 177
 -- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
 --
 
@@ -30,7 +30,7 @@ COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
 
 --
--- TOC entry 172 (class 3079 OID 125148)
+-- TOC entry 179 (class 3079 OID 134360)
 -- Name: hstore; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -38,8 +38,8 @@ CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;
 
 
 --
--- TOC entry 2935 (class 0 OID 0)
--- Dependencies: 172
+-- TOC entry 2965 (class 0 OID 0)
+-- Dependencies: 179
 -- Name: EXTENSION hstore; Type: COMMENT; Schema: -; Owner: -
 --
 
@@ -47,7 +47,7 @@ COMMENT ON EXTENSION hstore IS 'data type for storing sets of (key, value) pairs
 
 
 --
--- TOC entry 173 (class 3079 OID 34113)
+-- TOC entry 178 (class 3079 OID 134478)
 -- Name: intarray; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -55,8 +55,8 @@ CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA public;
 
 
 --
--- TOC entry 2936 (class 0 OID 0)
--- Dependencies: 173
+-- TOC entry 2966 (class 0 OID 0)
+-- Dependencies: 178
 -- Name: EXTENSION intarray; Type: COMMENT; Schema: -; Owner: -
 --
 
@@ -70,7 +70,78 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- TOC entry 168 (class 1259 OID 34395)
+-- TOC entry 174 (class 1259 OID 135042)
+-- Name: cluster_logs; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE cluster_logs (
+    id integer NOT NULL,
+    name character varying,
+    old_cluster character varying,
+    new_cluster character varying,
+    date timestamp without time zone
+);
+
+
+--
+-- TOC entry 173 (class 1259 OID 135040)
+-- Name: cluster_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE cluster_logs_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2967 (class 0 OID 0)
+-- Dependencies: 173
+-- Name: cluster_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE cluster_logs_id_seq OWNED BY cluster_logs.id;
+
+
+--
+-- TOC entry 176 (class 1259 OID 135054)
+-- Name: dist_matrix; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE dist_matrix (
+    id integer NOT NULL,
+    strain1 character varying,
+    strain2 character varying,
+    snp_dist integer
+);
+
+
+--
+-- TOC entry 175 (class 1259 OID 135052)
+-- Name: dist_matrix_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE dist_matrix_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2968 (class 0 OID 0)
+-- Dependencies: 175
+-- Name: dist_matrix_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE dist_matrix_id_seq OWNED BY dist_matrix.id;
+
+
+--
+-- TOC entry 161 (class 1259 OID 134589)
 -- Name: ignored_pos; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -82,7 +153,7 @@ CREATE TABLE ignored_pos (
 
 
 --
--- TOC entry 167 (class 1259 OID 34393)
+-- TOC entry 162 (class 1259 OID 134595)
 -- Name: ignored_pos_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -95,8 +166,8 @@ CREATE SEQUENCE ignored_pos_id_seq
 
 
 --
--- TOC entry 2937 (class 0 OID 0)
--- Dependencies: 167
+-- TOC entry 2969 (class 0 OID 0)
+-- Dependencies: 162
 -- Name: ignored_pos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -104,7 +175,47 @@ ALTER SEQUENCE ignored_pos_id_seq OWNED BY ignored_pos.id;
 
 
 --
--- TOC entry 170 (class 1259 OID 101305)
+-- TOC entry 172 (class 1259 OID 135031)
+-- Name: strain_clusters; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE strain_clusters (
+    id integer NOT NULL,
+    name character varying,
+    t0 integer,
+    t5 integer,
+    t10 integer,
+    t25 integer,
+    t50 integer,
+    t100 integer,
+    t250 integer
+);
+
+
+--
+-- TOC entry 171 (class 1259 OID 135029)
+-- Name: strain_clusters_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE strain_clusters_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2970 (class 0 OID 0)
+-- Dependencies: 171
+-- Name: strain_clusters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE strain_clusters_id_seq OWNED BY strain_clusters.id;
+
+
+--
+-- TOC entry 163 (class 1259 OID 134597)
 -- Name: strain_meta; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -120,7 +231,7 @@ CREATE TABLE strain_meta (
 
 
 --
--- TOC entry 169 (class 1259 OID 101303)
+-- TOC entry 164 (class 1259 OID 134603)
 -- Name: strain_meta_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -133,8 +244,8 @@ CREATE SEQUENCE strain_meta_id_seq
 
 
 --
--- TOC entry 2938 (class 0 OID 0)
--- Dependencies: 169
+-- TOC entry 2971 (class 0 OID 0)
+-- Dependencies: 164
 -- Name: strain_meta_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -142,7 +253,7 @@ ALTER SEQUENCE strain_meta_id_seq OWNED BY strain_meta.id;
 
 
 --
--- TOC entry 162 (class 1259 OID 34082)
+-- TOC entry 165 (class 1259 OID 134605)
 -- Name: strain_stats; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -161,7 +272,7 @@ CREATE TABLE strain_stats (
 
 
 --
--- TOC entry 161 (class 1259 OID 34080)
+-- TOC entry 166 (class 1259 OID 134611)
 -- Name: strain_stats_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -174,8 +285,8 @@ CREATE SEQUENCE strain_stats_id_seq
 
 
 --
--- TOC entry 2939 (class 0 OID 0)
--- Dependencies: 161
+-- TOC entry 2972 (class 0 OID 0)
+-- Dependencies: 166
 -- Name: strain_stats_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -183,7 +294,7 @@ ALTER SEQUENCE strain_stats_id_seq OWNED BY strain_stats.id;
 
 
 --
--- TOC entry 166 (class 1259 OID 34104)
+-- TOC entry 167 (class 1259 OID 134613)
 -- Name: strains_snps; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -196,7 +307,7 @@ CREATE TABLE strains_snps (
 
 
 --
--- TOC entry 165 (class 1259 OID 34102)
+-- TOC entry 168 (class 1259 OID 134619)
 -- Name: strains_snps_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -209,8 +320,8 @@ CREATE SEQUENCE strains_snps_id_seq
 
 
 --
--- TOC entry 2940 (class 0 OID 0)
--- Dependencies: 165
+-- TOC entry 2973 (class 0 OID 0)
+-- Dependencies: 168
 -- Name: strains_snps_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -218,7 +329,7 @@ ALTER SEQUENCE strains_snps_id_seq OWNED BY strains_snps.id;
 
 
 --
--- TOC entry 164 (class 1259 OID 34093)
+-- TOC entry 169 (class 1259 OID 134621)
 -- Name: variants; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -235,7 +346,7 @@ CREATE TABLE variants (
 
 
 --
--- TOC entry 163 (class 1259 OID 34091)
+-- TOC entry 170 (class 1259 OID 134627)
 -- Name: variants_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -248,8 +359,8 @@ CREATE SEQUENCE variants_id_seq
 
 
 --
--- TOC entry 2941 (class 0 OID 0)
--- Dependencies: 163
+-- TOC entry 2974 (class 0 OID 0)
+-- Dependencies: 170
 -- Name: variants_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -257,7 +368,23 @@ ALTER SEQUENCE variants_id_seq OWNED BY variants.id;
 
 
 --
--- TOC entry 2815 (class 2604 OID 34398)
+-- TOC entry 2839 (class 2604 OID 135045)
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY cluster_logs ALTER COLUMN id SET DEFAULT nextval('cluster_logs_id_seq'::regclass);
+
+
+--
+-- TOC entry 2840 (class 2604 OID 135057)
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY dist_matrix ALTER COLUMN id SET DEFAULT nextval('dist_matrix_id_seq'::regclass);
+
+
+--
+-- TOC entry 2833 (class 2604 OID 134629)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -265,7 +392,15 @@ ALTER TABLE ONLY ignored_pos ALTER COLUMN id SET DEFAULT nextval('ignored_pos_id
 
 
 --
--- TOC entry 2816 (class 2604 OID 101308)
+-- TOC entry 2838 (class 2604 OID 135034)
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY strain_clusters ALTER COLUMN id SET DEFAULT nextval('strain_clusters_id_seq'::regclass);
+
+
+--
+-- TOC entry 2834 (class 2604 OID 134630)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -273,7 +408,7 @@ ALTER TABLE ONLY strain_meta ALTER COLUMN id SET DEFAULT nextval('strain_meta_id
 
 
 --
--- TOC entry 2812 (class 2604 OID 34085)
+-- TOC entry 2835 (class 2604 OID 134631)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -281,7 +416,7 @@ ALTER TABLE ONLY strain_stats ALTER COLUMN id SET DEFAULT nextval('strain_stats_
 
 
 --
--- TOC entry 2814 (class 2604 OID 34107)
+-- TOC entry 2836 (class 2604 OID 134632)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -289,7 +424,7 @@ ALTER TABLE ONLY strains_snps ALTER COLUMN id SET DEFAULT nextval('strains_snps_
 
 
 --
--- TOC entry 2813 (class 2604 OID 34096)
+-- TOC entry 2837 (class 2604 OID 134633)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -297,7 +432,16 @@ ALTER TABLE ONLY variants ALTER COLUMN id SET DEFAULT nextval('variants_id_seq':
 
 
 --
--- TOC entry 2826 (class 2606 OID 101313)
+-- TOC entry 2852 (class 2606 OID 135039)
+-- Name: clust_id; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY strain_clusters
+    ADD CONSTRAINT clust_id PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2844 (class 2606 OID 134635)
 -- Name: meta_id; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -306,7 +450,25 @@ ALTER TABLE ONLY strain_meta
 
 
 --
--- TOC entry 2824 (class 2606 OID 34403)
+-- TOC entry 2854 (class 2606 OID 135050)
+-- Name: p_key_cluster_log; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY cluster_logs
+    ADD CONSTRAINT p_key_cluster_log PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2856 (class 2606 OID 135062)
+-- Name: p_key_dist; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY dist_matrix
+    ADD CONSTRAINT p_key_dist PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2842 (class 2606 OID 134637)
 -- Name: p_key_ig; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -315,7 +477,7 @@ ALTER TABLE ONLY ignored_pos
 
 
 --
--- TOC entry 2820 (class 2606 OID 34101)
+-- TOC entry 2850 (class 2606 OID 134639)
 -- Name: pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -324,7 +486,7 @@ ALTER TABLE ONLY variants
 
 
 --
--- TOC entry 2822 (class 2606 OID 34112)
+-- TOC entry 2848 (class 2606 OID 134641)
 -- Name: pkey_id; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -333,7 +495,7 @@ ALTER TABLE ONLY strains_snps
 
 
 --
--- TOC entry 2818 (class 2606 OID 34090)
+-- TOC entry 2846 (class 2606 OID 134643)
 -- Name: strain_stats_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
 --
 
@@ -341,7 +503,7 @@ ALTER TABLE ONLY strain_stats
     ADD CONSTRAINT strain_stats_pkey PRIMARY KEY (id);
 
 
--- Completed on 2015-08-10 17:16:00 BST
+-- Completed on 2015-08-18 15:54:55 BST
 
 --
 -- PostgreSQL database dump complete
