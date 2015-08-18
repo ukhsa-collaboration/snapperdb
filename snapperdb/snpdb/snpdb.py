@@ -158,7 +158,7 @@ class SNPdb:
                                                                                          self.pg_uname, self.pg_pword)
             conn = psycopg2.connect(conn_string)
             cur = conn.cursor()
-            sql_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'clean_snpdb.backup')
+            sql_script = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'template_snapperdb_denovo_refs_sql')
             cur.execute(open(sql_script, 'r').read())
             conn.commit()
             conn.close()
