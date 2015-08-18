@@ -1,0 +1,349 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 9.1.14
+-- Dumped by pg_dump version 9.4.0
+-- Started on 2015-08-10 17:15:59 BST
+
+SET statement_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+
+--
+-- TOC entry 171 (class 3079 OID 12506)
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- TOC entry 2934 (class 0 OID 0)
+-- Dependencies: 171
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+--
+-- TOC entry 172 (class 3079 OID 125148)
+-- Name: hstore; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public;
+
+
+--
+-- TOC entry 2935 (class 0 OID 0)
+-- Dependencies: 172
+-- Name: EXTENSION hstore; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION hstore IS 'data type for storing sets of (key, value) pairs';
+
+
+--
+-- TOC entry 173 (class 3079 OID 34113)
+-- Name: intarray; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA public;
+
+
+--
+-- TOC entry 2936 (class 0 OID 0)
+-- Dependencies: 173
+-- Name: EXTENSION intarray; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION intarray IS 'functions, operators, and index support for 1-D arrays of integers';
+
+
+SET search_path = public, pg_catalog;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- TOC entry 168 (class 1259 OID 34395)
+-- Name: ignored_pos; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE ignored_pos (
+    id integer NOT NULL,
+    contig character varying,
+    pos integer
+);
+
+
+--
+-- TOC entry 167 (class 1259 OID 34393)
+-- Name: ignored_pos_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE ignored_pos_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2937 (class 0 OID 0)
+-- Dependencies: 167
+-- Name: ignored_pos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE ignored_pos_id_seq OWNED BY ignored_pos.id;
+
+
+--
+-- TOC entry 170 (class 1259 OID 101305)
+-- Name: strain_meta; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE strain_meta (
+    id integer NOT NULL,
+    name character varying,
+    orgin character varying,
+    samp_date double precision,
+    ft character varying,
+    comment character varying,
+    pfge character varying
+);
+
+
+--
+-- TOC entry 169 (class 1259 OID 101303)
+-- Name: strain_meta_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE strain_meta_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2938 (class 0 OID 0)
+-- Dependencies: 169
+-- Name: strain_meta_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE strain_meta_id_seq OWNED BY strain_meta.id;
+
+
+--
+-- TOC entry 162 (class 1259 OID 34082)
+-- Name: strain_stats; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE strain_stats (
+    id integer NOT NULL,
+    name character varying,
+    total_reads integer,
+    mapped_reads integer,
+    av_cov double precision,
+    time_of_upload timestamp without time zone,
+    ignore character varying,
+    number_mixed_positions integer,
+    zscore_check character varying,
+    mixed_positions character varying[]
+);
+
+
+--
+-- TOC entry 161 (class 1259 OID 34080)
+-- Name: strain_stats_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE strain_stats_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2939 (class 0 OID 0)
+-- Dependencies: 161
+-- Name: strain_stats_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE strain_stats_id_seq OWNED BY strain_stats.id;
+
+
+--
+-- TOC entry 166 (class 1259 OID 34104)
+-- Name: strains_snps; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE strains_snps (
+    name character varying,
+    variants_id integer[],
+    ignored_pos integer[],
+    id integer NOT NULL
+);
+
+
+--
+-- TOC entry 165 (class 1259 OID 34102)
+-- Name: strains_snps_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE strains_snps_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2940 (class 0 OID 0)
+-- Dependencies: 165
+-- Name: strains_snps_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE strains_snps_id_seq OWNED BY strains_snps.id;
+
+
+--
+-- TOC entry 164 (class 1259 OID 34093)
+-- Name: variants; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE variants (
+    pos integer,
+    ref_base character varying,
+    amino_acid character varying,
+    gene character varying,
+    var_base character varying,
+    id integer NOT NULL,
+    contig character varying,
+    product character varying
+);
+
+
+--
+-- TOC entry 163 (class 1259 OID 34091)
+-- Name: variants_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE variants_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- TOC entry 2941 (class 0 OID 0)
+-- Dependencies: 163
+-- Name: variants_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE variants_id_seq OWNED BY variants.id;
+
+
+--
+-- TOC entry 2815 (class 2604 OID 34398)
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY ignored_pos ALTER COLUMN id SET DEFAULT nextval('ignored_pos_id_seq'::regclass);
+
+
+--
+-- TOC entry 2816 (class 2604 OID 101308)
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY strain_meta ALTER COLUMN id SET DEFAULT nextval('strain_meta_id_seq'::regclass);
+
+
+--
+-- TOC entry 2812 (class 2604 OID 34085)
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY strain_stats ALTER COLUMN id SET DEFAULT nextval('strain_stats_id_seq'::regclass);
+
+
+--
+-- TOC entry 2814 (class 2604 OID 34107)
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY strains_snps ALTER COLUMN id SET DEFAULT nextval('strains_snps_id_seq'::regclass);
+
+
+--
+-- TOC entry 2813 (class 2604 OID 34096)
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY variants ALTER COLUMN id SET DEFAULT nextval('variants_id_seq'::regclass);
+
+
+--
+-- TOC entry 2826 (class 2606 OID 101313)
+-- Name: meta_id; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY strain_meta
+    ADD CONSTRAINT meta_id PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2824 (class 2606 OID 34403)
+-- Name: p_key_ig; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY ignored_pos
+    ADD CONSTRAINT p_key_ig PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2820 (class 2606 OID 34101)
+-- Name: pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY variants
+    ADD CONSTRAINT pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2822 (class 2606 OID 34112)
+-- Name: pkey_id; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY strains_snps
+    ADD CONSTRAINT pkey_id PRIMARY KEY (id);
+
+
+--
+-- TOC entry 2818 (class 2606 OID 34090)
+-- Name: strain_stats_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY strain_stats
+    ADD CONSTRAINT strain_stats_pkey PRIMARY KEY (id);
+
+
+-- Completed on 2015-08-10 17:16:00 BST
+
+--
+-- PostgreSQL database dump complete
+--
+
