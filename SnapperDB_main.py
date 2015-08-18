@@ -34,6 +34,8 @@ def setup_logging(args):
         args.log_dir = os.path.join(os.path.dirname(os.path.dirname(args.vcf[0])), 'logs')
     elif args.command == 'check_vcf_for_mixed':
         args.log_dir = os.path.join(os.path.dirname(args.outdir), 'logs')
+    elif args.command == 'make_snpdb':
+        args.log_dir = os.path.join(os.path.dirname(os.path.dirname(args.config_file[0])), 'logs')
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir)
     logger = logging.getLogger('snapperdb')
@@ -151,6 +153,8 @@ def main():
     parser_make_snpdb = subparsers.add_parser('make_snpdb', help='Takes a config and makes a snpdb')
     parser_make_snpdb.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                    help='The name of a config file in the user_configs directory (not the full path)')
+    parser_make_snpdb.add_argument('-g', dest = 'log_dir', default = None,
+                                     help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
     parser_update_distance_matrix = subparsers.add_parser('update_distance_matrix',
                                                           help='Takes a config and updates the distance matrix in the '
                                                                'specified snpdb')
