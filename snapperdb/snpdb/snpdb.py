@@ -449,7 +449,7 @@ class SNPdb:
         cur = self.snpdb_conn.cursor()
         variant_container = {}
         pos_2_id_list = {}
-        sql = "select pos , id, ref_base, var_base, contig from variants"
+        sql = "select pos , id, ref_base, var_base, contig, amino_acid, gene, product from variants"
         cur.execute(sql)
         rows = cur.fetchall()
         for row in rows:
@@ -459,6 +459,9 @@ class SNPdb:
             variant.ref_base = row[2]
             variant.var_base = row[3]
             variant.contig = row[4]
+            variant.amino_acid = row[5]
+            variant.gene = row[6]
+            variant.product = row[7]
             variant_container[row[1]] = variant
             if variant.id in self.goodids:
                 if row[4] in pos_2_id_list:
@@ -710,7 +713,6 @@ class SNPdb:
                                 f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                             elif self.var_look[pos] != len(self.strains_snps):
                                 f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
-
                     elif flag == 'C':
                         if pos not in self.n_look:
                             if pos not in rec_list:
@@ -718,6 +720,29 @@ class SNPdb:
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                                 elif self.var_look[pos] != len(self.strains_snps):
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+
+    def print_vars_mc(self, out, flag, rec_list, ref_flag):
+        f = open(out + '.variants', 'w')
+        for contig in sorted(self.var_look):
+            for pos in self.var_look[contig]:
+                var_ids = self.posIDMap[contig][pos + 1]
+                for var_id in var_ids:
+                    if flag == 'W':
+                        f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].gene) + "\n")
+                    elif flag == 'A':
+                        if pos not in rec_list:
+                            if ref_flag == 'Y':
+                                f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                            elif self.var_look[contig][pos] != len(self.strains_snps):
+                                f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                    elif flag == 'C':
+                        if pos not in self.n_look:
+                            if pos not in rec_list:
+                                if ref_flag == 'Y':
+                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                                elif self.var_look[contig][pos] != len(self.strains_snps):
+                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+
 
     # # functions below here are from update_distance_matrix
 

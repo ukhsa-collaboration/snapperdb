@@ -161,10 +161,19 @@ def get_the_snps(args, config_dict):
             snpdb.print_vars(args.out, args.alignment_type, rec_list, args.ref_flag)
     elif config_dict['multi_contig_reference'] == 'Y':
         ref_seq = read_multi_contig_fasta(ref_seq_file)
+        if args.rec_file != 'N':
+            logger.info('Reading recombination list')
+            rec_list = read_rec_file(args.rec_file)
+        else:
+            rec_list = []
         snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, config_dict['snpdb_reference_genome_name'])
         snpdb.print_fasta_mc(args.out, args.alignment_type)
         if args.mat_flag == 'Y':
             snpdb.print_matrix(args.out)
+        if args.var_flag == 'Y':
+            logger.info('Printing variants')
+            snpdb.print_vars_mc(args.out, args.alignment_type, rec_list, args.ref_flag)
+
 
 
 
