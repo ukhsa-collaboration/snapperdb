@@ -736,7 +736,7 @@ class SNPdb:
                             elif self.var_look[contig][pos] != len(self.strains_snps):
                                 f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                     elif flag == 'C':
-                        if pos not in self.n_look:
+                        if pos not in self.n_look[contig]:
                             if pos not in rec_list:
                                 if ref_flag == 'Y':
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
