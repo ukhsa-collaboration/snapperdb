@@ -466,7 +466,7 @@ class Vcf:
     def run_gatk(self, args):
         process = subprocess.Popen(['java', '-Xmx30g', '-jar',
                                     '/phengs/hpc_software/gatk/2.6.5/GenomeAnalysisTK.jar', '-T',
-                                    'UnifiedGenotyper', '-nt', '1', '-out_mode', 'EMIT_ALL_SITES', '-R',
+                                    'UnifiedGenotyper', '-nt', '1', '-rf', 'BadCigar', '-out_mode', 'EMIT_ALL_SITES', '-R',
                                     self.ref_genome_path,
                                     '-I', self.sorted_bamfile, '-o', self.vcf_filehandle], stderr=subprocess.PIPE)
         stdout, stderr = process.communicate()
