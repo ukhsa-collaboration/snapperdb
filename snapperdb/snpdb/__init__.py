@@ -135,6 +135,25 @@ def read_rec_file(rec_file):
             rec_list = set(rec_list) | set(rec_range)
     return rec_list
 
+def read_rec_file_mc(rec_file):
+    try:
+        openfile = open(rec_file, 'r')
+    except:
+        print (rec_file + " not found ... ")
+        sys.exit()
+    
+    rec_dict = {}
+    
+    for line in openfile:
+        split_line = line.strip().split('\t')
+        rec_range = range(int(split_line[1]) - 1, (int(split_line[2]) - 1))
+        if split_line[0] in rec_dict:
+            rec_dict[split_line[0]] = set(rec_dict[split_line[0]]) | set(rec_range)
+        else:
+            rec_dict[split_line[0]] = set(rec_range)
+    
+    return rec_dict
+
 def get_the_snps(args, config_dict):
     logger = logging.getLogger('snapperdb.snpdb.get_the_snps')
     logger.info('Inititialising SnpDB Class')
@@ -163,16 +182,16 @@ def get_the_snps(args, config_dict):
         ref_seq = read_multi_contig_fasta(ref_seq_file)
         if args.rec_file != 'N':
             logger.info('Reading recombination list')
-            rec_list = read_rec_file(args.rec_file)
+            rec_dict = read_rec_file_mc(args.rec_file)
         else:
-            rec_list = []
+            rec_dict = {}
         snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, config_dict['snpdb_reference_genome_name'])
-        snpdb.print_fasta_mc(args.out, args.alignment_type)
+        snpdb.print_fasta_mc(args.out, args.alignment_type, rec_dict)
         if args.mat_flag == 'Y':
             snpdb.print_matrix(args.out)
         if args.var_flag == 'Y':
             logger.info('Printing variants')
-            snpdb.print_vars_mc(args.out, args.alignment_type, rec_list, args.ref_flag)
+            snpdb.print_vars_mc(args.out, args.alignment_type, rec_dict, args.ref_flag)
 
 
 

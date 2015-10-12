@@ -669,7 +669,7 @@ class SNPdb:
             f.write("\n")
 
 
-    def print_fasta_mc(self, out, flag):
+    def print_fasta_mc(self, out, flag, rec_dict):
         f = open(out + '.fa', 'w')
         for strain in self.fasta:
             f.write(">" + strain + "\n")
@@ -680,14 +680,25 @@ class SNPdb:
                 elif flag == 'A':
                     if contig in self.var_look:
                         for i in self.var_look[contig]:
-                            f.write(self.fasta[strain][contig][i])
+                            if contig in rec_dict:
+                                if i not in rec_dict[contig]:
+                                    f.write(self.fasta[strain][contig][i])
+                            else:
+                                f.write(self.fasta[strain][contig][i])
                 elif flag == 'C':
                     if contig in self.var_look:
                         for i in self.var_look[contig]:
-                            if contig not in self.n_look:
-                                f.write(self.fasta[strain][contig][i])
-                            elif i not in self.n_look[contig]:
-                                f.write(self.fasta[strain][contig][i])
+                            if contig in rec_dict:
+                                if i not in rec_dict[contig]:
+                                    if contig not in self.n_look:
+                                        f.write(self.fasta[strain][contig][i])
+                                    elif i not in self.n_look[contig]:
+                                        f.write(self.fasta[strain][contig][i])
+                            else:
+                                if contig not in self.n_look:
+                                        f.write(self.fasta[strain][contig][i])
+                                elif i not in self.n_look[contig]:
+                                    f.write(self.fasta[strain][contig][i])
             f.write("\n")
 
 
@@ -721,7 +732,7 @@ class SNPdb:
                                 elif self.var_look[pos] != len(self.strains_snps):
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
 
-    def print_vars_mc(self, out, flag, rec_list, ref_flag):
+    def print_vars_mc(self, out, flag, rec_dict, ref_flag):
         f = open(out + '.variants', 'w')
         for contig in sorted(self.var_look):
             for pos in self.var_look[contig]:
@@ -730,16 +741,28 @@ class SNPdb:
                     if flag == 'W':
                         f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].gene) + "\n")
                     elif flag == 'A':
-                        if pos not in rec_list:
+                        if contig in rec_dict:
+                            if pos not in rec_dict[contig]:
+                                if ref_flag == 'Y':
+                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                                elif self.var_look[contig][pos] != len(self.strains_snps):
+                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                        else:
                             if ref_flag == 'Y':
-                                f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                             elif self.var_look[contig][pos] != len(self.strains_snps):
                                 f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                     elif flag == 'C':
                         if pos not in self.n_look[contig]:
-                            if pos not in rec_list:
+                            if contig in rec_dict:
+                                if pos not in rec_dict[contig]:
+                                    if ref_flag == 'Y':
+                                        f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                                    elif self.var_look[contig][pos] != len(self.strains_snps):
+                                        f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                            else:
                                 if ref_flag == 'Y':
-                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                                        f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                                 elif self.var_look[contig][pos] != len(self.strains_snps):
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
 
