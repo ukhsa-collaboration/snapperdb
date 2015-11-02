@@ -22,9 +22,8 @@ import logging
 import os
 import datetime
 from snapperdb import __version__, parse_config
-from snapperdb.gbru_vcf import fastq_to_vcf, parse_vcf_for_mixed, fastq_to_vcf_multi_contig
-from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, \
-    update_clusters, get_variants_of_interest, upload_indels
+from snapperdb.gbru_vcf import fastq_to_vcf
+from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, update_clusters, get_variants_of_interest, upload_indels
 
 
 def setup_logging(args):
@@ -53,22 +52,13 @@ def run_command(args):
         logger = logging.getLogger('snapperdb.fastq_to_db')
         args.fastqs = sorted(args.fastqs)
         logger.info('PARAMS: config = %s; fastqs = %s' % (args.config_file, str(args.fastqs)))
-        if config_dict['multi_contig_reference'] == 'N':
-            vcf = fastq_to_vcf(args, config_dict)
-            vcf_to_db(args, config_dict, vcf)
-        elif config_dict['multi_contig_reference'] == 'Y':
-            vcf = fastq_to_vcf_multi_contig(args, config_dict)
-            vcf_to_db(args, config_dict, vcf)
-
-
+        vcf = fastq_to_vcf(args, config_dict)
+        vcf_to_db(args, config_dict, vcf)
     elif args.command == 'fastq_to_vcf':
         logger = logging.getLogger('snapperdb.fastq_to_vcf')
         args.fastqs = sorted(args.fastqs)
         logger.info('PARAMS: config = %s; fastqs = %s' % (args.config_file, str(args.fastqs)))
-        if config_dict['multi_contig_reference'] == 'N':
-            vcf = fastq_to_vcf(args, config_dict)
-        elif config_dict['multi_contig_reference'] == 'Y':
-            vcf = fastq_to_vcf_multi_contig(args, config_dict)
+        vcf = fastq_to_vcf(args, config_dict)
 
     elif args.command == 'vcf_to_db':
         logger = logging.getLogger('snapperdb.vcf_to_db')

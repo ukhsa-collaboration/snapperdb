@@ -1,4 +1,4 @@
-__author__ = 'flashton'
+__author__ = 'gidis'
 
 from datetime import datetime
 import errno
@@ -122,7 +122,7 @@ class SNPdb:
         vcf.ref_genome_path = os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')
         vcf.make_tmp_dir(args)
         vcf.sorted_bamfile = os.path.join(vcf.tmp_dir, vcf.sample_name + '.sorted' + '.bam')
-        vcf.vcf_filehandle = os.path.join(vcf.tmp_dir, os.path.pardir, '{0}.vcf'.format(vcf.sample_name))
+        vcf.vcf_filehandle = os.path.join(vcf.tmp_dir, os.path.pardir, '{0}.filtered.vcf'.format(vcf.sample_name))
 
     def _connect_to_snpdb(self):
         self.conn_string = 'host=\'{0}\' dbname={1} user=\'{2}\' password=\'{3}\''.format(self.pg_host, self.snpdb_name,
@@ -173,175 +173,91 @@ class SNPdb:
         return dup
 
     def add_info_to_strain_stats(self, vcf):
-        if not self.check_duplicate(vcf, 'strain_stats'):
+        if self.check_duplicate(vcf, 'strain_stats') == False:
             time_now = datetime.now()
             time_now = str(time_now)
-            insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
-                               'VALUES (%s, %s, %s, %s, %s)'
+            insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions) ' \
+                               'VALUES (%s, %s, %s, %s)'
             cur = self.snpdb_conn.cursor()
-            cur.execute(insert_statement, (vcf.sample_name, vcf.depth_average, time_now, vcf.number_mixed_positions,
-                                           vcf.mixed_positions))
-            self.snpdb_conn.commit()
-            cur.close()
-        elif self.check_duplicate(vcf, 'strain_stats'):
-            sys.stderr.write('%s is already in SNPdb strain_stats %s\n' % (vcf.sample_name, self.reference_genome))
-
-    def add_info_to_strain_stats_mc(self, vcf, mixed_pos_dict):
-        if self.check_duplicate(vcf, 'strain_stats') == False:
-            mixed_pos_list = []
-            for contig in mixed_pos_dict:
-                for mixed_pos in mixed_pos_dict[contig]:
-                    mixed_pos_list.append('%s position %s' % (contig, mixed_pos))
-            time_now = str(datetime.now())
-            insert_statement = 'INSERT INTO strain_stats (name, av_cov, time_of_upload, number_mixed_positions, mixed_positions) ' \
-                               'VALUES (%s, %s, %s, %s, %s)'
-            cur = self.snpdb_conn.cursor()
-            cur.execute(insert_statement, (vcf.sample_name, vcf.depth_average, time_now,
-                                           vcf.number_mixed_positions, mixed_pos_list))
+            cur.execute(insert_statement, (vcf.sample_name, vcf.depth_average, time_now, vcf.number_mixed_positions))
             self.snpdb_conn.commit()
             cur.close()
 
-    def add_new_variants(self, pos, contig, good_var):
-        var_base = good_var[pos]
-        # fasta starts at 0, snpdb pos is worked out from a reference that starts at 1 (position in snpdb)
-        ref_base = contig[int(pos) - 1]
-        cursor = self.snpdb_conn.cursor()
-        cursor.execute("insert into variants (pos, var_base, ref_base) VALUES (%s,\'%s\',\'%s\')" % (pos, var_base,
-                                                                                                     ref_base))
-        self.snpdb_conn.commit()
 
-        cursor.execute('select currval(\'variants_id_seq\')')
-        seq_id = cursor.fetchall()
-        seq_id = seq_id[0][0]
-        return seq_id
-
-    def add_new_variants_mc(self, pos, contig_seq, var_base, contig, cursor):
-        ref_base = contig_seq[int(pos) -1]
+    def add_new_variants(self, pos, ref_base, var_base, contig, cursor):
         cursor.execute("insert into variants (pos, var_base, ref_base, contig) VALUES (%s,\'%s\',\'%s\',\'%s\')" %
                    (pos, var_base, ref_base, contig))
-        # print cursor.execute("select currval(\'variants_id_seq\')")
-
         cursor.execute("select currval(\'variants_id_seq\')")
         res = cursor.fetchall()
         seq_id = str(res[0][0])
         return int(seq_id)
 
-    def add_new_ig_pos_mc(self, cursor, contig, pos):
+    def add_new_ig_pos(self, cursor, contig, pos):
         cursor.execute('insert into ignored_pos (pos, contig) VALUES (%s, \'%s\')' % (pos, contig))
         cursor.execute("select currval(\'ignored_pos_id_seq\')")
         res = cursor.fetchall()
         seq_id = res[0][0]
         return seq_id
 
+
     def add_to_snpdb(self, vcf):
-        ref_genome_path = os.path.join(self.ref_genome_dir, self.reference_genome + '.fa')
-        if os.path.exists(ref_genome_path):
-            pass
-        else:
-            sys.stderr.write('Could not find {0}, check your file extension (needs to be .fa)\n'.format(ref_genome_path))
-        with open(ref_genome_path, 'r') as fi:
-            ref_fasta = SeqIO.parse(fi, 'fasta')
-            contig = ''
-            i = 0
-            for each in ref_fasta:
-                i += 1
-                if i != 1:
-                    raise Exception
-                elif i == 1:
-                    contig = each.seq
-
-            var_dic = {}
-            dict_cursor = self.snpdb_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-            dict_cursor.execute('SELECT * FROM variants')
-            for row in dict_cursor:
-                # print row
-                # print row['pos']
-                if row['pos'] in var_dic:
-                    var_dic[row['pos']][row['var_base']] = row['id']
-                else:
-                    var_dic[row['pos']] = {}
-                    var_dic[row['pos']][row['var_base']] = row['id']
-
-            var_db_list = []
-
-            for pos in vcf.good_var:
-                if int(pos) not in var_dic:
-                    seq_id = self.add_new_variants(pos, contig, vcf.good_var)
-                    var_db_list.append(seq_id)
-                elif vcf.good_var[pos] not in var_dic[int(pos)]:
-                    seq_id = self.add_new_variants(pos, contig, vcf.good_var)
-                    var_db_list.append(seq_id)
-                else:
-                    var_db_list.append(var_dic[int(pos)][vcf.good_var[pos]])
-
-            time_now = datetime.now()
-            time_now = str(time_now)
-            insert_statement = "insert into strains_snps (name, time_of_upload, variants_id, ignored_pos) VALUES (" \
-                               "\'" + vcf.sample_name + "\', \'" + time_now + "\' ,\'{"
-
-            for var_id in var_db_list:
-                insert_statement += str(var_id) + ","
-            insert_statement = insert_statement[:-1]
-            insert_statement += "}\',\'{"
-
-            for pos in vcf.bad_pos:
-                insert_statement += str(pos) + ","
-            insert_statement = insert_statement[:-1]
-
-            insert_statement += "}\')"
-
-            cursor = self.snpdb_conn.cursor()
-            cursor.execute(insert_statement)
-            self.snpdb_conn.commit()
-            cursor.close()
-            self.snpdb_conn.close()
-
-    def add_to_snpdb_mc(self, bad_pos_dict, var_dict, mixed_pos_dict, sample_name):
+        #get reference genome
         ref_genome_path = os.path.join(self.ref_genome_dir, self.reference_genome + '.fa')
         ref_fasta_dict = {}
+        #open reference genome
         if os.path.exists(ref_genome_path):
             with open(ref_genome_path, 'r') as fi:
                 ref_fasta = SeqIO.parse(fi, 'fasta')
+                # get each of the contigs
                 for contig in ref_fasta:
                     ref_fasta_dict[contig.id] = contig.seq
         else:
+            #CHANGE this needs to be logged and and try and except
             sys.stderr.write('Could not find {0}, check your file extension (needs to be .fa)\n'.format
                              (ref_genome_path))
             sys.exit()
+
+        #get a cursor    
         dict_cursor = self.snpdb_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor = self.snpdb_conn.cursor()
+        #initialise a list for vars
         var_db_list = []
-        for contig in var_dict:
+        ig_db_list = []
+
+
+        #loop through the different contigs in vcf
+        for parsed_vcf in vcf.parsed_vcf_container:
+            #get any known variants in that contig
             existing_variants_dict = {}
             query = 'SELECT * FROM variants where contig = %s'
-            # queryObj = dict_cursor.execute(query, (contig,))
-            dict_cursor.execute(query, (contig,))
+            dict_cursor.execute(query, (parsed_vcf.ref,))
             res = dict_cursor.fetchall()
             if len(res) != 0:
-                # res = queryObj.dictresult()
-                for row in res:
+                 for row in res:
                     if row['pos'] in existing_variants_dict:
                         existing_variants_dict[row['pos']][row['var_base']] = row['id']
                     else:
                         existing_variants_dict[row['pos']] = {}
                         existing_variants_dict[row['pos']][row['var_base']] = row['id']
-            ## on the adding new variants bit
-            contig_seq = ref_fasta_dict[contig]
-            for pos in var_dict[contig]:
+
+            #go through the variants in this contig
+            for pos in parsed_vcf.good_var:
+                #if we havent seen a variant at this poistion before
                 if int(pos) not in existing_variants_dict:
-                    seq_id = self.add_new_variants_mc(pos, contig_seq, var_dict[contig][pos], contig, cursor)
+                    seq_id = self.add_new_variants(pos, parsed_vcf.ref_base[pos], parsed_vcf.var[pos], parsed_vcf.ref, cursor)
                     var_db_list.append(seq_id)
-                elif var_dict[contig][pos] not in existing_variants_dict[int(pos)]:
-                    seq_id = self.add_new_variants_mc(pos, contig_seq, var_dict[contig][pos], contig, cursor)
+                #if we have seen a variant at this position but not rhis variant    
+                elif parsed_vcf.var[pos] not in existing_variants_dict[int(pos)]:
+                    seq_id = self.add_new_variants(pos, parsed_vcf.ref_base[pos], parsed_vcf.var[pos], parsed_vcf.ref, cursor)
                     var_db_list.append(seq_id)
                 else:
-                    var_db_list.append(existing_variants_dict[int(pos)][var_dict[contig][pos]])
+                    var_db_list.append(existing_variants_dict[int(pos)][parsed_vcf.var[pos]])
 
-        ig_db_list = []
-        for contig in bad_pos_dict:
+
+            #get any ignored_positions know variants in that contig
             ig_dic = {}
             query = 'SELECT * FROM ignored_pos where contig = %s'
-            dict_cursor.execute(query, (contig,))
+            dict_cursor.execute(query, (parsed_vcf.ref,))
             res = dict_cursor.fetchall()
             if len(res) != 0:
                 for row in res:
@@ -350,20 +266,27 @@ class SNPdb:
                     else:
                         ig_dic[row['pos']] = {}
                         ig_dic[row['pos']] = row['id']
-            for pos in bad_pos_dict[contig]:
+            print len(parsed_vcf.bad_pos)
+
+            #go through the ignored_pos in this contig
+            for pos in parsed_vcf.bad_pos:
                 if int(pos) not in ig_dic:
-                    seq_id = self.add_new_ig_pos_mc(cursor, contig, pos)
+                    seq_id = self.add_new_ig_pos(cursor, parsed_vcf.ref, pos)
                     ig_db_list.append(seq_id)
                 else:
                     ig_db_list.append(ig_dic[int(pos)])
         
+        #add into strains_snp
         insert_statement = 'insert into strains_snps (name, variants_id, ignored_pos) values (%s, %s, %s)'
-        cursor.execute(insert_statement, (sample_name, var_db_list, ig_db_list))
+        cursor.execute(insert_statement, (vcf.sample_name, var_db_list, ig_db_list))
         self.snpdb_conn.commit()
 
     def snpdb_upload(self, vcf):
+        #lets check 
         if not self.check_duplicate(vcf, 'strains_snps'):
+            #add strains
             self.add_info_to_strain_stats(vcf)
+            #CHANGE - this needs to be logged
             print 'depth is', vcf.depth_average, self.average_depth_cutoff
             if vcf.depth_average >= int(self.average_depth_cutoff):
                 self.add_to_snpdb(vcf)
@@ -374,15 +297,13 @@ class SNPdb:
                 cur.execute(update_statement)
                 self.snpdb_conn.commit()
                 cur.close()
+                #CHANGE this needs to be logged
                 sys.stderr.write('average depth below cutoff, not added to SNPdb')
         elif self.check_duplicate(vcf, 'strains_snps'):
+            #CHANGE this needs to be logged
             sys.stderr.write('%s is already in SNPdb strains_snps %s\n' % (vcf.sample_name, self.reference_genome))
 
-    def snpdb_upload_multi_contig(self, vcf, bad_pos_dict, var_dict, mixed_pos_dict):
-        if not self.check_duplicate(vcf, 'strains_snps'):
-            self.add_info_to_strain_stats_mc(vcf, mixed_pos_dict)
-            if vcf.depth_average >= int(self.average_depth_cutoff):
-                self.add_to_snpdb_mc(bad_pos_dict, var_dict, mixed_pos_dict, vcf.sample_name)
+
 
     # # functions below here are for querying the snpdb
 
