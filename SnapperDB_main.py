@@ -59,7 +59,6 @@ def run_command(args):
         args.fastqs = sorted(args.fastqs)
         logger.info('PARAMS: config = %s; fastqs = %s' % (args.config_file, str(args.fastqs)))
         vcf = fastq_to_vcf(args, config_dict)
-
     elif args.command == 'vcf_to_db':
         logger = logging.getLogger('snapperdb.vcf_to_db')
         logger.info('PARAMS: config = %s; vcf = %s' % (args.config_file, args.vcf))

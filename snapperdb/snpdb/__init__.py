@@ -34,21 +34,21 @@ def vcf_to_db(args, config_dict, vcf):
     #check stack?
     if inspect.stack()[0][3] == 'fastq_to_db':
         # fastq_to_db we will alread have a vcf object to work wih
-        logger.info('You are running fastq_to_db. Checking length of VCF.')
-        logger.info('Uploading to SNPdb')
+        logger.info('You are running fastq_to_db.')
         
-        vcf.read_multi_contig_vcf()
-        #upload to snpdb
-        snpdb.snpdb_upload(vcf)
-
     elif inspect.stack()[0][3] == 'vcf_to_db':
         ## there is no existing vcf class here, but there will definitely be a vcf, and there may be a pickle.
         logger.info('You are running vcf_to_db. Initialising Vcf class.')
         vcf = Vcf()
         logger.info('Making SNPdb variables and output files')
+        #set up variables
         snpdb.define_class_variables_and_make_output_files(args, vcf)
-        vcf.read_multi_contig_vcf()
-        snpdb.snpdb_upload(vcf)
+    
+    #read vcf
+    vcf.read_multi_contig_vcf()
+    logger.info('Uploading to SNPdb')
+    #upload vcf
+    snpdb.snpdb_upload(vcf)
 
 
 def make_snpdb(config_dict):
@@ -67,19 +67,6 @@ def read_file(file_name):
         strain_list.append(line.strip())
     return strain_list
 
-def read_fasta(ref):
-    try:
-        openfile = open(ref, 'r')
-    except:
-        print (ref + " not found ... ")
-        sys.exit()
-    ref_seq = []
-    for line in openfile:
-        matchObj = re.search('>', line)
-        if matchObj is None:
-            for n in line.strip():
-                ref_seq.append(n)
-    return ref_seq
 
 def read_multi_contig_fasta(ref):
     try:
@@ -121,7 +108,6 @@ def read_rec_file_mc(rec_file):
         sys.exit()
     
     rec_dict = {}
-    
     for line in openfile:
         split_line = line.strip().split('\t')
         rec_range = range(int(split_line[1]) - 1, (int(split_line[2]) - 1))
@@ -133,13 +119,38 @@ def read_rec_file_mc(rec_file):
     return rec_dict
 
 def get_the_snps(args, config_dict):
+    #set up logging
     logger = logging.getLogger('snapperdb.snpdb.get_the_snps')
     logger.info('Inititialising SnpDB Class')
+    #initalise snpdb class
     snpdb = SNPdb(config_dict)
+    #parse confif
     snpdb.parse_config_dict(config_dict)
+    #read strainlist
     strain_list = read_file(args.strain_list)
+    #connect to postgresbd
     snpdb._connect_to_snpdb()
+    #get reference genome path
     ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
+    #read the reference fasta
+    ref_seq = read_multi_contig_fasta(ref_seq_file)
+    #if recombination flag set
+    if args.rec_file != 'N':
+        logger.info('Reading recombination list')
+        rec_dict = read_rec_file_mc(args.rec_file)
+    else:
+        #should we set this as none
+        rec_dict = {}
+    #query snadb    
+    snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, snpdb.reference_genome)
+    #print fasta
+    snpdb.print_fasta_mc(args.out, args.alignment_type, rec_dict)
+   
+
+
+
+
+
     if config_dict['multi_contig_reference'] == 'N':
         ref_seq = read_fasta(ref_seq_file)
         if args.rec_file != 'N':
@@ -156,6 +167,8 @@ def get_the_snps(args, config_dict):
         if args.var_flag == 'Y':
             logger.info('Printing variants')
             snpdb.print_vars(args.out, args.alignment_type, rec_list, args.ref_flag)
+
+
     elif config_dict['multi_contig_reference'] == 'Y':
         ref_seq = read_multi_contig_fasta(ref_seq_file)
         if args.rec_file != 'N':
