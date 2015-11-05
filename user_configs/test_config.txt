@@ -1,0 +1,9 @@
+snpdb_name test_snps
+reference_genome Ss046
+pg_uname postgres
+pg_pword db9941606
+pg_host localhost
+depth_cutoff 10
+mq_cutoff 30
+ad_cutoff 0.9
+average_depth_cutoff 30
