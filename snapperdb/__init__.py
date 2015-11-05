@@ -1,4 +1,4 @@
-__author__ = 'flashton'
+__author__ = 'gidis'
 
 import os
 import sys
@@ -53,14 +53,6 @@ def parse_config(args):
         print 'Cannot find {0}'.format(path_to_config)
         sys.exit()
     return config_dict
-
-    # # don't need to check the below here necassarily, probably checked later.
-    # ref_genome_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'reference_genomes')
-    # if os.path.exists(ref_genome_dir):
-    #     pass
-    # else:
-    #     sys.stderr.write('Ref genome dir not found\n')
-    #     sys.exit()
 
 
 def parse_ancillary_info(infile):

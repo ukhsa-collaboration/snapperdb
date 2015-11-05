@@ -1,4 +1,4 @@
-__author__ = 'flashton'
+__author__ = 'gidis'
 
 from datetime import datetime
 import inspect
@@ -15,63 +15,41 @@ import glob
 
 
 def vcf_to_db(args, config_dict, vcf):
+    #set up loggging
     logger = logging.getLogger('snapperdb.snpdb.vcf_to_db')
     logger.info('Initialising SNPdb class')
+
+    #create snpdb class
     snpdb = SNPdb(config_dict)
+
+    #parse config into snpdb object
     logger.info('Parsing config dict')
     snpdb.parse_config_dict(config_dict)
+    
+
+    #connect to snpdb postgres
     snpdb._connect_to_snpdb()
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
-    # psycopg2.extras.register_hstore(snpdb.snpdb_conn)
+
+    #check stack?
     if inspect.stack()[0][3] == 'fastq_to_db':
-        logger.info('You are running fastq_to_db. Checking length of VCF.')
-        logger.info('Serialising variants and ignored positions')
-        vcf.pickle_variants_and_ignored_pos(args)
-        logger.info('Uploading to SNPdb')
-        snpdb.snpdb_upload(vcf)
+        # fastq_to_db we will alread have a vcf object to work wih
+        logger.info('You are running fastq_to_db.')
+        
     elif inspect.stack()[0][3] == 'vcf_to_db':
         ## there is no existing vcf class here, but there will definitely be a vcf, and there may be a pickle.
         logger.info('You are running vcf_to_db. Initialising Vcf class.')
         vcf = Vcf()
         logger.info('Making SNPdb variables and output files')
+        #set up variables
         snpdb.define_class_variables_and_make_output_files(args, vcf)
-        res = glob.glob(os.path.join(vcf.tmp_dir, vcf.sample_name + '*_bad_pos.pick'))
-        if len(res) != 0:
-        # if os.path.exists(os.path.join(vcf.tmp_dir, vcf.sample_name + '*_bad_pos.pick')):
-            logger.info('There are already serialised variants and ignored positions for this sample')
-            logger.info('Loading serialised variants and ignored positions')
-            res_dict = snapperdb.parse_ancillary_info(os.path.join(vcf.tmp_dir, vcf.sample_name + '_anc_info.txt'))
-            vcf.number_mixed_positions = res_dict['number_mixed_positions']
-            vcf.depth_average = res_dict['depth_average']
-            # logger.info('Checking the length of the VCF')
-            logger.info('Uploading to SNPdb')
-            if config_dict['multi_contig_reference'] == 'N':
-                vcf.bad_pos = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_bad_pos.pick'), 'rb'))
-                vcf.good_var = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_good_var.pick'), 'rb'))
-                vcf.mixed_positions = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name
-                                                                    + '_mixed_pos.pick'), 'rb'))
-                snpdb.snpdb_upload(vcf)
-            elif config_dict['multi_contig_reference'] == 'Y':
-                bad_pos_dict = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_mc_bad_pos.pick'), 'rb'))
-                var_dict = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_mc_good_var.pick'), 'rb'))
-                mixed_pos_dict = pickle.load(open(os.path.join(vcf.tmp_dir, vcf.sample_name + '_mc_mixed_pos.pick'),
-                                                  'rb'))
-                snpdb.snpdb_upload_multi_contig(vcf, bad_pos_dict, var_dict, mixed_pos_dict)
-        else:
-            if config_dict['multi_contig_reference'] == 'N':
-                logger.info('There are no serialised variants, parsing config dict')
-                vcf.parse_config_dict(config_dict)
-                logger.info('Reading vcf')
-                vcf.read_vcf()
-                logger.info('Serialising variants and ignored positions')
-                # vcf.pickle_variants_and_ignored_pos()
-                logger.info('Uploading to SNPdb')
-                snpdb.snpdb_upload(vcf)
-            elif config_dict['multi_contig_reference'] == 'Y':
-                print 'ERROR - SnapperDB needs to pickle files for the multi contig workflow'
-                logger.info('ERROR - SnapperDB needs to pickle files for the multi contig workflow. Re-run fastq_to_vcf and ensure it produces the pickle files.')
-                sys.exit()
-                
+    
+    #read vcf
+    vcf.read_multi_contig_vcf()
+    logger.info('Uploading to SNPdb')
+    #upload vcf
+    snpdb.snpdb_upload(vcf)
+
 
 def make_snpdb(config_dict):
     snpdb = SNPdb(config_dict)
@@ -79,6 +57,7 @@ def make_snpdb(config_dict):
     snpdb.make_snpdb()
 
 def read_file(file_name):
+    #read list of strains for get the snps
     try:
         openfile = open(file_name, 'r')
     except:
@@ -89,19 +68,6 @@ def read_file(file_name):
         strain_list.append(line.strip())
     return strain_list
 
-def read_fasta(ref):
-    try:
-        openfile = open(ref, 'r')
-    except:
-        print (ref + " not found ... ")
-        sys.exit()
-    ref_seq = []
-    for line in openfile:
-        matchObj = re.search('>', line)
-        if matchObj is None:
-            for n in line.strip():
-                ref_seq.append(n)
-    return ref_seq
 
 def read_multi_contig_fasta(ref):
     try:
@@ -121,58 +87,65 @@ def read_multi_contig_fasta(ref):
             ref_seq[contig[0]] = []
     return ref_seq
 
-def read_rec_file(rec_file):
+
+def read_rec_file_mc(rec_file):
+    #read recombination file - tab delineated with reference genome
     try:
         openfile = open(rec_file, 'r')
     except:
         print (rec_file + " not found ... ")
         sys.exit()
-    rec_list = []
+    
+    rec_dict = {}
     for line in openfile:
-        if line[0].isdigit():
-            temp = (line.strip()).split('\t')
-            rec_range = range((int(temp[0]) - 1), (int(temp[1]) - 1))
-            rec_list = set(rec_list) | set(rec_range)
-    return rec_list
+        split_line = line.strip().split('\t')
+        rec_range = range(int(split_line[1]) - 1, (int(split_line[2]) - 1))
+        if split_line[0] in rec_dict:
+            rec_dict[split_line[0]] = set(rec_dict[split_line[0]]) | set(rec_range)
+        else:
+            rec_dict[split_line[0]] = set(rec_range)
+    
+    return rec_dict
 
 def get_the_snps(args, config_dict):
+    #set up logging
     logger = logging.getLogger('snapperdb.snpdb.get_the_snps')
     logger.info('Inititialising SnpDB Class')
+    #initalise snpdb class
     snpdb = SNPdb(config_dict)
+    #parse confif
     snpdb.parse_config_dict(config_dict)
+    #read strainlist
     strain_list = read_file(args.strain_list)
+
+    #connect to postgresbd
     snpdb._connect_to_snpdb()
+    #get reference genome path
     ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
-    if config_dict['multi_contig_reference'] == 'N':
-        ref_seq = read_fasta(ref_seq_file)
-        if args.rec_file != 'N':
-            logger.info('Reading recombination list')
-            rec_list = read_rec_file(args.rec_file)
-        else:
-            rec_list = []
-        snpdb.parse_args_for_get_the_snps(args, strain_list, ref_seq)
-        logger.info('Printing FASTA')
-        snpdb.print_fasta(args.out, args.alignment_type, rec_list, args.ref_flag)
-        if args.mat_flag == 'Y':
-            logger.info('Printing Matrix')
-            snpdb.print_matrix(args.out)
-        if args.var_flag == 'Y':
-            logger.info('Printing variants')
-            snpdb.print_vars(args.out, args.alignment_type, rec_list, args.ref_flag)
-    elif config_dict['multi_contig_reference'] == 'Y':
-        ref_seq = read_multi_contig_fasta(ref_seq_file)
-        if args.rec_file != 'N':
-            logger.info('Reading recombination list')
-            rec_list = read_rec_file(args.rec_file)
-        else:
-            rec_list = []
-        snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, config_dict['snpdb_reference_genome_name'])
-        snpdb.print_fasta_mc(args.out, args.alignment_type)
-        if args.mat_flag == 'Y':
-            snpdb.print_matrix(args.out)
-        if args.var_flag == 'Y':
-            logger.info('Printing variants')
-            snpdb.print_vars_mc(args.out, args.alignment_type, rec_list, args.ref_flag)
+    #read the reference fasta
+    ref_seq = read_multi_contig_fasta(ref_seq_file)
+    #add reference genome to strain_list
+    strain_list.append(snpdb.reference_genome)
+
+    #if recombination flag set
+    if args.rec_file != 'N':
+        logger.info('Reading recombination list')
+        rec_dict = read_rec_file_mc(args.rec_file)
+    else:
+        #should we set this as none
+        rec_dict = {}
+    #query snadb    
+    snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, snpdb.reference_genome)
+    #print fasta
+    snpdb.print_fasta_mc(args, rec_dict)
+
+    #print matrix
+    if args.mat_flag == 'Y':
+        snpdb.print_matrix(args.out)
+    # print variant list    
+    if args.var_flag == 'Y':
+        logger.info('Printing variants')
+        snpdb.print_vars_mc(args,rec_dict)
 
 
 

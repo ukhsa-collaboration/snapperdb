@@ -1,10 +1,4 @@
---
--- PostgreSQL database dump
---
 
--- Dumped from database version 9.1.14
--- Dumped by pg_dump version 9.4.0
--- Started on 2015-08-18 15:54:55 BST
 
 SET statement_timeout = 0;
 SET client_encoding = 'UTF8';
@@ -12,19 +6,9 @@ SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 
---
--- TOC entry 177 (class 3079 OID 12506)
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
---
 
 CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
-
---
--- TOC entry 2964 (class 0 OID 0)
--- Dependencies: 177
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: -
---
 
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
@@ -219,43 +203,6 @@ ALTER SEQUENCE strain_clusters_id_seq OWNED BY strain_clusters.id;
 -- Name: strain_meta; Type: TABLE; Schema: public; Owner: -; Tablespace: 
 --
 
-CREATE TABLE strain_meta (
-    id integer NOT NULL,
-    name character varying,
-    orgin character varying,
-    samp_date double precision,
-    ft character varying,
-    comment character varying,
-    pfge character varying
-);
-
-
---
--- TOC entry 164 (class 1259 OID 134603)
--- Name: strain_meta_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE strain_meta_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- TOC entry 2971 (class 0 OID 0)
--- Dependencies: 164
--- Name: strain_meta_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE strain_meta_id_seq OWNED BY strain_meta.id;
-
-
---
--- TOC entry 165 (class 1259 OID 134605)
--- Name: strain_stats; Type: TABLE; Schema: public; Owner: -; Tablespace: 
---
 
 CREATE TABLE strain_stats (
     id integer NOT NULL,
@@ -404,7 +351,6 @@ ALTER TABLE ONLY strain_clusters ALTER COLUMN id SET DEFAULT nextval('strain_clu
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY strain_meta ALTER COLUMN id SET DEFAULT nextval('strain_meta_id_seq'::regclass);
 
 
 --
@@ -445,8 +391,7 @@ ALTER TABLE ONLY strain_clusters
 -- Name: meta_id; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
 --
 
-ALTER TABLE ONLY strain_meta
-    ADD CONSTRAINT meta_id PRIMARY KEY (id);
+
 
 
 --
