@@ -1029,46 +1029,46 @@ class SNPdb:
     def get_clusters(self):
         cur = self.snpdb_conn.cursor()
         co = []
-    cluster_dict = {}
-    cluster_strain_list = {}
+        cluster_dict = {}
+        cluster_strain_list = {}
 
-    #get columns names
-    sql = "SELECT * FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'strain_clusters'"
-    cur.execute(sql)
-    rows = cur.fetchall()
-    for row in rows:
-        if row[3][0] == "t":
-            co.append(row[3][1:])
+        #get columns names
+        sql = "SELECT * FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'strain_clusters'"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            if row[3][0] == "t":
+                co.append(row[3][1:])
 
-    co = sorted(co,key=int)
-    sql = "SELECT name, "
-    for cuts in sorted(co, reverse=True,key=int):
-        sql = sql + "t" + cuts + " ,"
-    sql = sql[:-1]
-    sql = sql+ " from strain_clusters"
-    cur.execute(sql)
-    rows = cur.fetchall()
-    for row in rows:
-        cluster_strain_list[row[0]] = []
-        for i, h in enumerate(sorted(co, key=int)):
-            cluster_strain_list[row[0]].append(int(row[i+1]))
-            if i not in cluster_dict:
-                cluster_dict[i] = {}
-                if h not in cluster_dict[i]:
+        co = sorted(co,key=int)
+        sql = "SELECT name, "
+        for cuts in sorted(co, reverse=True,key=int):
+            sql = sql + "t" + cuts + " ,"
+        sql = sql[:-1]
+        sql = sql+ " from strain_clusters"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            cluster_strain_list[row[0]] = []
+            for i, h in enumerate(sorted(co, key=int)):
+                cluster_strain_list[row[0]].append(int(row[i+1]))
+                if i not in cluster_dict:
+                    cluster_dict[i] = {}
+                    if h not in cluster_dict[i]:
+                        cluster_dict[i][row[i+1]] = []
+                        cluster_dict[i][row[i+1]].append(row[0])
+                    else:
+                        cluster_dict[i][row[i+1]].append(row[0])
+                elif h not in cluster_dict[i]:
                     cluster_dict[i][row[i+1]] = []
                     cluster_dict[i][row[i+1]].append(row[0])
                 else:
                     cluster_dict[i][row[i+1]].append(row[0])
-            elif h not in cluster_dict[i]:
-                cluster_dict[i][row[i+1]] = []
-                cluster_dict[i][row[i+1]].append(row[0])
-            else:
-                cluster_dict[i][row[i+1]].append(row[0])
 
 
 
 
-    return co, cluster_strain_list, cluster_dict
+        return co, cluster_strain_list, cluster_dict
 
     def merged_clusters(self, cluster_strain_list, strain_list):
         cur = self.snpdb_conn.cursor()
@@ -1082,79 +1082,79 @@ class SNPdb:
 
     def get_outliers(self):
         cur = self.snpdb_conn.cursor()
-    outliers = []
-    sql = "select name from strain_stats where zscore_check = 'Y'"
-    cur.execute(sql)
-    rows = cur.fetchall()
-    for row in rows:
-        outliers.append(row[0])
-    return outliers
+        outliers = []
+        sql = "select name from strain_stats where zscore_check = 'Y'"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            outliers.append(row[0])
+        return outliers
 
 
     def check_clusters(self,clusters, profile_dict,levels, cluster_strain_list,outliers):
-    strain_list = {}
-    cluster_list = {}
-    bad_list = []
-    #define cluster list
-    for co in (sorted(clusters, key=clusters.get)):
-        cluster_list[co] = {}
-        for i, cluster in enumerate(clusters[co]):
-            cluster_list[co][clusters[co][cluster]] = cluster
-            for strain in list(cluster):
-                if strain not in strain_list:
-                    strain_list[strain] = []
-                strain_list[strain].append(int(clusters[co][cluster]))
-    #for new strains look at zscore for that cluster
-    seen_clusters = {}
-    for strain in (sorted(tuple(strain_list), key=strain_list.get)):
-        if strain not in cluster_strain_list:
-            print strain, strain_list[strain]
-            for i, level in enumerate(sorted(levels, reverse=True, key=int)):
+        strain_list = {}
+        cluster_list = {}
+        bad_list = []
+        #define cluster list
+        for co in (sorted(clusters, key=clusters.get)):
+            cluster_list[co] = {}
+            for i, cluster in enumerate(clusters[co]):
+                cluster_list[co][clusters[co][cluster]] = cluster
+                for strain in list(cluster):
+                    if strain not in strain_list:
+                        strain_list[strain] = []
+                    strain_list[strain].append(int(clusters[co][cluster]))
+        #for new strains look at zscore for that cluster
+        seen_clusters = {}
+        for strain in (sorted(tuple(strain_list), key=strain_list.get)):
+            if strain not in cluster_strain_list:
+                print strain, strain_list[strain]
+                for i, level in enumerate(sorted(levels, reverse=True, key=int)):
 
-                if level in seen_clusters and strain_list[strain][i] in seen_clusters[level]:
-                    print "### Already Investigated ",
-                    print level,strain_list[strain][i]
-                else:
-                    print "### Investigating ",
-                    print level,strain_list[strain][i]
-
-                    if level not in seen_clusters:
-                        seen_clusters[level] = []
-                        seen_clusters[level].append(strain_list[strain][i])
+                    if level in seen_clusters and strain_list[strain][i] in seen_clusters[level]:
+                        print "### Already Investigated ",
+                        print level,strain_list[strain][i]
                     else:
-                        seen_clusters[level].append(strain_list[strain][i])
-                    check_list = cluster_list[level][strain_list[strain][i]]
-                    total_dist = {}
-                    total = 0
-                    for strain1 in check_list:
-                        total_dist[strain1] = 0
-                        strain2_list = profile_dict[strain1]
-                        for strain2 in strain2_list:
-                            if strain2 in check_list:
-                                total_dist[strain1] = total_dist[strain1] + profile_dict[strain1][strain2]
-                                total = total + profile_dict[strain1][strain2]
-                        total_dist[strain1] = float(total_dist[strain1]) / float(len(check_list))
-                    av = float(total) / (float(len(check_list))*float(len(check_list)))
-                    print "### Average Distance ",
-                    print av
-                    if av > 0:
-                        sd_top = 0
-                        for strain1 in total_dist:
-                            sd_top = sd_top + ((av-total_dist[strain1])*(av-total_dist[strain1]))
-                        sd = math.sqrt(sd_top / (len(check_list)-1))
-                        print "### Standard Deviation ",
-                        print sd
-                        if sd > 0:
+                        print "### Investigating ",
+                        print level,strain_list[strain][i]
+
+                        if level not in seen_clusters:
+                            seen_clusters[level] = []
+                            seen_clusters[level].append(strain_list[strain][i])
+                        else:
+                            seen_clusters[level].append(strain_list[strain][i])
+                        check_list = cluster_list[level][strain_list[strain][i]]
+                        total_dist = {}
+                        total = 0
+                        for strain1 in check_list:
+                            total_dist[strain1] = 0
+                            strain2_list = profile_dict[strain1]
+                            for strain2 in strain2_list:
+                                if strain2 in check_list:
+                                    total_dist[strain1] = total_dist[strain1] + profile_dict[strain1][strain2]
+                                    total = total + profile_dict[strain1][strain2]
+                            total_dist[strain1] = float(total_dist[strain1]) / float(len(check_list))
+                        av = float(total) / (float(len(check_list))*float(len(check_list)))
+                        print "### Average Distance ",
+                        print av
+                        if av > 0:
+                            sd_top = 0
                             for strain1 in total_dist:
-                                z_score = (total_dist[strain1]-av)/ sd
-                                if z_score <= -1.75:
-                                    print "### Outlier Z-Score ",
-                                    print strain1, total_dist[strain1], z_score
-                                    if strain1 not in outliers:
-                                        bad_list.append(strain1)
-                                    else:
-                                        print "Known outlier"
-    return bad_list
+                                sd_top = sd_top + ((av-total_dist[strain1])*(av-total_dist[strain1]))
+                            sd = math.sqrt(sd_top / (len(check_list)-1))
+                            print "### Standard Deviation ",
+                            print sd
+                            if sd > 0:
+                                for strain1 in total_dist:
+                                    z_score = (total_dist[strain1]-av)/ sd
+                                    if z_score <= -1.75:
+                                        print "### Outlier Z-Score ",
+                                        print strain1, total_dist[strain1], z_score
+                                        if strain1 not in outliers:
+                                            bad_list.append(strain1)
+                                        else:
+                                            print "Known outlier"
+        return bad_list
 
     def update_clusters(self):
         profile_dict = self.get_input()
@@ -1165,9 +1165,9 @@ class SNPdb:
             print "making links"
         links = self.make_links(profile_dict, cuts, cluster_dict[i])
         print "defining_clusters"
-            clusters = self.define_clusters(links)
+        clusters = self.define_clusters(links)
         print "removing duplicates"
-            clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
+        clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
 
 
         print "###  Getting previously checked outliers:"+ str(datetime.time(datetime.now()))
