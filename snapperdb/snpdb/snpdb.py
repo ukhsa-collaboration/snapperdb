@@ -898,17 +898,8 @@ class SNPdb:
         co = sorted(co, key=int)
         return co
 
-    def make_links(self, profile_dict, co):
-        clusters = {}
-        for i, strain1 in enumerate(profile_dict):
-            clusters[i] = []
-            clusters[i].append(strain1)
-            for strain2 in profile_dict[strain1]:
-                if int(profile_dict[strain1][strain2]) <= int(co):
-                    clusters[i].append(strain2)
-        return clusters
 
-    def make_links_update(self, profile_dict, co, cluster_dict):
+    def make_links(self, profile_dict, co, cluster_dict):
         clusters = {}
         seen_strain = []
         for i, cluster in enumerate(sorted(cluster_dict, key=int)):
@@ -948,13 +939,8 @@ class SNPdb:
                                 clusters[made_clusters] = clusters[each]
         return clusters
 
-    def remove_duplicate_clusters(self, clusters):
-        clean_clusters = {}
-        for cluster1 in clusters:
-            clean_clusters[tuple(sorted(clusters[cluster1]))] = 1
-        return clean_clusters
 
-    def remove_duplicate_clusters_update(self, clusters):
+    def remove_duplicate_clusters(self, clusters):
         clean_clusters = {}
         for cluster1 in clusters:
             if tuple(sorted(clusters[cluster1])) not in clean_clusters:
@@ -1040,36 +1026,49 @@ class SNPdb:
                 self.snpdb_conn.commit()
         return strain_list
 
-    def get_clusters(self, co):
+    def get_clusters(self):
         cur = self.snpdb_conn.cursor()
-        cluster_dict = {}
-        cluster_strain_list = {}
-        sql = "SELECT name, "
+        co = []
+    cluster_dict = {}
+    cluster_strain_list = {}
 
-        for cuts in sorted(co, reverse=True, key=int):
-            sql = sql + "t" + cuts + " ,"
-        sql = sql[:-1]
-        sql = sql + " from strain_clusters"
-        cur.execute(sql)
-        rows = cur.fetchall()
-        for row in rows:
-            cluster_strain_list[row[0]] = []
-            for i, h in enumerate(sorted(co, key=int)):
-                cluster_strain_list[row[0]].append(int(row[i + 1]))
-                if i not in cluster_dict:
-                    cluster_dict[i] = {}
-                    if h not in cluster_dict[i]:
-                        cluster_dict[i][row[i + 1]] = []
-                        cluster_dict[i][row[i + 1]].append(row[0])
-                    else:
-                        cluster_dict[i][row[i + 1]].append(row[0])
-                elif h not in cluster_dict[i]:
-                    cluster_dict[i][row[i + 1]] = []
-                    cluster_dict[i][row[i + 1]].append(row[0])
+    #get columns names
+    sql = "SELECT * FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'strain_clusters'"
+    cur.execute(sql)
+    rows = cur.fetchall()
+    for row in rows:
+        if row[3][0] == "t":
+            co.append(row[3][1:])
+
+    co = sorted(co,key=int)
+    sql = "SELECT name, "
+    for cuts in sorted(co, reverse=True,key=int):
+        sql = sql + "t" + cuts + " ,"
+    sql = sql[:-1]
+    sql = sql+ " from strain_clusters"
+    cur.execute(sql)
+    rows = cur.fetchall()
+    for row in rows:
+        cluster_strain_list[row[0]] = []
+        for i, h in enumerate(sorted(co, key=int)):
+            cluster_strain_list[row[0]].append(int(row[i+1]))
+            if i not in cluster_dict:
+                cluster_dict[i] = {}
+                if h not in cluster_dict[i]:
+                    cluster_dict[i][row[i+1]] = []
+                    cluster_dict[i][row[i+1]].append(row[0])
                 else:
-                    cluster_dict[i][row[i + 1]].append(row[0])
+                    cluster_dict[i][row[i+1]].append(row[0])
+            elif h not in cluster_dict[i]:
+                cluster_dict[i][row[i+1]] = []
+                cluster_dict[i][row[i+1]].append(row[0])
+            else:
+                cluster_dict[i][row[i+1]].append(row[0])
 
-        return cluster_strain_list, cluster_dict
+
+
+
+    return co, cluster_strain_list, cluster_dict
 
     def merged_clusters(self, cluster_strain_list, strain_list):
         cur = self.snpdb_conn.cursor()
@@ -1080,41 +1079,109 @@ class SNPdb:
                 self.snpdb_conn.commit()
                 print "!    cluster merge " + strain + " " + str(tuple(cluster_strain_list[strain])) + " to " + str(tuple(strain_list[strain]))
 
-    def update_clusters(self):
-        cur = self.snpdb_conn.cursor()
-        cur.execute('select * from strain_clusters')
-        row = cur.fetchall()
-        if not row:
-            '''
-            run the clustering for the first time and add to the db
-            '''
-            print 'strain_clusters empty'
-            print "###  Fetching Matrix:" + str(datetime.now())
-            profile_dict = self.get_input()
-            cluster_co = self.get_cutoffs()
-            clean_clusters = {}
-            for cuts in cluster_co:
-                links = self.make_links(profile_dict, cuts)
-                clusters = self.define_clusters(links)
-                clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
-            # self.print_slv_clusters(clean_clusters, cluster_co)
-            self.add_clusters_to_table(clean_clusters, cluster_co)
-        else:
-            '''
-            run update_clusters_db
-            '''
-            profile_dict = self.get_input()
-            cluster_co = self.get_cutoffs()
-            cluster_strain_list, cluster_dict = self.get_clusters(cluster_co)
-            clean_clusters = {}
-            for i, cuts in enumerate(sorted(cluster_co, reverse=True, key=int)):
-                print "###  Cluster level " + str(cuts) + " :" + str(datetime.now())
-                links = self.make_links_update(profile_dict, cuts, cluster_dict[i])
-                clusters = self.define_clusters(links)
-                clean_clusters[cuts] = self.remove_duplicate_clusters_update(clusters)
 
-            strain_list = self.add_clusters_to_existing_table(clean_clusters, profile_dict, cluster_co, cluster_strain_list)
-            self.merged_clusters(cluster_strain_list, strain_list, )
+    def get_outliers(self):
+        cur = self.snpdb_conn.cursor()
+    outliers = []
+    sql = "select name from strain_stats where zscore_check = 'Y'"
+    cur.execute(sql)
+    rows = cur.fetchall()
+    for row in rows:
+        outliers.append(row[0])
+    return outliers
+
+
+    def check_clusters(self,clusters, profile_dict,levels, cluster_strain_list,outliers):
+    strain_list = {}
+    cluster_list = {}
+    bad_list = []
+    #define cluster list
+    for co in (sorted(clusters, key=clusters.get)):
+        cluster_list[co] = {}
+        for i, cluster in enumerate(clusters[co]):
+            cluster_list[co][clusters[co][cluster]] = cluster
+            for strain in list(cluster):
+                if strain not in strain_list:
+                    strain_list[strain] = []
+                strain_list[strain].append(int(clusters[co][cluster]))
+    #for new strains look at zscore for that cluster
+    seen_clusters = {}
+    for strain in (sorted(tuple(strain_list), key=strain_list.get)):
+        if strain not in cluster_strain_list:
+            print strain, strain_list[strain]
+            for i, level in enumerate(sorted(levels, reverse=True, key=int)):
+
+                if level in seen_clusters and strain_list[strain][i] in seen_clusters[level]:
+                    print "### Already Investigated ",
+                    print level,strain_list[strain][i]
+                else:
+                    print "### Investigating ",
+                    print level,strain_list[strain][i]
+
+                    if level not in seen_clusters:
+                        seen_clusters[level] = []
+                        seen_clusters[level].append(strain_list[strain][i])
+                    else:
+                        seen_clusters[level].append(strain_list[strain][i])
+                    check_list = cluster_list[level][strain_list[strain][i]]
+                    total_dist = {}
+                    total = 0
+                    for strain1 in check_list:
+                        total_dist[strain1] = 0
+                        strain2_list = profile_dict[strain1]
+                        for strain2 in strain2_list:
+                            if strain2 in check_list:
+                                total_dist[strain1] = total_dist[strain1] + profile_dict[strain1][strain2]
+                                total = total + profile_dict[strain1][strain2]
+                        total_dist[strain1] = float(total_dist[strain1]) / float(len(check_list))
+                    av = float(total) / (float(len(check_list))*float(len(check_list)))
+                    print "### Average Distance ",
+                    print av
+                    if av > 0:
+                        sd_top = 0
+                        for strain1 in total_dist:
+                            sd_top = sd_top + ((av-total_dist[strain1])*(av-total_dist[strain1]))
+                        sd = math.sqrt(sd_top / (len(check_list)-1))
+                        print "### Standard Deviation ",
+                        print sd
+                        if sd > 0:
+                            for strain1 in total_dist:
+                                z_score = (total_dist[strain1]-av)/ sd
+                                if z_score <= -1.75:
+                                    print "### Outlier Z-Score ",
+                                    print strain1, total_dist[strain1], z_score
+                                    if strain1 not in outliers:
+                                        bad_list.append(strain1)
+                                    else:
+                                        print "Known outlier"
+    return bad_list
+
+    def update_clusters(self):
+        profile_dict = self.get_input()
+        co, cluster_strain_list, cluster_dict = self.get_clusters()
+        clean_clusters = {}
+        for i, cuts in enumerate(sorted(co,reverse=True,key=int)):
+            print "###  Cluster level "+str(cuts)+" :"+ str(datetime.time(datetime.now()))
+            print "making links"
+        links = self.make_links(profile_dict, cuts, cluster_dict[i])
+        print "defining_clusters"
+            clusters = self.define_clusters(links)
+        print "removing duplicates"
+            clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
+
+
+        print "###  Getting previously checked outliers:"+ str(datetime.time(datetime.now()))
+        outliers = self.get_outliers()
+
+        print "###  Checking Clusters:"+ str(datetime.time(datetime.now()))
+        bad_list = self.check_clusters(clean_clusters, profile_dict, co,cluster_strain_list,outliers)
+
+        if not bad_list:
+            strain_list = self.add_clusters_to_existing_table(clean_clusters, profile_dict, co, cluster_strain_list)
+            self.merged_clusters(cluster_strain_list, strain_list)
+        else:
+            print "###  Not Updating Clusters:"+ str(datetime.time(datetime.now()))
+
 
     ## functions below here are for getting variants of interest
 
