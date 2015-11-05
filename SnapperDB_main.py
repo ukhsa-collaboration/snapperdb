@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__author__ = 'flashton'
+__author__ = 'gidis'
 
 '''
 This section of the code is heavily influenced by the design of Aaron Quinlan and Nick Loman's poretools package -

@@ -164,10 +164,7 @@ class Vcf:
                         parsed_vcf.hap_var_count[pos] = float(ad_string[1]) / float(parsed_vcf.depth[pos])
                         if parsed_vcf.hap_var_count[pos] < self.ad_cutoff:
                             parsed_vcf.mixed_positions.append(int(pos))
-
-
-                 
-            
+                               
         #add the last vcf
         self.parsed_vcf_container.append(parsed_vcf)
         #close file

@@ -5,6 +5,7 @@ import errno
 import glob
 import os
 import sys
+import re
 from Bio import SeqIO
 import psycopg2
 import psycopg2.extras
@@ -121,7 +122,6 @@ class SNPdb:
             vcf.sample_name = os.path.basename(args.fastqs[0]).split(os.extsep)[0]
         vcf.ref_genome_path = os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')
         vcf.make_tmp_dir(args)
-        vcf.sorted_bamfile = os.path.join(vcf.tmp_dir, vcf.sample_name + '.sorted' + '.bam')
         vcf.vcf_filehandle = os.path.join(vcf.tmp_dir, os.path.pardir, '{0}.filtered.vcf'.format(vcf.sample_name))
 
     def _connect_to_snpdb(self):
@@ -345,30 +345,6 @@ class SNPdb:
             strain_snps[row[1]] = row[0]
         return totlist, strain_snps
 
-    def get_variants(self):
-        cur = self.snpdb_conn.cursor()
-        variant_container = {}
-        pos_2_id_list = {}
-        sql = "select pos , id, ref_base, var_base, gene,product, amino_acid from variants"
-        cur.execute(sql)
-        rows = cur.fetchall()
-        for row in rows:
-            variant = Variant()
-            variant.pos = row[0]
-            variant.id = row[1]
-            variant.ref_base = row[2]
-            variant.var_base = row[3]
-            variant.gene = row[4]
-            variant.product = row[5]
-            variant.amino_acid = row[6]
-            variant_container[row[1]] = variant
-            if row[1] in self.goodids:
-                if row[0] in pos_2_id_list:
-                    pos_2_id_list[row[0]].append(row[1])
-                else:
-                    pos_2_id_list[row[0]] = []
-                    pos_2_id_list[row[0]].append(row[1])
-        return variant_container, pos_2_id_list
 
     def get_variants_mc(self):
         cur = self.snpdb_conn.cursor()
@@ -404,16 +380,6 @@ class SNPdb:
                     pos_2_id_list[row[4]][row[0]].append(row[1])
         return variant_container, pos_2_id_list
 
-    def get_bad_pos_for_strain_get_the_vars(self, strain, totlist):
-        cur = self.snpdb_conn.cursor()
-        strain_ig = {}
-        sql = "select ignored_pos, icount(ignored_pos), name as count from strains_snps where name =\'" + strain + "\'"
-        cur.execute(sql)
-        rows = cur.fetchall()
-        for row in rows:
-            totlist = set(totlist) | set(row[0])
-            strain_ig = row[0]
-        return totlist, strain_ig
 
     def get_bad_pos_mc(self):
         cur = self.snpdb_conn.cursor()
@@ -434,6 +400,8 @@ class SNPdb:
         cur = self.snpdb_conn.cursor()
         #create ignored pos container where key is id
         igPos_container = {}
+        pos_2_id_list = {}
+
         sql = "select pos, id, contig from ignored_pos"
         cur.execute(sql)
         rows = cur.fetchall()
@@ -443,35 +411,18 @@ class SNPdb:
             ig_pos.id = row[1]
             ig_pos.contig = row[2]
             igPos_container[row[1]] = ig_pos
-        return igPos_container
 
-    def make_consensus(self, ref_seq, ref_flag):
-        fasta = {}
-        var_id_list = []
-        var_look = {}
-        n_look = {}
-        badlist = []
-        for strain in self.strains_snps:
-            badlist, strains_ig = self.get_bad_pos_for_strain_get_the_vars(strain, badlist)
-            if strain not in fasta:
-                fasta[strain] = ref_seq[:]
-            for ids in self.strains_snps[strain]:
-                if self.variants[ids].var_base != fasta[strain][self.variants[ids].pos - 1]:
-                    fasta[strain][self.variants[ids].pos - 1] = self.variants[ids].var_base
-                    if self.variants[ids].pos:
-                        if self.variants[ids].pos in var_look:
-                            var_look[self.variants[ids].pos] = var_look[self.variants[ids].pos] + 1
-                            if ids not in var_id_list:
-                                var_id_list.append(ids)
-                        else:
-                            var_look[self.variants[ids].pos] = 1
-                            var_id_list.append(ids)
-            for bad_ids in strains_ig:
-                fasta[strain][bad_ids - 1] = 'N'
-                n_look[bad_ids] = 'N'
-        if ref_flag == 'Y':
-            fasta[self.reference_genome] = ref_seq
-        return fasta, var_look, n_look, badlist, var_id_list
+            if ig_pos.id in self.all_bad_pos:
+                if row[2] in pos_2_id_list:
+                        pos_2_id_list[row[2]][row[0]] = row[1]
+                else:
+                    pos_2_id_list[row[2]] = {}
+                    pos_2_id_list[row[2]][row[0]] = row[1]
+            
+
+
+        return igPos_container, pos_2_id_list
+
 
     def make_consensus_mc(self, ref_seq, args, reference_genome_name):
         #create a  dictionary for the alignment
@@ -483,71 +434,64 @@ class SNPdb:
         #list of variants to output
         var_id_list = []
 
-
         #for strain
         for strain in self.strains_snps:
-            # if we haven't seen this strain create a deepcopy to mutate
-            if strain not in fasta:
-                fasta[strain] = deepcopy(ref_seq)
-            # go the variant ids 
-            for ids in sorted(self.strains_snps[strain]):
-                #if this base is not the same as the reference and not a variant when the reference is mapped against iteself
-                if self.variants[ids].var_base != fasta[strain][self.variants[ids].contig][self.variants[ids].pos-1] \
-                        and ids not in self.strains_snps[reference_genome_name]:
-                    #change the reference position to the variant base
-                    fasta[strain][self.variants[ids].contig][self.variants[ids].pos-1] = self.variants[ids].var_base
-                    #capture the number of variants per position
-                    if self.variants[ids].pos:
-                        if self.variants[ids].contig not in var_look:
-                            var_look[self.variants[ids].contig] = {}
-                            var_look[self.variants[ids].contig][self.variants[ids].pos] = 1
-                            var_id_list.append(ids)
-                        elif self.variants[ids].pos not in var_look[self.variants[ids].contig]:
-                            var_look[self.variants[ids].contig][self.variants[ids].pos] = 1
-                            var_id_list.append(ids)
-                        else:    
-                            var_look[self.variants[ids].contig][self.variants[ids].pos] = var_look[self.variants[ids].contig][self.variants[ids].pos] + 1
-                            if ids not in var_id_list:
-                                var_id_list.append(ids)
-            # go through ignored_pos
-            for bad_ids in self.igpos[strain]:
-                #set the reference position to a N
-                fasta[strain][self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
+            if strain != reference_genome_name:
+                # if we haven't seen this strain create a deepcopy to mutate
+                if strain not in fasta:
+                    fasta[strain] = deepcopy(ref_seq)
 
-                if self.IgPos_container[bad_ids].contig not in n_look:
-                    n_look[self.IgPos_container[bad_ids].contig] = {}
-                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
-                elif self.IgPos_container[bad_ids].pos not in self.IgPos_container[bad_ids].contig:
-                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
-                else:
-                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] + 1
+                # go the variant ids 
+                for ids in sorted(self.strains_snps[strain]):
+                    #if this base is not the same as the reference and not a variant when the reference is mapped against iteself
+                    if self.variants[ids].var_base != fasta[strain][self.variants[ids].contig][self.variants[ids].pos-1] \
+                            and ids not in self.strains_snps[reference_genome_name]:
+                        #change the reference position to the variant base
+                        fasta[strain][self.variants[ids].contig][self.variants[ids].pos-1] = self.variants[ids].var_base
+                        #capture the number of variants per position
+                        if self.variants[ids].pos:
+                            if self.variants[ids].contig not in var_look:
+                                var_look[self.variants[ids].contig] = {}
+                                var_look[self.variants[ids].contig][self.variants[ids].pos] = 1
+                                var_id_list.append(ids)
+                            elif self.variants[ids].pos not in var_look[self.variants[ids].contig]:
+                                var_look[self.variants[ids].contig][self.variants[ids].pos] = 1
+                                var_id_list.append(ids)
+                            else:    
+                                var_look[self.variants[ids].contig][self.variants[ids].pos] = var_look[self.variants[ids].contig][self.variants[ids].pos] + 1
+                                if ids not in var_id_list:
+                                    var_id_list.append(ids)
+                # go through ignored_pos
+                for bad_ids in self.igpos[strain]:
+                    #set the reference position to a N
+                    fasta[strain][self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
+
+                    if self.IgPos_container[bad_ids].contig not in n_look:
+                        n_look[self.IgPos_container[bad_ids].contig] = {}
+                        n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
+                    elif self.IgPos_container[bad_ids].pos not in n_look[self.IgPos_container[bad_ids].contig]:
+                        n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
+                    else:
+                        n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] + 1
            
-           # add the ignored pos from the referecne genome
-            for bad_ids in self.igpos[reference_genome_name]:
-                fasta[strain][self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
-                if self.IgPos_container[bad_ids].contig not in n_look:
-                    n_look[self.IgPos_container[bad_ids].contig] = {}
-                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
-                elif self.IgPos_container[bad_ids].pos not in self.IgPos_container[bad_ids].contig:
-                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
-                else:
-                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] + 1
+        # add the ignored pos from the referecne genome
+        for bad_ids in self.igpos[reference_genome_name]:
+            fasta[strain][self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
+            if self.IgPos_container[bad_ids].contig not in n_look:
+                n_look[self.IgPos_container[bad_ids].contig] = {}
+                n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
+            elif self.IgPos_container[bad_ids].pos not in n_look[self.IgPos_container[bad_ids].contig]:
+                n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
+            else:
+                n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] + 1
            
         # create a deepcopy to get the reference back
-        fasta[reference_genome_name] = deepcopy(ref_seq)
+        if args.ref_flag == 'Y':
+            fasta[reference_genome_name] = deepcopy(ref_seq)
+        else:
+              del self.strains_snps[reference_genome_name]  
         return fasta, var_look, n_look,var_id_list
 
-    def calc_matrix(self):
-        diff_matrix = {}
-        for strain1 in self.fasta:
-            diff_matrix[strain1] = {}
-            for strain2 in self.fasta:
-                if strain2 in diff_matrix and strain1 not in diff_matrix[strain2]:
-                    diff_matrix[strain1][strain2] = 0
-                    for var in self.var_look:
-                        if self.fasta[strain1][var - 1] != self.fasta[strain2][var - 1] and self.fasta[strain1][var - 1] != 'N' and self.fasta[strain2][var - 1] != 'N':                                 diff_matrix[strain1][strain2] += 1
-
-        return diff_matrix
 
     def calc_matrix_mc(self):
         diff_matrix = {}
@@ -558,35 +502,14 @@ class SNPdb:
                     diff_matrix[strain1][strain2] = 0
                     for contig in self.var_look:
                         for var in self.var_look[contig]:
-                            if self.fasta[strain1][contig][var] != self.fasta[strain2][contig][var] and self.fasta[strain1][contig][var] != 'N' and self.fasta[strain2][contig][var] !='N':                                
+                            if self.fasta[strain1][contig][var-1] != self.fasta[strain2][contig][var-1] and self.fasta[strain1][contig][var-1] != 'N' and self.fasta[strain2][contig][var-1] !='N':                                
                                 diff_matrix[strain1][strain2]+=1
         return diff_matrix
 
-    def parse_args_for_get_the_snps(self, args, strain_list, ref_seq):
-        logger = logging.getLogger('snapperdb.SNPdb.parse_args_for_get_the_snps')
-
-        # # this populates class variables specific to querying the SNPdb
-        if args.back_flag != 'N':
-            logger.info('Getting background strains')
-            strain_list = self.get_background(strain_list, args)
-        logger.info('Getting good positions')
-        self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, args.snp_co)
-        logger.info('Variable positions: ' + str(len(self.goodids)))
-        if len(self.goodids) == 0:
-            logger.error('No variable positions found: EXITING')
-            sys.exit()
-        logger.info(str(len(self.strains_snps)) + ' strains used out of ' + str(len(strain_list)))
-        logger.info('Getting variants')
-        self.variants, self.posIDMap = self.get_variants()
-        logger.info('Making consensus')
-        self.fasta, self.var_look, self.n_look, self.badlist, self.var_id_list = self.make_consensus(ref_seq,
-                                                                                                     args.ref_flag)
-        logger.info('Ignored positions' + str(len(self.badlist)))
-        if args.mat_flag == 'Y':
-            logger.info('Making Distance Matrix')
-            self.matrix = self.calc_matrix()
 
     def parse_args_for_get_the_snps_mc(self, args, strain_list, ref_seq, reference_genome_name):
+        logger = logging.getLogger('snapperdb.SNPdb.parse_args_for_get_the_snps')
+
         #get some background strains if requested
         if args.back_flag != 'N':
             logger.info('Getting background strains')
@@ -612,51 +535,28 @@ class SNPdb:
         #get actual variant objects
         self.variants, self.posIDMap = self.get_variants_mc()
         # get ignored position objects
-        self.IgPos_container = self.get_igs_mc()
+        self.all_bad_pos = []
+        self.IgPos_container, self.igposIDMap = self.get_igs_mc()
         # make consensus sequence based on the above
         self.fasta, self.var_look, self.n_look, self.var_id_list = self.make_consensus_mc(ref_seq, args, reference_genome_name)
         if args.mat_flag == 'Y':
             self.matrix = self.calc_matrix_mc()
 
-    def print_fasta(self, out, flag, rec_list, ref_flag):
-        f = open(out + '.fa', 'w')
-        for strain in self.fasta:
-            f.write(">" + strain + "\n")
-            if flag == 'W':
-                for i, seq in enumerate(self.fasta[strain]):
-                    f.write(seq)
-            elif flag == 'A':
-                for i in sorted(self.var_look):
-                    if i not in rec_list:
-                        if ref_flag == 'Y':
-                            f.write(self.fasta[strain][i - 1])
-                        elif self.var_look[i] != len(self.strains_snps):
-                            f.write(self.fasta[strain][i - 1])
-            elif flag == 'C':
-                for i in sorted(self.var_look):
-                    if i not in self.n_look:
-                        if i not in rec_list:
-                            if ref_flag == 'Y':
-                                f.write(self.fasta[strain][i - 1])
-                            elif self.var_look[i] != len(self.strains_snps):
-                                f.write(self.fasta[strain][i - 1])
-            f.write("\n")
 
-
-    def print_fasta_mc(self, out, flag, rec_dict):
+    def print_fasta_mc(self,args, rec_dict):
         #open fasta
-        f = open(out + '.fa', 'w')
+        f = open(args.out + '.fa', 'w')
         for strain in self.fasta:
             #write header
             f.write(">" + strain + "\n")
             #for each contig
             for contig in sorted(self.fasta[strain]):
                 #if flag is for a whole genom alignment add whole contig
-                if flag == 'W':
+                if args.alignment_type == 'W':
                     for i, seq in enumerate(self.fasta[strain][contig]):
                         f.write(seq)
                 #if we want to include Ns in the alignment        
-                elif flag == 'A':
+                elif args.alignment_type == 'A':
                     if contig in self.var_look:
                         for i in self.var_look[contig]:
                             #get number of N's for this position
@@ -670,16 +570,19 @@ class SNPdb:
                                 if i in rec_dict[contig]:
                                     rec_flag = True
                             if rec_flag == False:
-                                #This is to positions that are all variants from the reference genoe
-                                if self.var_look[contig][i]+ncount < len(self.strains_snps):
+                                if args.ref_flag == 'Y':
+                                    #print as long as all no ref posotions not an N
                                     if i in self.n_look[contig]:
-                                        #dont print N if this posisition in all N
-                                        if self.n_look[contig][i] != len(self.strains_snps): 
+                                        if self.n_look[contig][i] != (len(self.strains_snps)-1): 
                                             f.write(self.fasta[strain][contig][i-1])
                                     else:
-                                            f.write(self.fasta[strain][contig][i-1])
-                elif re.match("A:(\d+)" ,flag) is not None:
-                    m = re.match("A:(\d+)" ,flag)
+                                        f.write(self.fasta[strain][contig][i-1])
+                                #print as long as not all var or N            
+                                elif self.var_look[contig][i]+ncount < len(self.strains_snps):        
+                                    f.write(self.fasta[strain][contig][i-1])
+                #if we want to include a proportion of N's
+                elif re.match("A:(\d+)" ,args.alignment_type) is not None:
+                    m = re.match("A:(\d+)" ,args.alignment_type)
                     co = m.group(1)
                     if contig in self.var_look:
                         for i in self.var_look[contig]:
@@ -694,15 +597,20 @@ class SNPdb:
                                 if i in rec_dict[contig]:
                                     rec_flag = True
                             if rec_flag == False:
-                                #This is to positions that are all variants from the reference genoe
-                                if self.var_look[contig][i]+ncount < len(self.strains_snps):
+                                if args.ref_flag == 'Y':
+                                    #print as long as all no ref posotions not an N
+                                    if i in self.n_look[contig]:
+                                        if (float(float(self.n_look[contig][i]) / float(len(self.strains_snps)-1)*100) < float(100-float(co))):
+                                            f.write(self.fasta[strain][contig][i-1])
+                                    else:
+                                            f.write(self.fasta[strain][contig][i-1])
+                                elif self.var_look[contig][i]+ncount < len(self.strains_snps):          
                                     if i in self.n_look[contig]:
                                         #dont print N if this posisition in all N
                                         if (float(float(self.n_look[contig][i]) / float(len(self.strains_snps))*100) < float(100-float(co))):
                                             f.write(self.fasta[strain][contig][i-1])
                                     else:
                                             f.write(self.fasta[strain][contig][i-1])
-
                 else:
                     if contig in self.var_look:
                         for i in self.var_look[contig]:
@@ -728,58 +636,80 @@ class SNPdb:
                 if strain1 != strain2:
                     f.write(strain1 + "\t" + strain2 + "\t" + str(self.matrix[strain1][strain2]) + "\n")
 
-    def print_vars(self, out, flag, rec_list, ref_flag):
-        f = open(out + '.variants', 'w')
-        for pos in sorted(self.var_look):
-            var_ids = self.posIDMap[pos]
-            for var_id in var_ids:
-                if var_id in self.var_id_list:
-                    if flag == 'W':
-                        f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].gene) + "\n")
-                    elif flag == 'A':
-                        if pos not in rec_list:
-                            if ref_flag == 'Y':
-                                f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
-                            elif self.var_look[pos] != len(self.strains_snps):
-                                f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
-                    elif flag == 'C':
-                        if pos not in self.n_look:
-                            if pos not in rec_list:
-                                if ref_flag == 'Y':
-                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
-                                elif self.var_look[pos] != len(self.strains_snps):
-                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+   
 
-    def print_vars_mc(self, out, flag, rec_dict, ref_flag):
-        f = open(out + '.variants', 'w')
+    def print_vars_mc(self,args, rec_dict):
+        f = open(args.out + '.variants', 'w')
         for contig in sorted(self.var_look):
             for pos in self.var_look[contig]:
-                var_ids = self.posIDMap[contig][pos + 1]
+                var_ids = self.posIDMap[contig][pos]
                 for var_id in var_ids:
-                    if flag == 'W':
+                    if args.alignment_type == 'W':
                         f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].gene) + "\n")
-                    elif flag == 'A':
+                    elif args.alignment_type == 'A':
+                       #get number of N's for this position
+                        ncount = 0
+                        if contig in self.n_look:
+                            if pos in self.n_look[contig]:
+                                ncount = self.n_look[contig][pos]
+                        #check recombination
+                        rec_flag = False
                         if contig in rec_dict:
-                            if pos not in rec_dict[contig]:
-                                if ref_flag == 'Y':
+                            if pos in rec_dict[contig]:
+                                rec_flag = True
+                        if rec_flag == False:
+                            if args.ref_flag == 'Y':
+                                if pos in self.n_look[contig]:
+                                    #dont print N if this posisition in all N
+                                    if self.n_look[contig][pos] != (len(self.strains_snps)-1): 
+                                         f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                                else:
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
-                                elif self.var_look[contig][pos] != len(self.strains_snps):
+                            #This is to remove positions that are all variants from the reference genoe
+                            elif self.var_look[contig][pos]+ncount < len(self.strains_snps):
+                                if pos in self.n_look[contig]:
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
-                        else:
-                            if ref_flag == 'Y':
+                            else:
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
-                            elif self.var_look[contig][pos] != len(self.strains_snps):
-                                f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
-                    elif flag == 'C':
+                    elif re.match("A:(\d+)" ,args.alignment_type) is not None:
+                        m = re.match("A:(\d+)" ,args.alignment_type)
+                        co = m.group(1)                       
+                        #get number of N's for this position
+                        ncount = 0
+                        if contig in self.n_look:
+                            if pos in self.n_look[contig]:
+                                ncount = self.n_look[contig][pos]
+                        #check recombination
+                        rec_flag = False
+                        if contig in rec_dict:
+                            if pos in rec_dict[contig]:
+                                rec_flag = True
+                        if rec_flag == False:
+                            if args.ref_flag == 'Y':
+                                if pos in self.n_look[contig]:
+                                    #dont print N if this posisition in all N
+                                    if (float(float(self.n_look[contig][pos]) / float(len(self.strains_snps)-1)*100) < float(100-float(co))):
+                                         f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                                else:
+                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                            #This is to remove positions that are all variants from the reference genoe
+                            elif self.var_look[contig][pos]+ncount < len(self.strains_snps):
+                                #dont print N if this posisition in all N
+                                if pos in self.n_look[contig]:
+                                    if (float(float(self.n_look[contig][pos]) / float(len(self.strains_snps))*100) < float(100-float(co))):
+                                        f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                                else:
+                                    f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
+                    else:
                         if pos not in self.n_look[contig]:
                             if contig in rec_dict:
                                 if pos not in rec_dict[contig]:
-                                    if ref_flag == 'Y':
+                                    if args.ref_flag == 'Y':
                                         f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                                     elif self.var_look[contig][pos] != len(self.strains_snps):
                                         f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                             else:
-                                if ref_flag == 'Y':
+                                if args.ref_flag == 'Y':
                                         f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                                 elif self.var_look[contig][pos] != len(self.strains_snps):
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
@@ -790,13 +720,14 @@ class SNPdb:
     def get_strains(self):
         cur = self.snpdb_conn.cursor()
         strain_list = []
-        sql = " select name from strain_stats where ignore is NULL"
+        sql = "select name from strain_stats where ignore is NULL"
         cur.execute(sql)
         rows = cur.fetchall()
         for row in rows:
             strain_list.append(row[0])
 
         update_strain = []
+        #check if this strain is in the distance matrix
         for strain1 in strain_list:
             sql = "select * from dist_matrix where strain1 = '%s' or strain2 = '%s' limit 1" % (strain1, strain1)
             cur.execute(sql)
@@ -812,7 +743,16 @@ class SNPdb:
         print "###  Getting good positions:" + str(datetime.now())
         self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, snp_co)
         print "###  Getting variants:" + str(datetime.now())
-        self.variants, self.posIDMap = self.get_variants()
+        self.variants, self.posIDMap = self.get_variants_mc()
+
+        logger = logging.getLogger('snapperdb.SNPdb.parse_args_for_update_matrix')
+        logger.info('Getting good positions')
+        self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, snp_co)
+        logger.info('Variable positions: ' + str(len(self.goodids)))
+        #get actual variant objects
+        self.variants, self.posIDMap = self.get_variants_mc()
+
+
 
     def get_bad_pos_for_strain_update_matrix(self, strain):
         cur = self.snpdb_conn.cursor()
@@ -837,13 +777,15 @@ class SNPdb:
                     strain2_good_var = self.strains_snps[strain2]
                     strain2_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain2)
                     # getunion of bad_pos
-                    all_bad_pos = set(strain1_ig_pos) | set(strain2_ig_pos)
+                    self.all_bad_pos = set(strain1_ig_pos) | set(strain2_ig_pos)
+                    # get ignored position objects for thi set
+                    self.IgPos_container, self.igposIDMap = self.get_igs_mc()
 
                     # getsymmetric difference of variants
                     all_var = set(strain1_good_var) ^ set(strain2_good_var)
                     diff = 0
                     for var_id in all_var:
-                        if self.variants[var_id].pos not in all_bad_pos:
+                        if self.variants[var_id].pos not in self.igposIDMap[self.variants[var_id].contig]:
                             diff = diff + 1
                     # add to db
                     sql2 = "insert into dist_matrix (strain1, strain2, snp_dist) VALUES (\'%s\',\'%s\',%s)" % (strain1, strain2, diff)

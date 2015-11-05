@@ -1,4 +1,4 @@
-__author__ = 'flashton'
+__author__ = 'gidis'
 
 from datetime import datetime
 import inspect
@@ -57,6 +57,7 @@ def make_snpdb(config_dict):
     snpdb.make_snpdb()
 
 def read_file(file_name):
+    #read list of strains for get the snps
     try:
         openfile = open(file_name, 'r')
     except:
@@ -86,21 +87,9 @@ def read_multi_contig_fasta(ref):
             ref_seq[contig[0]] = []
     return ref_seq
 
-def read_rec_file(rec_file):
-    try:
-        openfile = open(rec_file, 'r')
-    except:
-        print (rec_file + " not found ... ")
-        sys.exit()
-    rec_list = []
-    for line in openfile:
-        if line[0].isdigit():
-            temp = (line.strip()).split('\t')
-            rec_range = range((int(temp[0]) - 1), (int(temp[1]) - 1))
-            rec_list = set(rec_list) | set(rec_range)
-    return rec_list
 
 def read_rec_file_mc(rec_file):
+    #read recombination file - tab delineated with reference genome
     try:
         openfile = open(rec_file, 'r')
     except:
@@ -128,12 +117,16 @@ def get_the_snps(args, config_dict):
     snpdb.parse_config_dict(config_dict)
     #read strainlist
     strain_list = read_file(args.strain_list)
+
     #connect to postgresbd
     snpdb._connect_to_snpdb()
     #get reference genome path
     ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
     #read the reference fasta
     ref_seq = read_multi_contig_fasta(ref_seq_file)
+    #add reference genome to strain_list
+    strain_list.append(snpdb.reference_genome)
+
     #if recombination flag set
     if args.rec_file != 'N':
         logger.info('Reading recombination list')
@@ -144,45 +137,15 @@ def get_the_snps(args, config_dict):
     #query snadb    
     snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, snpdb.reference_genome)
     #print fasta
-    snpdb.print_fasta_mc(args.out, args.alignment_type, rec_dict)
-   
+    snpdb.print_fasta_mc(args, rec_dict)
 
-
-
-
-
-    if config_dict['multi_contig_reference'] == 'N':
-        ref_seq = read_fasta(ref_seq_file)
-        if args.rec_file != 'N':
-            logger.info('Reading recombination list')
-            rec_list = read_rec_file(args.rec_file)
-        else:
-            rec_list = []
-        snpdb.parse_args_for_get_the_snps(args, strain_list, ref_seq)
-        logger.info('Printing FASTA')
-        snpdb.print_fasta(args.out, args.alignment_type, rec_list, args.ref_flag)
-        if args.mat_flag == 'Y':
-            logger.info('Printing Matrix')
-            snpdb.print_matrix(args.out)
-        if args.var_flag == 'Y':
-            logger.info('Printing variants')
-            snpdb.print_vars(args.out, args.alignment_type, rec_list, args.ref_flag)
-
-
-    elif config_dict['multi_contig_reference'] == 'Y':
-        ref_seq = read_multi_contig_fasta(ref_seq_file)
-        if args.rec_file != 'N':
-            logger.info('Reading recombination list')
-            rec_dict = read_rec_file_mc(args.rec_file)
-        else:
-            rec_dict = {}
-        snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, config_dict['snpdb_reference_genome_name'])
-        snpdb.print_fasta_mc(args.out, args.alignment_type, rec_dict)
-        if args.mat_flag == 'Y':
-            snpdb.print_matrix(args.out)
-        if args.var_flag == 'Y':
-            logger.info('Printing variants')
-            snpdb.print_vars_mc(args.out, args.alignment_type, rec_dict, args.ref_flag)
+    #print matrix
+    if args.mat_flag == 'Y':
+        snpdb.print_matrix(args.out)
+    # print variant list    
+    if args.var_flag == 'Y':
+        logger.info('Printing variants')
+        snpdb.print_vars_mc(args,rec_dict)
 
 
 
