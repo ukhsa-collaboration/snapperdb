@@ -217,7 +217,7 @@ class Vcf:
     def run_phoenix(self,args):
         self.check_reference_bwa_indexed()
         self.check_reference_gatk_indexed()
-        os.system('python run_snp_pipeline.py -r1 %s -r2 %s -r %s -o %s -m bwa -v gatk --sample-name %s --filters mq_score:%s,min_depth:%s,ad_ratio:%s' % args.fastqs[0], args.fastqs[1], self.reference_genome, self.tmp_dir, self.sample_name, self.mq_cutoff, self.depth_cutoff,self.ad_cutoff)
+        os.system('run_snp_pipeline.py -r1 %s -r2 %s -r %s -o %s -m bwa -v gatk --sample-name %s --filters mq_score:%s,min_depth:%s,ad_ratio:%s' % (args.fastqs[0], args.fastqs[1], self.ref_genome_path, self.tmp_dir, self.sample_name, self.mq_cutoff, self.depth_cutoff,self.ad_cutoff))
 
 
 

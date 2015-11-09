@@ -38,13 +38,13 @@ def parse_config(args):
                 if line.startswith('pg_host'):
                     config_dict['pg_host'] = line.strip().split()[-1]
                 if line.startswith('depth_cutoff'):
-                    config_dict['depth_cutoff'] = float(line.strip().split()[-1])
+                    config_dict['depth_cutoff'] = int(line.strip().split()[-1])
                 if line.startswith('mq_cutoff'):
-                    config_dict['mq_cutoff'] = float(line.strip().split()[-1])
+                    config_dict['mq_cutoff'] = int(line.strip().split()[-1])
                 if line.startswith('ad_cutoff'):
                     config_dict['ad_cutoff'] = float(line.strip().split(' ')[-1])
                 if line.startswith('average_depth_cutoff'):
-                    config_dict['average_depth_cutoff'] = float(line.strip().split()[-1])
+                    config_dict['average_depth_cutoff'] = int(line.strip().split()[-1])
                 if line.startswith('multi_contig_reference'):
                     config_dict['multi_contig_reference'] = line.strip().split()[-1]
                 if line.startswith('snpdb_reference_genome_name'):
