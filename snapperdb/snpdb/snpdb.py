@@ -558,7 +558,7 @@ class SNPdb:
                 #if we want to include Ns in the alignment        
                 elif args.alignment_type == 'A':
                     if contig in self.var_look:
-                        for i in self.var_look[contig]:
+                        for i in sorted(self.var_look[contig]):
                             #get number of N's for this position
                             ncount = 0
                             if contig in self.n_look:
@@ -585,7 +585,7 @@ class SNPdb:
                     m = re.match("A:(\d+)" ,args.alignment_type)
                     co = m.group(1)
                     if contig in self.var_look:
-                        for i in self.var_look[contig]:
+                        for i in sorted(self.var_look[contig]):
                             #get number of N's for this position
                             ncount = 0
                             if contig in self.n_look:
@@ -613,7 +613,7 @@ class SNPdb:
                                             f.write(self.fasta[strain][contig][i-1])
                 else:
                     if contig in self.var_look:
-                        for i in self.var_look[contig]:
+                        for i in sorted(self.var_look[contig]):
                             if contig in rec_dict:
                                 if i not in rec_dict[contig]:
                                     if contig not in self.n_look:
@@ -641,7 +641,7 @@ class SNPdb:
     def print_vars_mc(self,args, rec_dict):
         f = open(args.out + '.variants', 'w')
         for contig in sorted(self.var_look):
-            for pos in self.var_look[contig]:
+            for pos in sorted(self.var_look[contig]):
                 var_ids = self.posIDMap[contig][pos]
                 for var_id in var_ids:
                     if args.alignment_type == 'W':

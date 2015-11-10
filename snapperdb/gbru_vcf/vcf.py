@@ -121,54 +121,56 @@ class Vcf:
                     parsed_vcf = ParsedVcf()
                     oref = ref
                     parsed_vcf.ref = ref
+                
+
+                #make some vars so easier to read
+                pos = split_line[1]
+                filter_flag = split_line[6]
+                var_call = split_line[4]
+                ref_call = split_line[3]
+
+                parsed_vcf.filter_flag[pos] = filter_flag
+                                
+                #split into ignore
+                if parsed_vcf.filter_flag[pos] != 'PASS':
+                    parsed_vcf.bad_pos.append(pos)
                 else:
-
-                    #make some vars so easier to read
-                    pos = split_line[1]
-                    filter_flag = split_line[6]
-                    var_call = split_line[4]
-                    ref_call = split_line[3]
-
-                    parsed_vcf.filter_flag[pos] = filter_flag
-
-                    #split into ignore
-                    if parsed_vcf.filter_flag[pos] != 'PASS':
-                        parsed_vcf.bad_pos.append(pos)
-                    else:
-                        parsed_vcf.good_var.append(pos)
-
-                    parsed_vcf.var[pos] = var_call
-                    parsed_vcf.ref_base[pos] = ref_call
-
-                    # get depth
-                    matchObj = re.match(r'.*DP=(\d*)', line)
-                    try:
-                        parsed_vcf.depth[pos] = matchObj.group(1)
-                    except AttributeError:
-                        parsed_vcf.depth[pos] = 0
-                    # get map quality
-                    matchObj = re.match(r'.*MQ=(\d*\.\d*)', line)
-                    try:
-                        parsed_vcf.qual[pos] = matchObj.group(1)
-                    except AttributeError:
-                        parsed_vcf.qual[pos] = 0
-
-                    #if a variant get some other things - including with it's a mix
-                    if var_call != '.':
-                        matchObvar = re.match(r'.*GT:AD:DP:GQ:PL\s+(.*)', line)
-                        format_string = matchObvar.group(1).split(':')
-                        parsed_vcf.hap_call[pos] = format_string[0]
-                        parsed_vcf.hap_depth[pos] = format_string[2]
-                        parsed_vcf.hap_qual[pos] = format_string[3]
-                        ad_string = format_string[1].split(',')
-                        parsed_vcf.hap_var_count[pos] = float(ad_string[1]) / float(parsed_vcf.depth[pos])
-                        if parsed_vcf.hap_var_count[pos] < self.ad_cutoff:
-                            parsed_vcf.mixed_positions.append(int(pos))
+                    parsed_vcf.good_var.append(pos)
+                
+                parsed_vcf.var[pos] = var_call
+                parsed_vcf.ref_base[pos] = ref_call
+                
+                # get depth
+                matchObj = re.match(r'.*DP=(\d*)', line)
+                try:
+                    parsed_vcf.depth[pos] = matchObj.group(1)
+                except AttributeError:
+                    parsed_vcf.depth[pos] = 0
+                # get map quality
+                matchObj = re.match(r'.*MQ=(\d*\.\d*)', line)
+                try:
+                    parsed_vcf.qual[pos] = matchObj.group(1)
+                except AttributeError:
+                    parsed_vcf.qual[pos] = 0
+                
+                #if a variant get some other things - including with it's a mix
+                if var_call != '.':
+                    matchObvar = re.match(r'.*GT:AD:DP:GQ:PL\s+(.*)', line)
+                    format_string = matchObvar.group(1).split(':')
+                    parsed_vcf.hap_call[pos] = format_string[0]
+                    parsed_vcf.hap_depth[pos] = format_string[2]
+                    parsed_vcf.hap_qual[pos] = format_string[3]
+                    ad_string = format_string[1].split(',')
+                    parsed_vcf.hap_var_count[pos] = float(ad_string[1]) / float(parsed_vcf.depth[pos])
+                    if parsed_vcf.hap_var_count[pos] < self.ad_cutoff:
+                        parsed_vcf.mixed_positions.append(int(pos))
                                
         #add the last vcf
         self.parsed_vcf_container.append(parsed_vcf)
         #close file
         openfile.close()
+        
+       
 
         #calculate total number of mixed positions 
         self.number_mixed_positions = 0
