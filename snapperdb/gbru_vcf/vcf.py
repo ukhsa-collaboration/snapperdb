@@ -161,7 +161,7 @@ class Vcf:
                     parsed_vcf.hap_depth[pos] = format_string[2]
                     parsed_vcf.hap_qual[pos] = format_string[3]
                     ad_string = format_string[1].split(',')
-                    parsed_vcf.hap_var_count[pos] = float(ad_string[1]) / float(parsed_vcf.depth[pos])
+                    parsed_vcf.hap_var_count[pos] = float(ad_string[1]) / float(parsed_vcf.hap_depth[pos])
                     if parsed_vcf.hap_var_count[pos] < self.ad_cutoff:
                         parsed_vcf.mixed_positions.append(int(pos))
                                
