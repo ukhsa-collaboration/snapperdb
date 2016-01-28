@@ -288,7 +288,7 @@ class SNPdb:
             self.add_info_to_strain_stats(vcf)
             #CHANGE - this needs to be logged
             print 'depth is', vcf.depth_average, self.average_depth_cutoff
-            if vcf.depth_average >= int(self.average_depth_cutoff):
+            if float(vcf.depth_average) >= float(self.average_depth_cutoff):
                 self.add_to_snpdb(vcf)
             else:
                 update_statement = 'UPDATE strain_stats SET ignore = \'i - average depth below cutoff\' where name = \'%s\' ' \
