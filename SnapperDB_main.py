@@ -22,7 +22,7 @@ import logging
 import os
 import datetime
 from snapperdb import __version__, parse_config
-from snapperdb.gbru_vcf import fastq_to_vcf
+from snapperdb.gbru_vcf import fastq_to_vcf, make_fastq
 from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix, qsub_to_check_matrix, update_clusters, get_variants_of_interest, upload_indels
 
 
@@ -85,6 +85,12 @@ def run_command(args):
         logger = logging.getLogger('snapperdb.make_snpdb')
         logger.info('PARAMS: config = %s' % args.config_file)
         make_snpdb(config_dict)
+        
+        #I want to add the map against itself here
+        #make fastq with wgsim
+        vcf = make_fastq(args, config_dict)
+        vcf = fastq_to_vcf(args, config_dict)
+        vcf_to_db(args, config_dict, vcf)
 
     elif args.command == 'get_the_snps':
         logger = logging.getLogger('snapperdb.get_the_snps')
@@ -146,6 +152,8 @@ def main():
                                    help='The name of a config file in the user_configs directory (not the full path)')
     parser_make_snpdb.add_argument('-g', dest = 'log_dir', default = None,
                                      help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
+    parser_make_snpdb.add_argument('-f', dest = 'fastqs', default = [], nargs='+',
+                                     help='This should be ignored - I DONT KNOW HOW TO ADD FASTQ TO NAMESPACE')    
     parser_update_distance_matrix = subparsers.add_parser('update_distance_matrix',
                                                           help='Takes a config and updates the distance matrix in the '
                                                                'specified snpdb')
@@ -210,9 +218,6 @@ def main():
                                           'from which to take one representative/N', default='N')
     parser_get_the_snps.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
                                      help='Where do you want the logs written to? Will default to a /user/home/logs')
-    # parser_get_the_snps.add_argument('-e', dest='meta_flag', help='some value from the metadata in strain_stats, '
-    #                                                               'every strain with this meta-data will be included.'
-    #                                                               ' e.g. (e.g. stx:2a,pt:8,row:value)', default='N')
     parser_update_clusters = subparsers.add_parser('update_clusters',
                                                    help='Given a config file, updates the SNP clustering '
                                                         'associated with the SNPdb specified in the config.')
@@ -270,7 +275,7 @@ def main():
                                       help='Where do you want the logs written to? Will default to a /user/home/logs')
 
     args = parser.parse_args()
-
+    print args
     run_command(args)
 
 

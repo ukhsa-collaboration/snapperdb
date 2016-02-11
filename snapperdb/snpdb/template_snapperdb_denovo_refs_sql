@@ -454,3 +454,23 @@ ALTER TABLE ONLY strain_stats
 -- PostgreSQL database dump complete
 --
 
+
+
+-- Index: strain_1_index
+
+-- DROP INDEX strain_1_index;
+
+CREATE INDEX strain_1_index
+  ON dist_matrix
+  USING hash
+  (strain1 COLLATE pg_catalog."default");
+
+-- Index: strain_2_index
+
+-- DROP INDEX strain_2_index;
+
+CREATE INDEX strain_2_index
+  ON dist_matrix
+  USING hash
+  (strain2 COLLATE pg_catalog."default");
+

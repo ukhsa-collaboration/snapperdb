@@ -4,6 +4,7 @@ from datetime import datetime
 import errno
 import glob
 import os
+import math
 import sys
 import re
 from Bio import SeqIO
@@ -122,7 +123,7 @@ class SNPdb:
             vcf.sample_name = os.path.basename(args.fastqs[0]).split(os.extsep)[0]
         vcf.ref_genome_path = os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')
         vcf.make_tmp_dir(args)
-        vcf.vcf_filehandle = os.path.join(vcf.tmp_dir, os.path.pardir, '{0}.filtered.vcf'.format(vcf.sample_name))
+        vcf.vcf_filehandle = os.path.join(vcf.tmp_dir, '{0}.filtered.vcf'.format(vcf.sample_name))
 
     def _connect_to_snpdb(self):
         self.conn_string = 'host=\'{0}\' dbname={1} user=\'{2}\' password=\'{3}\''.format(self.pg_host, self.snpdb_name,
@@ -162,6 +163,8 @@ class SNPdb:
             cur.execute(open(sql_script, 'r').read())
             conn.commit()
             conn.close()
+            
+         
 
     def check_duplicate(self, vcf, database):
         dup = False
@@ -834,8 +837,8 @@ class SNPdb:
                        '#$ -wd {1}\n'
                        '#$ -N up_mat_{2}_{3}\n\n'
                        '. /etc/profile.d/modules.sh\n'
-                       'module load snapperdb/0.1\n'
-                       'SnapperDB_main.py'
+                       'module load gastro/snapperdb/0.2\n'
+                       '/home/tim/git_reps/snapperdb/SnapperDB_main.py'
                        ' qsub_to_check_matrix -c {4}'
                        ' -l {5}/{7}.{8}.strain_list'
                        ' -s {5}/{7}.{8}.short_strain_list'
@@ -1064,9 +1067,7 @@ class SNPdb:
                     cluster_dict[i][row[i+1]].append(row[0])
                 else:
                     cluster_dict[i][row[i+1]].append(row[0])
-
-
-
+                    
 
         return co, cluster_strain_list, cluster_dict
 
@@ -1162,12 +1163,12 @@ class SNPdb:
         clean_clusters = {}
         for i, cuts in enumerate(sorted(co,reverse=True,key=int)):
             print "###  Cluster level "+str(cuts)+" :"+ str(datetime.time(datetime.now()))
-            print "making links"
-        links = self.make_links(profile_dict, cuts, cluster_dict[i])
-        print "defining_clusters"
-        clusters = self.define_clusters(links)
-        print "removing duplicates"
-        clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
+            #print "making links"
+            links = self.make_links(profile_dict, cuts, cluster_dict[i])
+            #print "defining_clusters"
+            clusters = self.define_clusters(links)
+            #print "removing duplicates"
+            clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
 
 
         print "###  Getting previously checked outliers:"+ str(datetime.time(datetime.now()))
