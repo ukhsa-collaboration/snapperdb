@@ -89,7 +89,6 @@ def run_command(args):
         #I want to add the map against itself here
         #make fastq with wgsim
         vcf = make_fastq(args, config_dict)
-        vcf = fastq_to_vcf(args, config_dict)
         vcf_to_db(args, config_dict, vcf)
 
     elif args.command == 'get_the_snps':
