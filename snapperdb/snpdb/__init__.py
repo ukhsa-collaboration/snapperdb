@@ -37,7 +37,7 @@ def vcf_to_db(args, config_dict, vcf):
         logger.info('You are running fastq_to_db.')
         
     elif inspect.stack()[0][3] == 'vcf_to_db':
-        ## there is no existing vcf class here, but there will definitely be a vcf, and there may be a pickle.
+        ## there is no existing vcf class here, but there will definitely be a vcf
         logger.info('You are running vcf_to_db. Initialising Vcf class.')
         vcf = Vcf()
         logger.info('Making SNPdb variables and output files')

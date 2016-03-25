@@ -2,21 +2,7 @@
 
 __author__ = 'gidis'
 
-'''
-This section of the code is heavily influenced by the design of Aaron Quinlan and Nick Loman's poretools package -
-check it out!
-https://github.com/arq5x/poretools
-
-Feature wish list
-
-Want an ipython notebook that speaks to the gdw-sequencing table, you can give it a SNP address and it shows you the
-distribution of that snp address over time (and geog).
-
-Also, should work the other way around and given an ebg, tell you the most frequent SNP addresses that week,
-last week etc.
-
-'''
-
+#imports
 import argparse
 import logging
 import os
@@ -86,8 +72,7 @@ def run_command(args):
         logger.info('PARAMS: config = %s' % args.config_file)
         make_snpdb(config_dict)
         
-        #I want to add the map against itself here
-        #make fastq with wgsim
+	#map reference against itself wgsim some FASTQs if not provided
         vcf = make_fastq(args, config_dict)
         vcf_to_db(args, config_dict, vcf)
 
