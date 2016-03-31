@@ -78,12 +78,11 @@ class Vcf:
 
     def make_tmp_dir(self, args):
         try:
-            self.tmp_dir = os.path.join(os.path.dirname(args.fastqs[0]), 'snpdb', 'tmp')
+            self.tmp_dir = os.path.join(os.path.dirname(args.fastqs[0]), 'snpdb')
             self.mkdir_p(self.tmp_dir)
         except AttributeError:
-            # # this is because we also call this from snpdb, where args doesn't contain fastqs, but a pickle.
-            self.tmp_dir = os.path.join(os.path.dirname(args.vcf[0]), 'tmp')
-            self.mkdir_p(self.tmp_dir)
+            # # this is because we also call this from vcf_to_db, where args doesn't contain fastqs, but a vcf.
+            self.tmp_dir = os.path.join(os.path.dirname(args.vcf[0]))
 
 
     def read_multi_contig_vcf(self):
@@ -222,7 +221,6 @@ class Vcf:
             sys.stderr.write('Cant find reference genome %s' % self.reference_genome)
 
         self.make_tmp_dir(args)
-        #self.sorted_bamfile = os.path.join(self.tmp_dir, self.sample_name + '.sorted' + '.bam')
         self.vcf_filehandle = os.path.join(self.tmp_dir, os.path.pardir, '{0}.filtered.vcf'.format(self.sample_name))
 
     def check_reference_bwa_indexed(self):

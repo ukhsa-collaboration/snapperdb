@@ -112,7 +112,7 @@ class SNPdb:
                 raise
 
     def make_tmp_dir(self, args):
-        self.tmp_dir = os.path.join(os.path.dirname(args.vcf[0]), 'snpdb', 'tmp')
+        self.tmp_dir = os.path.join(os.path.dirname(args.vcf[0]), 'snpdb')
         self.mkdir_p(self.tmp_dir)
 
     def define_class_variables_and_make_output_files(self, args, vcf):
