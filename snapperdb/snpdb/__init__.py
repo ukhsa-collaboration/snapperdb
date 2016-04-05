@@ -26,7 +26,6 @@ def vcf_to_db(args, config_dict, vcf):
     logger.info('Parsing config dict')
     snpdb.parse_config_dict(config_dict)
     
-
     #connect to snpdb postgres
     snpdb._connect_to_snpdb()
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)

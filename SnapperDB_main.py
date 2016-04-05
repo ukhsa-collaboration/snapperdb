@@ -153,8 +153,7 @@ def main():
                                                help='Where do you want the logs written to? Will default to a '
                                                     '/user/home/logs')
     parser_update_distance_matrix.add_argument('-n', dest='now', default='N',
-                                               help='This is a PHE only function <int>/N, where int is the number of '
-                                                    'comparisons you want to do on each core')
+                                               help='')
 
     parser_qsub_to_check_matrix = subparsers.add_parser('qsub_to_check_matrix',
                                                         help='This is only for internal use by snapperdb when '

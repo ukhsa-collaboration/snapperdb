@@ -806,8 +806,8 @@ class SNPdb:
         2. for each in lists, qsub
         '''
         home_dir = os.path.expanduser('~')
-        logs_dir = '/phengs/hpc_projects/routine_salmonella_snapperdb/logs_chron_jobs'
-        scripts_dir = '/phengs/hpc_projects/routine_salmonella_snapperdb/scripts_chron_job/non_fastq_to_vcf'
+        logs_dir = '/phengs/hpc_projects/routine_gidis/logs_chron_jobs'
+        scripts_dir = '/phengs/hpc_projects/routine_gidis/scripts_chron_job/non_fastq_to_vcf'
         this_dir = os.path.dirname(os.path.realpath(__file__))
         snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -838,7 +838,7 @@ class SNPdb:
                        '#$ -N up_mat_{2}_{3}\n\n'
                        '. /etc/profile.d/modules.sh\n'
                        'module load gastro/snapperdb/0.2\n'
-                       '/home/tim/git_reps/snapperdb/SnapperDB_main.py'
+                       'SnapperDB_main.py'
                        ' qsub_to_check_matrix -c {4}'
                        ' -l {5}/{7}.{8}.strain_list'
                        ' -s {5}/{7}.{8}.short_strain_list'
