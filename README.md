@@ -6,7 +6,7 @@ First things first, we are going to assume you work at PHE on the HPC infrastruc
 
 ### Version
 
-0.1
+0.2
 
 ### Basic Useage
 
@@ -15,7 +15,7 @@ You don't need to clone the git repo as the release branch of SnapperDB is avail
 All you need to do is
 
 ```sh
-$ module load snapperdb/0.1
+$ module load snapperdb/0.2
 ```
 
 After that, the SnapperDB_main.py executable will be in your path. 
@@ -57,7 +57,7 @@ ad_cutoff 0.9
 
 Once you have made your config file and filled it with your info, save it in as e.g. *gas_config.txt* 
 ```
-/phengs/hpc_software/snapperdb/0.1/user_configs
+/phengs/hpc_software/snapperdb/0.2/user_configs
 ```
 Now you are ready to make your SNPdb. Run 
 
@@ -68,7 +68,7 @@ Hopefully, SnapperDB will read your config files and create a database for you o
 
 Then, save your reference genome (with bwa index, [samtools faidx and picard sequnced dictionary for vcf calling]) in: 
 ```
-/phengs/hpc_software/snapperdb/0.1/reference_genomes
+/phengs/hpc_software/snapperdb/0.2/reference_genomes
 ```
 
 Now, you are ready to run some samples!
