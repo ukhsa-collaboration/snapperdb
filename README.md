@@ -4,6 +4,8 @@ Welcome to SnapperDB, congratulations on having the excellent taste to use our s
 
 First things first, we are going to assume you work at PHE on the HPC infrastructure. If you don't then I need to update this documentation.
 
+Because of problems with our java executibles, you need to have set the $PICARD_TOOLS_PATH env variable to be the path to the picard tools executibles. If you are working on the PHE infrastructure, this will happen automatically when you load the picard tools module.
+
 ### Version
 
 0.2
