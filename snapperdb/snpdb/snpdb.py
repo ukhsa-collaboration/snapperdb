@@ -838,7 +838,7 @@ class SNPdb:
                        '#$ -N up_mat_{2}_{3}\n\n'
                        '. /etc/profile.d/modules.sh\n'
                        'module load gastro/snapperdb/0.2\n'
-                       '/home/tim/git_reps/snapperdb/SnapperDB_main.py'
+                       'SnapperDB_main.py'
                        ' qsub_to_check_matrix -c {4}'
                        ' -l {5}/{7}.{8}.strain_list'
                        ' -s {5}/{7}.{8}.short_strain_list'
