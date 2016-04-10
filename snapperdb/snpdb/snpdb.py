@@ -269,7 +269,7 @@ class SNPdb:
                     else:
                         ig_dic[row['pos']] = {}
                         ig_dic[row['pos']] = row['id']
-            print len(parsed_vcf.bad_pos)
+            #print len(parsed_vcf.bad_pos)
 
             #go through the ignored_pos in this contig
             for pos in parsed_vcf.bad_pos:
@@ -806,8 +806,8 @@ class SNPdb:
         2. for each in lists, qsub
         '''
         home_dir = os.path.expanduser('~')
-        logs_dir = '/phengs/hpc_projects/routine_salmonella_snapperdb/logs_chron_jobs'
-        scripts_dir = '/phengs/hpc_projects/routine_salmonella_snapperdb/scripts_chron_job/non_fastq_to_vcf'
+        logs_dir = '/phengs/hpc_projects/routine_gidis/logs_chron_jobs'
+        scripts_dir = '/phengs/hpc_projects/routine_gidis/scripts_chron_job/non_fastq_to_vcf'
         this_dir = os.path.dirname(os.path.realpath(__file__))
         snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
