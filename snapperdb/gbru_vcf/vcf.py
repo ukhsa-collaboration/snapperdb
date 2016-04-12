@@ -248,14 +248,19 @@ class Vcf:
 
     def check_reference_gatk_indexed(self):
         indicies = ['dict', 'fa.fai']
-        for i in indicies:
-            if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + i):
-                pass
-            else:
-                picard_dict_path = os.path.splitext(self.ref_genome_path)[0]
-                os.system('java -jar CreateSequenceDictionary.jar R= %s O= %s.dict'
-                          % (self.ref_genome_path, picard_dict_path))
-                os.system('samtools faidx %s' % self.ref_genome_path)
+        # print (os.path.splitext(self.ref_genome_path)[0] + '.' + i)
+        if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + 'dict'):
+            pass
+        else:
+            picard_dict_path = os.path.splitext(self.ref_genome_path)[0]
+            os.system('java -jar $PICARD_TOOLS_PATH/CreateSequenceDictionary.jar R= %s O= %s.dict'
+                      % (self.ref_genome_path, picard_dict_path))
+        
+        if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + 'dict'):
+            pass
+        else:
+            os.system('samtools faidx %s' % self.ref_genome_path)
+        ## double check that above has worked
         for i in indicies:
             if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + i):
                 pass
