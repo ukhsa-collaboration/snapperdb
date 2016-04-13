@@ -479,6 +479,7 @@ class SNPdb:
            
         # add the ignored pos from the referecne genome
         for bad_ids in self.igpos[reference_genome_name]:
+            print strain, self.IgPos_container[bad_ids].contig
             fasta[strain][self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
             if self.IgPos_container[bad_ids].contig not in n_look:
                 n_look[self.IgPos_container[bad_ids].contig] = {}
@@ -1191,3 +1192,5 @@ class SNPdb:
         To do
         '''
         pass
+
+    

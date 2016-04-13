@@ -12,6 +12,7 @@ from snpdb import SNPdb
 import snapperdb
 from snapperdb.gbru_vcf import Vcf
 import glob
+import pprint
 
 
 def vcf_to_db(args, config_dict, vcf):
@@ -106,6 +107,37 @@ def read_rec_file_mc(rec_file):
     
     return rec_dict
 
+def read_rec_file_mc_gubbins(gubbins_rec_file, reference_genome):
+    ## first, need to concatenate the reference genome in the order of 
+    ## alphanumerically sorted contig names
+    concatenated_ref_genome = ''
+    contig_names = sorted(reference_genome.keys())
+    for c in contig_names:
+        # print len(reference_genome[c])
+        concatenated_ref_genome += ''.join(reference_genome[c])
+    print len(concatenated_ref_genome)
+
+    ## contig dict is going to be {(contig start in concat ref genome, contig stop in concat ref genome):contig_name}
+    contig_dict = {}
+    ## start at 0
+    i = 0
+    for contig in reference_genome:
+        ## use i and j to move through ref genome
+        ## we minus 1 here because of the python thing of not counting the last 'fence post' in the index, but counting it in len()
+        j = i + len(reference_genome[contig]) - 1
+        contig_dict[(i, j)] = contig
+        i += len(reference_genome[contig])
+        
+    pprint.pprint(contig_dict)
+    try:
+        openfile = open(gubbins_rec_file, 'r')
+    except IOError:
+        print gubbins_rec_file + ' not found ...'
+        sys.exit()
+    
+
+    
+
 def get_the_snps(args, config_dict):
     #set up logging
     logger = logging.getLogger('snapperdb.snpdb.get_the_snps')
@@ -117,7 +149,7 @@ def get_the_snps(args, config_dict):
     #read strainlist
     strain_list = read_file(args.strain_list)
 
-    #connect to postgresbd
+    #connect to postgresdb
     snpdb._connect_to_snpdb()
     #get reference genome path
     ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
@@ -130,9 +162,15 @@ def get_the_snps(args, config_dict):
     if args.rec_file != 'N':
         logger.info('Reading recombination list')
         rec_dict = read_rec_file_mc(args.rec_file)
+    elif args.gubbins_rec_file != None:
+        logger.info('Reading gubbins recombination list')
+        rec_dict = read_rec_file_mc_gubbins(args.gubbins_rec_file, ref_seq)
     else:
         #should we set this as none
         rec_dict = {}
+    
+    # sys.exit()
+
     #query snadb    
     snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, snpdb.reference_genome)
     #print fasta
