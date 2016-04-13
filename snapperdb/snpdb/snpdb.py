@@ -477,20 +477,30 @@ class SNPdb:
                     else:
                         n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] + 1
            
-        # add the ignored pos from the referecne genome
-        for bad_ids in self.igpos[reference_genome_name]:
-            fasta[strain][self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
-            if self.IgPos_container[bad_ids].contig not in n_look:
-                n_look[self.IgPos_container[bad_ids].contig] = {}
-                n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
-            elif self.IgPos_container[bad_ids].pos not in n_look[self.IgPos_container[bad_ids].contig]:
-                n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
-            else:
-                n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] + 1
+                # add the ignored pos from the referecne genome
+                for bad_ids in self.igpos[reference_genome_name]:
+                    fasta[strain][self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
+                    if self.IgPos_container[bad_ids].contig not in n_look:
+                        n_look[self.IgPos_container[bad_ids].contig] = {}
+                        n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
+                    elif self.IgPos_container[bad_ids].pos not in n_look[self.IgPos_container[bad_ids].contig]:
+                        n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
+                    else:
+                        n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] + 1
            
         # create a deepcopy to get the reference back
         if args.ref_flag == 'Y':
             fasta[reference_genome_name] = deepcopy(ref_seq)
+             # add the ignored pos back in from the referecne genome
+            for bad_ids in self.igpos[reference_genome_name]:
+                fasta[reference_genome_name][self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
+                if self.IgPos_container[bad_ids].contig not in n_look:
+                    n_look[self.IgPos_container[bad_ids].contig] = {}
+                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
+                elif self.IgPos_container[bad_ids].pos not in n_look[self.IgPos_container[bad_ids].contig]:
+                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
+                else:
+                    n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] + 1
         else:
               del self.strains_snps[reference_genome_name]  
         return fasta, var_look, n_look,var_id_list
