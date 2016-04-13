@@ -104,36 +104,74 @@ def read_rec_file_mc(rec_file):
             rec_dict[split_line[0]] = set(rec_dict[split_line[0]]) | set(rec_range)
         else:
             rec_dict[split_line[0]] = set(rec_range)
-    
+    # print rec_dict
     return rec_dict
 
-def read_rec_file_mc_gubbins(gubbins_rec_file, reference_genome):
+def create_contig_index_for_consensus_genome(reference_genome):
     ## first, need to concatenate the reference genome in the order of 
     ## alphanumerically sorted contig names
     concatenated_ref_genome = ''
     contig_names = sorted(reference_genome.keys())
     for c in contig_names:
-        # print len(reference_genome[c])
         concatenated_ref_genome += ''.join(reference_genome[c])
-    print len(concatenated_ref_genome)
-
+    # print len(concatenated_ref_genome)
     ## contig dict is going to be {(contig start in concat ref genome, contig stop in concat ref genome):contig_name}
-    contig_dict = {}
+    contig_index = {}
     ## start at 0
     i = 0
-    for contig in reference_genome:
+    ## need to iterate through the contig names in the sorted order, because this is the order that get_the_snps will go through them in
+    for contig in contig_names:
         ## use i and j to move through ref genome
-        ## we minus 1 here because of the python thing of not counting the last 'fence post' in the index, but counting it in len()
+        ## we minus 1 here because of the python thing of not counting the last 'fence post' in the index, but counting it in len(). I think. Seems to work.
         j = i + len(reference_genome[contig]) - 1
-        contig_dict[(i, j)] = contig
+        contig_index[(i, j)] = contig
         i += len(reference_genome[contig])
         
-    pprint.pprint(contig_dict)
+    pprint.pprint(contig_index)
+    return contig_index
+
+def make_recomb_dict_from_gubbins(recombinant_sections, contig_index):
+    rec_dict = {}
+    for rs in recombinant_sections:
+        for contig in contig_index:
+            if contig[0] <= rs[0] <= contig[1]:
+                if contig[0] <= rs[1] <= contig[1]:
+                    ## what is the difference between the start of the contig and the start of the recombinant section?
+                    ## what is the difference between the start of the contig and the end of the recombinant section?
+                    ## the plus one gives the correct co-ordinates, not sure why adjustment necassary
+                    # print contig_index[contig], (rs[0] - contig[0]), (rs[1] - contig[0]), 'bla'
+                    recomb_start = (rs[0] - contig[0])
+                    recomb_stop = (rs[1] - contig[0])
+                    if contig_index[contig] in rec_dict:
+                        rec_dict[contig_index[contig]] += range(recomb_start, recomb_stop)
+                    else:
+                        rec_dict[contig_index[contig]] = []
+                        rec_dict[contig_index[contig]] += range(recomb_start, recomb_stop)
+                else:
+                    print 'The recombination section is not on one contig, this may not be a real recombination event, this is not currently being exlcuded.', rs, contig, contig_index[contig]
+    for contig in rec_dict:
+        # print rec_dict[contig]
+        rec_dict[contig] = set(rec_dict[contig])
+    return rec_dict
+
+
+def read_rec_file_mc_gubbins(gubbins_rec_file, reference_genome):
+    contig_index = create_contig_index_for_consensus_genome(reference_genome)
     try:
         openfile = open(gubbins_rec_file, 'r')
     except IOError:
         print gubbins_rec_file + ' not found ...'
         sys.exit()
+    recombinant_sections = []
+    for line in openfile.readlines():
+        if not line.startswith('##'):
+            split_line = line.strip().split('\t')
+            recombinant_sections.append((int(split_line[3]), int(split_line[4])))
+            
+
+    rec_dict = make_recomb_dict_from_gubbins(recombinant_sections, contig_index)
+    return rec_dict
+    
     
 
     
