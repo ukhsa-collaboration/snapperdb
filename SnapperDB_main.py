@@ -6,6 +6,7 @@ __author__ = 'gidis'
 import argparse
 import logging
 import os
+import sys
 import datetime
 from snapperdb import __version__, parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, make_fastq
@@ -82,6 +83,13 @@ def run_command(args):
             'PARAMS: config = %s; list = %s; snp_cutoff = %s' % (args.config_file, args.strain_list, args.snp_co))
         args.out = '%s.%s.%s' % (
             str(datetime.datetime.now()).split(' ')[0], config_dict['snpdb_name'], args.strain_list)
+        if args.rec_file != 'N' and args.gubbins_rec_file != None:
+            logger.error('Please only pass one of rec_file or gubbins_rec_file.')
+            print 'Please only pass one of rec_file or gubbins_rec_file.'
+            sys.exit()
+        elif args.rec_file == 'N' and args.gubbins_rec_file == None:
+            logger.info('No recombination list has been given, im assuming you have checked for recombination and found none?? If not, you should check otherwise your tree could be borked.')
+            print '### WARNING\nNo recombination list has been given, im assuming you have checked for recombination and found none?? If not, you should check otherwise your tree could be borked.'
         get_the_snps(args, config_dict)
 
     elif args.command == 'check_vcf_for_mixed':
@@ -196,6 +204,8 @@ def main():
     parser_get_the_snps.add_argument('-n', dest='rec_file',
                                      help='File with list of positions to ignore due to expected '
                                           'recombination', default='N')
+    parser_get_the_snps.add_argument('-ng', dest = 'gubbins_rec_file', help = 'The gff file produced by gubbins with '
+                                    'recombinant positions in it.')
     parser_get_the_snps.add_argument('-b', dest='back_flag',
                                      help='Would you like a background cluster level? SNP cluster level '
                                           'from which to take one representative/N', default='N')

@@ -443,7 +443,7 @@ class SNPdb:
                 if strain not in fasta:
                     fasta[strain] = deepcopy(ref_seq)
 
-                # go the variant ids 
+                # go the contig ids 
                 for ids in sorted(self.strains_snps[strain]):
                     #if this base is not the same as the reference and not a variant when the reference is mapped against iteself
                     if self.variants[ids].var_base != fasta[strain][self.variants[ids].contig][self.variants[ids].pos-1] \
@@ -529,7 +529,9 @@ class SNPdb:
 
         #get all varitants and variants for each strains
         logger.info('Getting good positions')
+        print 'Getting good positions'
         self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, args.snp_co)
+        print 'Variable positions: ' + str(len(self.goodids))
         logger.info('Variable positions: ' + str(len(self.goodids)))
 
         #If there are no variants returned we can exit
@@ -538,10 +540,13 @@ class SNPdb:
             # logger.error('No variable positions found: EXITING')
             sys.exit()
 
+        print str(len(self.strains_snps)) + ' strains used out of ' + str(len(strain_list))
         logger.info(str(len(self.strains_snps)) + ' strains used out of ' + str(len(strain_list)))
         
+        print 'Getting ignored positions'
         logger.info('Getting ignored positions')
         self.badlist, self.igpos = self.get_bad_pos_mc()
+        print 'Ignored positions' + str(len(self.badlist))
         logger.info('Ignored positions' + str(len(self.badlist)))
 
         #get actual variant objects
@@ -1198,3 +1203,5 @@ class SNPdb:
         To do
         '''
         pass
+
+    
