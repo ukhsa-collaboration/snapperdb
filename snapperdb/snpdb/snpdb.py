@@ -415,12 +415,11 @@ class SNPdb:
             ig_pos.contig = row[2]
             igPos_container[row[1]] = ig_pos
 
-            if ig_pos.id in self.all_bad_pos:
-                if row[2] in pos_2_id_list:
-                        pos_2_id_list[row[2]][row[0]] = row[1]
-                else:
-                    pos_2_id_list[row[2]] = {}
-                    pos_2_id_list[row[2]][row[0]] = row[1]
+            if row[2] in pos_2_id_list:
+                pos_2_id_list[row[2]][row[0]] = row[1]
+            else:
+                pos_2_id_list[row[2]] = {}
+                pos_2_id_list[row[2]][row[0]] = row[1]
             
 
 
@@ -764,7 +763,8 @@ class SNPdb:
         logger.info('Variable positions: ' + str(len(self.goodids)))
         #get actual variant objects
         self.variants, self.posIDMap = self.get_variants_mc()
-
+        #get ignored positions object
+        self.IgPos_container, self.igposIDMap = self.get_igs_mc()
 
 
     def get_bad_pos_for_strain_update_matrix(self, strain):
@@ -791,9 +791,6 @@ class SNPdb:
                     strain2_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain2)
                     # getunion of bad_pos
                     self.all_bad_pos = set(strain1_ig_pos) | set(strain2_ig_pos)
-                    # get ignored position objects for thi set
-                    self.IgPos_container, self.igposIDMap = self.get_igs_mc()
-
                     # getsymmetric difference of variants
                     all_var = set(strain1_good_var) ^ set(strain2_good_var)
                     diff = 0

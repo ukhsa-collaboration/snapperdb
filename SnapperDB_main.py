@@ -24,8 +24,8 @@ def setup_logging(args):
     if not os.path.exists(args.log_dir):
         os.makedirs(args.log_dir)
     logger = logging.getLogger('snapperdb')
-    now = str(datetime.datetime.now()).split('.')[0].replace(' ', '_').replace(':', '.')
-    logging.basicConfig(filename='%s/%s.snapperdb.log' % (args.log_dir, now), level=logging.DEBUG,
+    args.now = str(datetime.datetime.now()).split('.')[0].replace(' ', '_').replace(':', '.')
+    logging.basicConfig(filename='%s/%s.snapperdb.log' % (args.log_dir, args.now), level=logging.DEBUG,
                         format='%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s')
     return logger
 
