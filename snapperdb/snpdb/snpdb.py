@@ -799,9 +799,12 @@ class SNPdb:
                     # getsymmetric difference of variants
                     all_var = set(strain1_good_var) ^ set(strain2_good_var)
                     diff = 0
-                    for var_id in all_var:
-                        if self.variants[var_id].pos not in self.igposIDMap[self.variants[var_id].contig]:
-                            diff = diff + 1
+		    for var_id in all_var:
+                    	if self.variants[var_id].pos not in self.igposIDMap[self.variants[var_id].contig]:
+                        	diff = diff + 1
+                    	elif self.igposIDMap[self.variants[var_id].contig][self.variants[var_id].pos] not in all_bad_pos:
+                        	diff = diff + 1
+
                     # add to db
                     sql2 = "insert into dist_matrix (strain1, strain2, snp_dist) VALUES (\'%s\',\'%s\',%s)" % (strain1, strain2, diff)
                     cur.execute(sql2)
