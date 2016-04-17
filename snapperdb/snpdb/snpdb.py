@@ -802,7 +802,7 @@ class SNPdb:
 		    for var_id in all_var:
                     	if self.variants[var_id].pos not in self.igposIDMap[self.variants[var_id].contig]:
                         	diff = diff + 1
-                    	elif self.igposIDMap[self.variants[var_id].contig][self.variants[var_id].pos] not in all_bad_pos:
+                    	elif self.igposIDMap[self.variants[var_id].contig][self.variants[var_id].pos] not in self.all_bad_pos:
                         	diff = diff + 1
 
                     # add to db
