@@ -1,0 +1,69 @@
+LOCUS       NC_007613            4519823 bp    DNA     circular CON 30-JUL-2015
+DEFINITION  Shigella boydii Sb227, complete genome.
+ACCESSION   NC_007613
+VERSION     NC_007613.1  GI:82542618
+DBLINK      BioProject: PRJNA224116
+            BioSample: SAMN02603601
+            Assembly: GCF_000012025.1
+KEYWORDS    RefSeq.
+SOURCE      Shigella boydii Sb227
+  ORGANISM  Shigella boydii Sb227
+            Bacteria; Proteobacteria; Gammaproteobacteria; Enterobacteriales;
+            Enterobacteriaceae; Shigella.
+REFERENCE   1  (bases 1 to 4519823)
+  AUTHORS   Yang,F., Yang,J., Zhang,X., Chen,L., Jiang,Y., Yan,Y., Tang,X.,
+            Wang,J., Xiong,Z., Dong,J., Xue,Y., Zhu,Y., Xu,X., Sun,L., Chen,S.,
+            Nie,H., Peng,J., Xu,J., Wang,Y., Yuan,Z., Wen,Y., Yao,Z., Shen,Y.,
+            Qiang,B., Hou,Y., Yu,J. and Jin,Q.
+  TITLE     Genome dynamics and diversity of Shigella species, the etiologic
+            agents of bacillary dysentery
+  JOURNAL   Nucleic Acids Res. 33 (19), 6445-6458 (2005)
+   PUBMED   16275786
+  REMARK    Publication Status: Online-Only
+REFERENCE   2  (bases 1 to 4519823)
+  AUTHORS   Jin,Q., Yang,F., Yang,J., Jiang,Y., Yan,Y., Chen,L., Zhang,X.,
+            Peng,J., Tang,X., Xiong,Z., Nie,H., Dong,J., Xue,Y., Xu,X., Zhu,Y.,
+            Shen,Y., Qiang,B. and Hou,Y.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (29-OCT-2004) State Key Laboratory for Moleclular
+            Virology and Genetic Engineering, Microbial Genome Center of
+            Chinese Ministry of Public Health, 6 Rongjing Eastern Street, BDA,
+            Beijing 100176, P. R. China
+COMMENT     REFSEQ INFORMATION: The reference sequence was derived from
+            CP000036.
+            Annotation was added by the NCBI Prokaryotic Genome Annotation
+            Pipeline (released 2013). Information about the Pipeline can be
+            found here: http://www.ncbi.nlm.nih.gov/genome/annotation_prok/
+            
+            ##Genome-Annotation-Data-START##
+            Annotation Provider                    :: NCBI
+            Annotation Date                        :: 07/30/2015 15:36:18
+            Annotation Pipeline                    :: NCBI Prokaryotic Genome
+                                                      Annotation Pipeline
+            Annotation Method                      :: Best-placed reference
+                                                      protein set; GeneMarkS+
+            Annotation Software revision           :: 3.0
+            Features Annotated                     :: Gene; CDS; rRNA; tRNA;
+                                                      ncRNA; repeat_region
+            Genes                                  :: 5,085
+            CDS                                    :: 4,540
+            Pseudo Genes                           :: 428
+            rRNAs                                  :: 8, 7, 7 (5S, 16S, 23S)
+            complete rRNAs                         :: 8, 7, 7 (5S, 16S, 23S)
+            tRNAs                                  :: 91
+            ncRNA                                  :: 0
+            Frameshifted Genes                     :: 189
+            Frameshifted Genes On Monomer Runs     :: 13
+            Frameshifted Genes Not On Monomer Runs :: 19
+            ##Genome-Annotation-Data-END##
+            COMPLETENESS: full length.
+FEATURES             Location/Qualifiers
+     source          1..4519823
+                     /organism="Shigella boydii Sb227"
+                     /mol_type="genomic DNA"
+                     /strain="Sb227"
+                     /serotype="4"
+                     /db_xref="taxon:300268"
+CONTIG      join(CP000036.1:1..4519823)
+//
+
