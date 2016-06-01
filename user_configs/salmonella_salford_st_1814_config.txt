@@ -1,0 +1,12 @@
+snpdb_name salmonella_salford_st_1814_snps_new
+reference_genome 149355_RL1500000401-1_salford_st_1814
+snpdb_reference_genome_name 149355_RL1500000401-1
+pg_uname philip
+pg_pword 20031986
+pg_host 158.119.147.166
+depth_cutoff 10
+mq_cutoff 30
+ad_cutoff 0.9
+average_depth_cutoff 20
+mixed_position_cutoff 1000
+multi_contig_reference Y

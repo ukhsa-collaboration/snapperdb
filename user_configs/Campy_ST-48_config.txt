@@ -1,0 +1,9 @@
+snpdb_name campy_st48_snps_v2
+reference_genome CP006006
+pg_uname anais
+pg_pword Maxi0412
+pg_host 158.119.147.166
+depth_cutoff 10
+mq_cutoff 30
+ad_cutoff 0.9
+average_depth_cutoff 20

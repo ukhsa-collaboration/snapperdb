@@ -6,4 +6,4 @@ pg_host 158.119.147.166
 depth_cutoff 10
 mq_cutoff 30
 ad_cutoff 0.9
-average_depth_cutoff 30
+average_depth_cutoff 25

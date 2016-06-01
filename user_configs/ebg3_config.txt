@@ -1,4 +1,4 @@
-snpdb_name ebg_3_snps
+snpdb_name salm_ebg3_snps
 reference_genome CP001113
 pg_uname philip
 pg_pword 20031986

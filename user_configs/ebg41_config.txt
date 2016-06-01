@@ -1,0 +1,9 @@
+snpdb_name ebg_41_snps_new
+reference_genome 80606_H15030054201-1_ebg_41_contigs
+pg_uname philip
+pg_pword 20031986
+pg_host 158.119.147.166
+depth_cutoff 10
+mq_cutoff 30
+ad_cutoff 0.9
+average_depth_cutoff 30
