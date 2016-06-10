@@ -546,8 +546,8 @@ class SNPdb:
         print 'Getting ignored positions'
         logger.info('Getting ignored positions')
         self.badlist, self.igpos = self.get_bad_pos_mc()
-        print 'Ignored positions' + str(len(self.badlist))
-        logger.info('Ignored positions' + str(len(self.badlist)))
+        print 'Ignored positions: ' + str(len(self.badlist))
+        logger.info('Ignored positions: ' + str(len(self.badlist)))
 
         #get actual variant objects
         self.variants, self.posIDMap = self.get_variants_mc()
@@ -669,6 +669,7 @@ class SNPdb:
                         if contig in self.n_look:
                             if pos in self.n_look[contig]:
                                 ncount = self.n_look[contig][pos]
+
                         #check recombination
                         rec_flag = False
                         if contig in rec_dict:
@@ -686,7 +687,7 @@ class SNPdb:
                             elif self.var_look[contig][pos]+ncount < len(self.strains_snps):
                                 if pos in self.n_look[contig]:
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
-                            else:
+                                else:
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                     elif re.match("A:(\d+)" ,args.alignment_type) is not None:
                         m = re.match("A:(\d+)" ,args.alignment_type)
@@ -825,9 +826,6 @@ class SNPdb:
         scripts_dir = '/phengs/hpc_projects/routine_gidis/scripts_chron_job/non_fastq_to_vcf'
         this_dir = os.path.dirname(os.path.realpath(__file__))
         snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-
-        # os.system('rm -rf {0}/update_list*'.format(this_dir))
-        # os.system('rm -rf {0}/update_matrix_*'.format(this_dir))
 
 
         for i, each in enumerate(self.chunks(update_strain, args.hpc)):
