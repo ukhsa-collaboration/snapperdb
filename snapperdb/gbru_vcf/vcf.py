@@ -187,14 +187,14 @@ class Vcf:
     def make_ref_fastqs(self, args):
         try:
         	if os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq.gz')):
-        		sys.stderr.write('FASTQs found for  %s' % self.reference_genome)
+        		sys.stderr.write('FASTQs found for  %s\n' % self.reference_genome)
         	else:
         		fastq_path1 = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq'))
         		fastq_path2 = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R2.fastq'))
         		print fastq_path1, fastq_path2, self.ref_genome_path
         		os.system('wgsim -e 0 -N 3000000 -1 100 -2 100 -r 0 -R 0 -X 0 %s %s %s' % (self.ref_genome_path,fastq_path1,fastq_path2))
         		os.system('gzip %s' % (fastq_path1))
-               		os.system('gzip %s' % (fastq_path2))
+                	os.system('gzip %s' % (fastq_path2))
  		
         except IOError:
             sys.stderr.write('Error making reference FASTQ')		
