@@ -1,0 +1,11 @@
+2016-06-07 13:05:01,768	snapperdb.make_snpdb	INFO	PARAMS: config = CC131_config.txt
+2016-06-07 13:05:03,465	snapperdb.fastq_to_vcf	INFO	Running fastq_to_vcf
+2016-06-07 13:05:03,465	snapperdb.fastq_to_vcf	INFO	Parsing config_dict
+2016-06-07 13:05:03,466	snapperdb.fastq_to_vcf	INFO	Defining class variables and making output files
+2016-06-07 13:05:03,466	snapperdb.fastq_to_vcf	INFO	Making FASTQs
+2016-06-07 13:08:15,982	snapperdb.fastq_to_vcf	INFO	Running Pheonix
+2016-06-07 13:46:20,326	snapperdb.snpdb.vcf_to_db	INFO	Initialising SNPdb class
+2016-06-07 13:46:20,328	snapperdb.snpdb.vcf_to_db	INFO	Parsing config dict
+2016-06-07 13:46:20,516	snapperdb.snpdb.vcf_to_db	INFO	You are running vcf_to_db. Initialising Vcf class.
+2016-06-07 13:46:20,516	snapperdb.snpdb.vcf_to_db	INFO	Making SNPdb variables and output files
+2016-06-07 13:46:21,388	snapperdb.snpdb.vcf_to_db	INFO	Uploading to SNPdb

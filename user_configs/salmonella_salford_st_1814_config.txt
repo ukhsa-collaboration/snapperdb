@@ -1,5 +1,5 @@
 snpdb_name salmonella_salford_st_1814_snps_new
-reference_genome 149355_RL1500000401-1_salford_st_1814
+reference_genome 149355_RL1500000401-1
 snpdb_reference_genome_name 149355_RL1500000401-1
 pg_uname philip
 pg_pword 20031986

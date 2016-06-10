@@ -590,7 +590,7 @@ class SNPdb:
                                 if args.ref_flag == 'Y':
                                     #print as long as all no ref posotions not an N
                                     if i in self.n_look[contig]:
-                                        if self.n_look[contig][i] != (len(self.strains_snps)-1): 
+                                        if self.n_look[contig][i] < (len(self.strains_snps)-1): 
                                             f.write(self.fasta[strain][contig][i-1])
                                     else:
                                         f.write(self.fasta[strain][contig][i-1])
@@ -678,7 +678,7 @@ class SNPdb:
                             if args.ref_flag == 'Y':
                                 if pos in self.n_look[contig]:
                                     #dont print N if this posisition in all N
-                                    if self.n_look[contig][pos] != (len(self.strains_snps)-1): 
+                                    if self.n_look[contig][pos] < (len(self.strains_snps)-1): 
                                          f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                                 else:
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
