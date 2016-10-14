@@ -163,8 +163,8 @@ class SNPdb:
             cur.execute(open(sql_script, 'r').read())
             conn.commit()
             conn.close()
-            
-         
+
+
 
     def check_duplicate(self, vcf, database):
         dup = False
@@ -220,7 +220,7 @@ class SNPdb:
                              (ref_genome_path))
             sys.exit()
 
-        #get a cursor    
+        #get a cursor
         dict_cursor = self.snpdb_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor = self.snpdb_conn.cursor()
         #initialise a list for vars
@@ -249,7 +249,7 @@ class SNPdb:
                 if int(pos) not in existing_variants_dict:
                     seq_id = self.add_new_variants(pos, parsed_vcf.ref_base[pos], parsed_vcf.var[pos], parsed_vcf.ref, cursor)
                     var_db_list.append(seq_id)
-                #if we have seen a variant at this position but not rhis variant    
+                #if we have seen a variant at this position but not rhis variant
                 elif parsed_vcf.var[pos] not in existing_variants_dict[int(pos)]:
                     seq_id = self.add_new_variants(pos, parsed_vcf.ref_base[pos], parsed_vcf.var[pos], parsed_vcf.ref, cursor)
                     var_db_list.append(seq_id)
@@ -278,14 +278,14 @@ class SNPdb:
                     ig_db_list.append(seq_id)
                 else:
                     ig_db_list.append(ig_dic[int(pos)])
-        
+
         #add into strains_snp
         insert_statement = 'insert into strains_snps (name, variants_id, ignored_pos) values (%s, %s, %s)'
         cursor.execute(insert_statement, (vcf.sample_name, var_db_list, ig_db_list))
         self.snpdb_conn.commit()
 
     def snpdb_upload(self, vcf):
-        #lets check 
+        #lets check
         if not self.check_duplicate(vcf, 'strains_snps'):
             #add strains
             self.add_info_to_strain_stats(vcf)
@@ -420,7 +420,7 @@ class SNPdb:
             else:
                 pos_2_id_list[row[2]] = {}
                 pos_2_id_list[row[2]][row[0]] = row[1]
-            
+
 
 
         return igPos_container, pos_2_id_list
@@ -443,7 +443,7 @@ class SNPdb:
                 if strain not in fasta:
                     fasta[strain] = deepcopy(ref_seq)
 
-                # go the contig ids 
+                # go the contig ids
                 for ids in sorted(self.strains_snps[strain]):
                     #if this base is not the same as the reference and not a variant when the reference is mapped against iteself
                     if self.variants[ids].var_base != fasta[strain][self.variants[ids].contig][self.variants[ids].pos-1] \
@@ -459,7 +459,7 @@ class SNPdb:
                             elif self.variants[ids].pos not in var_look[self.variants[ids].contig]:
                                 var_look[self.variants[ids].contig][self.variants[ids].pos] = 1
                                 var_id_list.append(ids)
-                            else:    
+                            else:
                                 var_look[self.variants[ids].contig][self.variants[ids].pos] = var_look[self.variants[ids].contig][self.variants[ids].pos] + 1
                                 if ids not in var_id_list:
                                     var_id_list.append(ids)
@@ -475,7 +475,7 @@ class SNPdb:
                         n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
                     else:
                         n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] + 1
-           
+
                 # add the ignored pos from the referecne genome
                 for bad_ids in self.igpos[reference_genome_name]:
                     fasta[strain][self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos-1] = 'N'
@@ -486,7 +486,7 @@ class SNPdb:
                         n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = 1
                     else:
                         n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] + 1
-           
+
         # create a deepcopy to get the reference back
         if args.ref_flag == 'Y':
             fasta[reference_genome_name] = deepcopy(ref_seq)
@@ -501,7 +501,7 @@ class SNPdb:
                 else:
                     n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] = n_look[self.IgPos_container[bad_ids].contig][self.IgPos_container[bad_ids].pos] + 1
         else:
-              del self.strains_snps[reference_genome_name]  
+              del self.strains_snps[reference_genome_name]
         return fasta, var_look, n_look,var_id_list
 
 
@@ -514,7 +514,7 @@ class SNPdb:
                     diff_matrix[strain1][strain2] = 0
                     for contig in self.var_look:
                         for var in self.var_look[contig]:
-                            if self.fasta[strain1][contig][var-1] != self.fasta[strain2][contig][var-1] and self.fasta[strain1][contig][var-1] != 'N' and self.fasta[strain2][contig][var-1] !='N':                                
+                            if self.fasta[strain1][contig][var-1] != self.fasta[strain2][contig][var-1] and self.fasta[strain1][contig][var-1] != 'N' and self.fasta[strain2][contig][var-1] !='N':
                                 diff_matrix[strain1][strain2]+=1
         return diff_matrix
 
@@ -542,7 +542,7 @@ class SNPdb:
 
         print str(len(self.strains_snps)) + ' strains used out of ' + str(len(strain_list))
         logger.info(str(len(self.strains_snps)) + ' strains used out of ' + str(len(strain_list)))
-        
+
         print 'Getting ignored positions'
         logger.info('Getting ignored positions')
         self.badlist, self.igpos = self.get_bad_pos_mc()
@@ -572,7 +572,7 @@ class SNPdb:
                 if args.alignment_type == 'W':
                     for i, seq in enumerate(self.fasta[strain][contig]):
                         f.write(seq)
-                #if we want to include Ns in the alignment        
+                #if we want to include Ns in the alignment
                 elif args.alignment_type == 'A':
                     if contig in self.var_look:
                         for i in sorted(self.var_look[contig]):
@@ -590,12 +590,12 @@ class SNPdb:
                                 if args.ref_flag == 'Y':
                                     #print as long as all no ref posotions not an N
                                     if i in self.n_look[contig]:
-                                        if self.n_look[contig][i] < (len(self.strains_snps)-1): 
+                                        if self.n_look[contig][i] < (len(self.strains_snps)-1):
                                             f.write(self.fasta[strain][contig][i-1])
                                     else:
                                         f.write(self.fasta[strain][contig][i-1])
-                                #print as long as not all var or N            
-                                elif self.var_look[contig][i]+ncount < len(self.strains_snps):        
+                                #print as long as not all var or N
+                                elif self.var_look[contig][i]+ncount < len(self.strains_snps):
                                     f.write(self.fasta[strain][contig][i-1])
                 #if we want to include a proportion of N's
                 elif re.match("A:(\d+)" ,args.alignment_type) is not None:
@@ -621,7 +621,7 @@ class SNPdb:
                                             f.write(self.fasta[strain][contig][i-1])
                                     else:
                                             f.write(self.fasta[strain][contig][i-1])
-                                elif self.var_look[contig][i]+ncount < len(self.strains_snps):          
+                                elif self.var_look[contig][i]+ncount < len(self.strains_snps):
                                     if i in self.n_look[contig]:
                                         #dont print N if this posisition in all N
                                         if (float(float(self.n_look[contig][i]) / float(len(self.strains_snps))*100) < float(100-float(co))):
@@ -653,7 +653,7 @@ class SNPdb:
                 if strain1 != strain2:
                     f.write(strain1 + "\t" + strain2 + "\t" + str(self.matrix[strain1][strain2]) + "\n")
 
-   
+
 
     def print_vars_mc(self,args, rec_dict):
         f = open(args.out + '.variants', 'w')
@@ -679,7 +679,7 @@ class SNPdb:
                             if args.ref_flag == 'Y':
                                 if pos in self.n_look[contig]:
                                     #dont print N if this posisition in all N
-                                    if self.n_look[contig][pos] < (len(self.strains_snps)-1): 
+                                    if self.n_look[contig][pos] < (len(self.strains_snps)-1):
                                          f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                                 else:
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
@@ -691,7 +691,7 @@ class SNPdb:
                                     f.write(str(var_id) + "\t" + str(self.variants[var_id].contig) + "\t" + str(self.variants[var_id].pos) + "\t" + str(self.variants[var_id].var_base) + "\t" + str(self.variants[var_id].amino_acid) + "\t" + str(self.variants[var_id].gene) + "\t" + str(self.variants[var_id].product) + "\n")
                     elif re.match("A:(\d+)" ,args.alignment_type) is not None:
                         m = re.match("A:(\d+)" ,args.alignment_type)
-                        co = m.group(1)                       
+                        co = m.group(1)
                         #get number of N's for this position
                         ncount = 0
                         if contig in self.n_look:
@@ -800,11 +800,11 @@ class SNPdb:
                     # getsymmetric difference of variants
                     all_var = set(strain1_good_var) ^ set(strain2_good_var)
                     diff = 0
-		    for var_id in all_var:
-                    	if self.variants[var_id].pos not in self.igposIDMap[self.variants[var_id].contig]:
-                        	diff = diff + 1
-                    	elif self.igposIDMap[self.variants[var_id].contig][self.variants[var_id].pos] not in self.all_bad_pos:
-                        	diff = diff + 1
+                    for var_id in all_var:
+                        if self.variants[var_id].pos not in self.igposIDMap[self.variants[var_id].contig]:
+                            diff = diff + 1
+                        elif self.igposIDMap[self.variants[var_id].contig][self.variants[var_id].pos] not in self.all_bad_pos:
+                            diff = diff + 1
 
                     # add to db
                     sql2 = "insert into dist_matrix (strain1, strain2, snp_dist) VALUES (\'%s\',\'%s\',%s)" % (strain1, strain2, diff)
@@ -821,9 +821,14 @@ class SNPdb:
         1. write lists
         2. for each in lists, qsub
         '''
-        home_dir = os.path.expanduser('~')
-        logs_dir = '/phengs/hpc_projects/routine_gidis/logs_chron_jobs'
-        scripts_dir = '/phengs/hpc_projects/routine_gidis/scripts_chron_job/non_fastq_to_vcf'
+        # ulf's hack
+        #home_dir = os.path.expanduser('~')
+        #logs_dir = '/phengs/hpc_projects/routine_gidis/logs_chron_jobs'
+        #scripts_dir = '/phengs/hpc_projects/routine_gidis/scripts_chron_job/non_fastq_to_vcf'
+        home_dir = os.getcwd()
+        logs_dir = os.getcwd()
+        scripts_dir = os.getcwd()
+
         this_dir = os.path.dirname(os.path.realpath(__file__))
         snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -850,6 +855,7 @@ class SNPdb:
                        '#$ -wd {1}\n'
                        '#$ -N up_mat_{2}_{3}\n\n'
                        '. /etc/profile.d/modules.sh\n'
+                       'module use /home/ulf/modulefiles'
                        'module load gastro/snapperdb/0.2\n'
                        'SnapperDB_main.py'
                        ' qsub_to_check_matrix -c {4}'
@@ -1080,7 +1086,7 @@ class SNPdb:
                     cluster_dict[i][row[i+1]].append(row[0])
                 else:
                     cluster_dict[i][row[i+1]].append(row[0])
-                    
+
 
         return co, cluster_strain_list, cluster_dict
 
@@ -1204,5 +1210,3 @@ class SNPdb:
         To do
         '''
         pass
-
-    

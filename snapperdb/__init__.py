@@ -19,7 +19,10 @@ __ref_genome_dir__ = os.path.join(os.path.dirname(os.path.dirname(os.path.realpa
 
 
 def parse_config(args):
-    path_to_config = os.path.join(__config_dir__, args.config_file)
+    if os.path.isabs(args.config_file) == False:
+        path_to_config = os.path.join(__config_dir__, args.config_file) # - deprecating this as need to handle not having configs
+    else:
+        path_to_config = args.config_file
     # in the user_configs that can be found relative to the script dir.
     # however, can still use just the name of the file as user_configs in the module dir is in the
     # path when you load the module

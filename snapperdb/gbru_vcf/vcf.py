@@ -105,105 +105,103 @@ class Vcf:
 
         parsed_vcf = ""
 
-	for line in openfile:
-		if not re.match(r'^#', line):
-			split_line = line.split()
-			# get reference
-			ref = split_line[0]
-	
-			# if the reference is new
-			if ref != oref:
-			    # if the reference is new and this is not the first reference and the parsed vcf object
-			    if oref != '':
-				self.parsed_vcf_container.append(parsed_vcf)
-			    #create a parsed vcf object    
-			    parsed_vcf = ParsedVcf()
-			    oref = ref
-			    parsed_vcf.ref = ref
-			
-	
-			#make some vars so easier to read
-			pos = split_line[1]
-			filter_flag = split_line[6]
-			var_call = split_line[4]
-			ref_call = split_line[3]
-	
-			parsed_vcf.filter_flag[pos] = filter_flag
-					
-			#split into ignore
-			if parsed_vcf.filter_flag[pos] != 'PASS':
-			    parsed_vcf.bad_pos.append(pos)
-			else:
-			    parsed_vcf.good_var.append(pos)
-			
-			parsed_vcf.var[pos] = var_call
-			parsed_vcf.ref_base[pos] = ref_call
-			
-			# get depth
-			matchObj = re.match(r'.*DP=(\d*)', line)
-			try:
-			    parsed_vcf.depth[pos] = matchObj.group(1)
-			except AttributeError:
-			    parsed_vcf.depth[pos] = 0
-			# get map quality
-			matchObj = re.match(r'.*MQ=(\d*\.\d*)', line)
-			try:
-			    parsed_vcf.qual[pos] = matchObj.group(1)
-			except AttributeError:
-			    parsed_vcf.qual[pos] = 0
-			
-			#if a variant get some other things - including with it's a mix
-			if var_call != '.':
-			    matchObvar = re.match(r'.*GT:AD:DP:GQ:PL\s+(.*)', line)
-			    format_string = matchObvar.group(1).split(':')
-			    parsed_vcf.hap_call[pos] = format_string[0]
-			    parsed_vcf.hap_depth[pos] = format_string[2]
-			    parsed_vcf.hap_qual[pos] = format_string[3]
-			    ad_string = format_string[1].split(',')
-			    parsed_vcf.hap_var_count[pos] = float(ad_string[1]) / float(parsed_vcf.hap_depth[pos])
-			    if parsed_vcf.hap_var_count[pos] < self.ad_cutoff:
-				parsed_vcf.mixed_positions.append(int(pos))
-		else:
-             	     if re.match(r'##coverageMetaData',line):
-               	       matchObj = re.match(r'.*mean=(\d*\.\d*)',line)
-               	       try:
-               	       	       self.depth_average = matchObj.group(1)
-               	       except AttributeError:
-               	       	       self.depth_average = 'not calculated'
-             
+        for line in openfile:
+            if not re.match(r'^#', line):
+                split_line = line.split()
+                # get reference
+                ref = split_line[0]
+
+                # if the reference is new
+                if ref != oref:
+                    # if the reference is new and this is not the first reference and the parsed vcf object
+                    if oref != '':
+                        self.parsed_vcf_container.append(parsed_vcf)
+                    #create a parsed vcf object
+                    parsed_vcf = ParsedVcf()
+                    oref = ref
+                    parsed_vcf.ref = ref
+
+
+                #make some vars so easier to read
+                pos = split_line[1]
+                filter_flag = split_line[6]
+                var_call = split_line[4]
+                ref_call = split_line[3]
+
+                parsed_vcf.filter_flag[pos] = filter_flag
+
+                #split into ignore
+                if parsed_vcf.filter_flag[pos] != 'PASS':
+                    parsed_vcf.bad_pos.append(pos)
+                else:
+                    parsed_vcf.good_var.append(pos)
+
+                parsed_vcf.var[pos] = var_call
+                parsed_vcf.ref_base[pos] = ref_call
+
+                # get depth
+                matchObj = re.match(r'.*DP=(\d*)', line)
+                try:
+                    parsed_vcf.depth[pos] = matchObj.group(1)
+                except AttributeError:
+                    parsed_vcf.depth[pos] = 0
+                # get map quality
+                matchObj = re.match(r'.*MQ=(\d*\.\d*)', line)
+                try:
+                    parsed_vcf.qual[pos] = matchObj.group(1)
+                except AttributeError:
+                    parsed_vcf.qual[pos] = 0
+
+                #if a variant get some other things - including with it's a mix
+                if var_call != '.':
+                    matchObvar = re.match(r'.*GT:AD:DP:GQ:PL\s+(.*)', line)
+                    format_string = matchObvar.group(1).split(':')
+                    parsed_vcf.hap_call[pos] = format_string[0]
+                    parsed_vcf.hap_depth[pos] = format_string[2]
+                    parsed_vcf.hap_qual[pos] = format_string[3]
+                    ad_string = format_string[1].split(',')
+                    parsed_vcf.hap_var_count[pos] = float(ad_string[1]) / float(parsed_vcf.hap_depth[pos])
+                    if parsed_vcf.hap_var_count[pos] < self.ad_cutoff:
+                        parsed_vcf.mixed_positions.append(int(pos))
+            else:
+                if re.match(r'##coverageMetaData',line):
+                    matchObj = re.match(r'.*mean=(\d*\.\d*)',line)
+                    try:
+                        self.depth_average = matchObj.group(1)
+                    except AttributeError:
+                        self.depth_average = 'not calculated'
+
         #add the last vcf
         self.parsed_vcf_container.append(parsed_vcf)
         #close file
         openfile.close()
-        
-       
 
-        #calculate total number of mixed positions 
+        #calculate total number of mixed positions
         self.number_mixed_positions = 0
         for p_vcf in self.parsed_vcf_container:
             self.number_mixed_positions += len(p_vcf.mixed_positions)
-       
+
 
     def make_ref_fastqs(self, args):
         try:
-        	if os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq.gz')):
-        		sys.stderr.write('FASTQs found for  %s\n' % self.reference_genome)
-        	else:
-        		fastq_path1 = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq'))
-        		fastq_path2 = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R2.fastq'))
-        		print fastq_path1, fastq_path2, self.ref_genome_path
-        		os.system('wgsim -e 0 -N 3000000 -1 100 -2 100 -r 0 -R 0 -X 0 %s %s %s' % (self.ref_genome_path,fastq_path1,fastq_path2))
-        		os.system('gzip %s' % (fastq_path1))
-                	os.system('gzip %s' % (fastq_path2))
- 		
+            if os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq.gz')):
+                sys.stderr.write('FASTQs found for  %s\n' % self.reference_genome)
+            else:
+                fastq_path1 = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq'))
+                fastq_path2 = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R2.fastq'))
+                print fastq_path1, fastq_path2, self.ref_genome_path
+                os.system('wgsim -e 0 -N 3000000 -1 100 -2 100 -r 0 -R 0 -X 0 %s %s %s' % (self.ref_genome_path,fastq_path1,fastq_path2))
+                os.system('gzip %s' % (fastq_path1))
+                os.system('gzip %s' % (fastq_path2))
+
         except IOError:
-            sys.stderr.write('Error making reference FASTQ')		
+            sys.stderr.write('Error making reference FASTQ')
 
 
     def define_fastq_paths(self,args):
-    	        args.fastqs.append(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq.gz'))
-    	        args.fastqs.append(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R2.fastq.gz'))
-    
+        args.fastqs.append(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq.gz'))
+        args.fastqs.append(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R2.fastq.gz'))
+
 
     def define_class_variables_and_make_output_files(self, args):
         try:
@@ -220,8 +218,9 @@ class Vcf:
         except IOError:
             sys.stderr.write('Cant find reference genome %s' % self.reference_genome)
 
-        self.make_tmp_dir(args)
-        self.vcf_filehandle = os.path.join(self.tmp_dir, os.path.pardir, '{0}.filtered.vcf'.format(self.sample_name))
+        # ulf's hack
+        # self.vcf_filehandle = os.path.join(self.tmp_dir, os.path.pardir, '{0}.vcf'.format(self.sample_name))
+        self.vcf_filehandle = args.vcf[0]
 
     def check_reference_bwa_indexed(self):
         indices = ['amb', 'ann', 'bwt', 'pac', 'sa']
@@ -255,7 +254,7 @@ class Vcf:
             picard_dict_path = os.path.splitext(self.ref_genome_path)[0]
             os.system('java -jar $PICARD_TOOLS_PATH/CreateSequenceDictionary.jar R= %s O= %s.dict'
                       % (self.ref_genome_path, picard_dict_path))
-        
+
         if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + 'dict'):
             pass
         else:
