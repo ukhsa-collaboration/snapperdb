@@ -15,7 +15,14 @@ __version__ = "v0.1.1 "  # + subprocess.check_output(['git', 'rev-parse', '--sho
 
 
 __config_dir__ = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'user_configs')
-__ref_genome_dir__ = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'reference_genomes')
+
+# in the brave new world we no longer keep stuff in relative paths to the code
+# the location of the reference genomes is set in the module for phe/gastro_fastq_to_vcf_config
+# keep the except branch for compatibility - ulf 1Nov2016
+try:
+    __ref_genome_dir__ = os.path.join(os.environ['GASTROSNAPPER_REFPATH'], "0.2")
+except KeyError:
+    __ref_genome_dir__ = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'reference_genomes')
 
 
 def parse_config(args):
