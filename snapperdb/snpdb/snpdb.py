@@ -399,6 +399,8 @@ class SNPdb:
             ig_pos[row[2]] = row[0]
         return totlist, ig_pos
 
+# -------------------------------------------------------------------------------------------------
+
     def get_igs_mc(self):
         cur = self.snpdb_conn.cursor()
         #create ignored pos container where key is id
@@ -421,10 +423,9 @@ class SNPdb:
                 pos_2_id_list[row[2]] = {}
                 pos_2_id_list[row[2]][row[0]] = row[1]
 
-
-
         return igPos_container, pos_2_id_list
 
+# -------------------------------------------------------------------------------------------------
 
     def make_consensus_mc(self, ref_seq, args, reference_genome_name):
         #create a  dictionary for the alignment
@@ -783,33 +784,83 @@ class SNPdb:
             strain_ig = row[0]
         return strain_ig
 
+# -------------------------------------------------------------------------------------------------
+
+    #def check_matrix(self, data_list, update_strain):
+    #    cur = self.snpdb_conn.cursor()
+    #    seen_strain = []
+    #    for strain1 in update_strain:
+    #        seen_strain.append(strain1)
+    #        print "Populating matrix for: " + strain1
+    #        strain1_good_var = self.strains_snps[strain1]
+    #        strain1_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain1)
+    #        for strain2 in data_list:
+    #            if strain1 != strain2 and strain2 not in seen_strain:
+    #                strain2_good_var = self.strains_snps[strain2]
+    #                strain2_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain2)
+    #                # getunion of bad_pos
+    #                self.all_bad_pos = set(strain1_ig_pos) | set(strain2_ig_pos)
+    #                # getsymmetric difference of variants
+    #                all_var = set(strain1_good_var) ^ set(strain2_good_var)
+    #                diff = 0
+    #                for var_id in all_var:
+    #                    if self.variants[var_id].pos not in self.igposIDMap[self.variants[var_id].contig].keys():
+    #                        diff = diff + 1
+    #                    elif self.igposIDMap[self.variants[var_id].contig][self.variants[var_id].pos] not in self.all_bad_pos:
+    #                        diff = diff + 1
+
+    #                # add to db
+    #                sql2 = "insert into dist_matrix (strain1, strain2, snp_dist) VALUES (\'%s\',\'%s\',%s)" % (strain1, strain2, diff)
+    #                cur.execute(sql2)
+    #                self.snpdb_conn.commit()
+
+# -------------------------------------------------------------------------------------------------
+
     def check_matrix(self, data_list, update_strain):
         cur = self.snpdb_conn.cursor()
-        seen_strain = []
-        for strain1 in update_strain:
-            seen_strain.append(strain1)
-            print "Populating matrix for: " + strain1
-            strain1_good_var = self.strains_snps[strain1]
-            strain1_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain1)
-            for strain2 in data_list:
-                if strain1 != strain2 and strain2 not in seen_strain:
-                    strain2_good_var = self.strains_snps[strain2]
-                    strain2_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain2)
-                    # getunion of bad_pos
-                    self.all_bad_pos = set(strain1_ig_pos) | set(strain2_ig_pos)
-                    # getsymmetric difference of variants
-                    all_var = set(strain1_good_var) ^ set(strain2_good_var)
-                    diff = 0
-                    for var_id in all_var:
-                        if self.variants[var_id].pos not in self.igposIDMap[self.variants[var_id].contig]:
-                            diff = diff + 1
-                        elif self.igposIDMap[self.variants[var_id].contig][self.variants[var_id].pos] not in self.all_bad_pos:
-                            diff = diff + 1
+        seen_strain = set()
 
-                    # add to db
-                    sql2 = "insert into dist_matrix (strain1, strain2, snp_dist) VALUES (\'%s\',\'%s\',%s)" % (strain1, strain2, diff)
-                    cur.execute(sql2)
-                    self.snpdb_conn.commit()
+        lookup = range(6500000)
+        strain_ig_pos_dict = {}
+        for strn in set(data_list):
+            strain_ig_pos_dict[strn] = [lookup[x] for x in self.get_bad_pos_for_strain_update_matrix(cur, strn)]
+
+        newrows = []
+
+        for strain1 in update_strain:
+            seen_strain.add(strain1)
+            print "Populating matrix for: " + strain1
+            # get ids of all variants in strain1
+            strain1_good_var = self.strains_snps[strain1]
+            # get ids of all bad positions in strain1
+            # strain1_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain1)
+            strain1_ig_pos = set(strain_ig_pos_dict[strain1])
+
+            # don't loop over the ones already seen
+            data_set = set(data_list).difference(seen_strain)
+
+            for strain2 in data_set:
+                # get ids of all variants in strain2
+                strain2_good_var = self.strains_snps[strain2]
+                # get ids of all bad positions in strain2
+                # strain2_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain2)
+                strain2_ig_pos = strain_ig_pos_dict[strain2]
+                # get union of bad position ids
+                all_bad_ids = strain1_ig_pos | set(strain2_ig_pos)
+                # get symmetric difference of variant ids
+                all_var = set(strain1_good_var) ^ set(strain2_good_var)
+                # get sets of (position, contig) tuples
+                all_var_pos = set([(self.variants[var_id].pos, self.variants[var_id].contig) for var_id in all_var])
+                all_bad_pos = set([(self.IgPos_container[bad_id].pos, self.IgPos_container[bad_id].contig) for bad_id in all_bad_ids])
+                # the difference is the number of variants that are not at a bad position
+                diff = len(all_var_pos.difference(all_bad_pos))
+                newrows.append((strain1, strain2, diff))
+        # add to db
+        sql2 = "insert into dist_matrix (strain1, strain2, snp_dist) VALUES (%s, %s, %s)"
+        cur.executemany(sql2, tuple(newrows))
+        self.snpdb_conn.commit()
+
+# -------------------------------------------------------------------------------------------------
 
     def chunks(self, l, n):
         for i in xrange(0, len(l), n):
@@ -1121,9 +1172,11 @@ class SNPdb:
             for i, cluster in enumerate(clusters[co]):
                 cluster_list[co][clusters[co][cluster]] = cluster
                 for strain in list(cluster):
-                    if strain not in strain_list:
-                        strain_list[strain] = []
-                    strain_list[strain].append(int(clusters[co][cluster]))
+                    try:
+                        strain_list[strain].append(int(clusters[co][cluster]))
+                    except KeyError:
+                        strain_list[strain] = [int(clusters[co][cluster])]
+
         #for new strains look at zscore for that cluster
         seen_clusters = {}
         for strain in (sorted(tuple(strain_list), key=strain_list.get)):
@@ -1138,22 +1191,34 @@ class SNPdb:
                         print "### Investigating ",
                         print level,strain_list[strain][i]
 
-                        if level not in seen_clusters:
-                            seen_clusters[level] = []
+                        try:
                             seen_clusters[level].append(strain_list[strain][i])
-                        else:
-                            seen_clusters[level].append(strain_list[strain][i])
-                        check_list = cluster_list[level][strain_list[strain][i]]
+                        except KeyError:
+                            seen_clusters[level] = [strain_list[strain][i]]
+
+                        # check_list = cluster_list[level][strain_list[strain][i]]
+                        check_list = set(cluster_list[level][strain_list[strain][i]])
+
                         total_dist = {}
                         total = 0
                         for strain1 in check_list:
-                            total_dist[strain1] = 0
-                            strain2_list = profile_dict[strain1]
-                            for strain2 in strain2_list:
-                                if strain2 in check_list:
-                                    total_dist[strain1] = total_dist[strain1] + profile_dict[strain1][strain2]
-                                    total = total + profile_dict[strain1][strain2]
+                            # total_dist[strain1] = 0
+
+                            # maybe faster - ulf
+                            # strain2_list = profile_dict[strain1]
+                            strain2_list = set(profile_dict[strain1]).intersection(check_list)
+
+                            # for strain2 in strain2_list:
+                                # if strain2 in check_list: #not needed because of set operation above
+                                # total_dist[strain1] += profile_dict[strain1][strain2]
+                            total_dist[strain1] = sum([profile_dict[strain1][strain2] for strain2 in strain2_list])
+
+                                    # total = total + profile_dict[strain1][strain2]
+                            total += total_dist[strain1]
+
                             total_dist[strain1] = float(total_dist[strain1]) / float(len(check_list))
+                            #print strain1, total_dist[strain1]
+
                         av = float(total) / (float(len(check_list))*float(len(check_list)))
                         print "### Average Distance ",
                         print av
@@ -1188,7 +1253,6 @@ class SNPdb:
             clusters = self.define_clusters(links)
             #print "removing duplicates"
             clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
-
 
         print "###  Getting previously checked outliers:"+ str(datetime.time(datetime.now()))
         outliers = self.get_outliers()
