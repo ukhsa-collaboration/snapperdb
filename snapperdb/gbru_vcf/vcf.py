@@ -219,8 +219,9 @@ class Vcf:
             sys.stderr.write('Cant find reference genome %s' % self.reference_genome)
 
         # ulf's hack
-        # self.vcf_filehandle = os.path.join(self.tmp_dir, os.path.pardir, '{0}.vcf'.format(self.sample_name))
-        self.vcf_filehandle = args.vcf[0]
+        self.make_tmp_dir(args)
+        self.vcf_filehandle = os.path.join(self.tmp_dir, os.path.pardir, '{0}.vcf'.format(self.sample_name))
+        #self.vcf_filehandle = args.vcf[0]
 
     def check_reference_bwa_indexed(self):
         indices = ['amb', 'ann', 'bwt', 'pac', 'sa']
