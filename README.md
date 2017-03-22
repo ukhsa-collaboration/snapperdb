@@ -1,34 +1,23 @@
 # SnapperDB README
 
-Welcome to SnapperDB, congratulations on having the excellent taste to use our software for all your FASTQ -> phylogeny needs. 
 
-First things first, we are going to assume you work at PHE on the HPC infrastructure. If you don't then I need to update this documentation.
+Welcome to SnapperDB, A scalable database for routine sequencing of bacterial isolates.
 
-Because of problems with our java executibles, you need to have set the $PICARD_TOOLS_PATH env variable to be the path to the picard tools executibles. If you are working on the PHE infrastructure, this will happen automatically when you load the picard tools module.
+SnapperDB is a python application that sits on one or more postgres databases to manage reference based SNP typing of bacterial isolates.
+
+SnapperDB can take a pair of FASTQ sequencing reads and execute a user-defined variant calling pipeline storing the result variant calls and absent positions for each isolate.
+
+As the database is populated a pair-wise distance matrix of SNP distances is calculated that can be used to generate a isolate level hierichical clustering nomenclature - the SNP Address.
+
+SnapperDB has been used internally within Public Health England to process >20,000 isolates of *Salmonella*, *E. coli* and other gastrointestinal pathogens.
+
 
 ### Version
 
 0.2
 
-### Basic Useage
+### Dependencies
 
-You don't need to clone the git repo as the release branch of SnapperDB is available as a module on the cluster.
-
-All you need to do is
-
-```sh
-$ module load snapperdb/0.2
-```
-
-After that, the SnapperDB_main.py executable will be in your path. 
-```sh
-$ SnapperDB_main.py 
-```
-SnapperDB obeys Torsten's first law - 'print something when no parameters supplied'. So you should see some info about useage printed following the above command. More info available if you ask for it.
-
-```sh
-$ SnapperDB_main.py 
-```
 
 ### Typical Workflow
 
