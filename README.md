@@ -3,9 +3,10 @@
 
 Welcome to SnapperDB, A scalable database for routine sequencing of bacterial isolates.
 
-SnapperDB is a python application that sits on one or more postgres databases to manage reference based SNP typing of bacterial isolates.
+SnapperDB is a python application that sits upon one or more postgres databases to manage reference based SNP typing of bacterial isolates.
 
 SnapperDB can take a pair of FASTQ sequencing reads and execute a user-defined variant calling pipeline storing the result variant calls and absent positions for each isolate.
+
 
 As the database is populated a pair-wise distance matrix of SNP distances is calculated that can be used to generate a isolate level hierichical clustering nomenclature - the SNP Address.
 
@@ -18,8 +19,36 @@ SnapperDB has been used internally within Public Health England to process >20,0
 
 ### Dependencies
 
+python 2.7.6
+phenix 
+samtools
+picardtools
+pip install biopython
+pip install pyscopg2
 
-### Typical Workflow
+
+
+### Creating a Database
+
+
+### Populating a Database with FASTQs
+
+
+### Populating a Database with VCFs
+
+
+### Populating a Database with JSON Export
+
+
+### Updating the distance matrix
+
+
+### Generating SNP Addresses
+
+
+### Querying the Database
+
+
 
 So, you have successfully loaded the module and run SnapperDB_main.py. What next?
 

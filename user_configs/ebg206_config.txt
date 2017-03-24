@@ -1,9 +1,0 @@
-snpdb_name ebg_206_snps
-reference_genome 197107_H15512054601-2_contigs
-pg_uname philip
-pg_pword 20031986
-pg_host 158.119.147.166
-depth_cutoff 10
-mq_cutoff 30
-ad_cutoff 0.9
-average_depth_cutoff 30

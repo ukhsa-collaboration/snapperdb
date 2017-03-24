@@ -1,9 +1,0 @@
-snpdb_name ebg_31_snps_v2
-reference_genome 91264_H15092067901-2
-pg_uname tim
-pg_pword db9941606
-pg_host 158.119.147.166
-depth_cutoff 10
-mq_cutoff 30
-ad_cutoff 0.9
-average_depth_cutoff 30

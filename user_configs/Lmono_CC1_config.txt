@@ -1,9 +1,0 @@
-snpdb_name listeria_cc1_snps
-reference_genome F2365
-pg_uname philip
-pg_pword 20031986
-pg_host 158.119.147.166
-depth_cutoff 10
-mq_cutoff 30
-ad_cutoff 0.9
-mixed_position_cutoff 

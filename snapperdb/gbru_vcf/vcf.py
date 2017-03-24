@@ -176,7 +176,7 @@ class Vcf:
         #close file
         openfile.close()
 
-        #calculate total number of mixed positions
+        #calculate total number of mixed positions // this has been depreciated
         self.number_mixed_positions = 0
         for p_vcf in self.parsed_vcf_container:
             self.number_mixed_positions += len(p_vcf.mixed_positions)
@@ -253,7 +253,7 @@ class Vcf:
             pass
         else:
             picard_dict_path = os.path.splitext(self.ref_genome_path)[0]
-            os.system('java -jar $PICARD_TOOLS_PATH/CreateSequenceDictionary.jar R= %s O= %s.dict'
+            os.system('picard CreateSequenceDictionary.jar R= %s O= %s.dict'
                       % (self.ref_genome_path, picard_dict_path))
 
         if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + 'dict'):

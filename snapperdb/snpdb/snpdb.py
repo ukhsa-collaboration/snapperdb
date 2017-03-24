@@ -145,7 +145,7 @@ class SNPdb:
     def make_snpdb(self):
         does_snpdb_exist = self._check_if_snpdb_exists()
         if does_snpdb_exist == True:
-            sys.stderr.write('This snpdb already exists\n')
+            sys.stderr.write('This SNPdb already exists\n')
         else:
             sys.stdout.write('The SNPdb {0} does not exist - running sql to  make snpdb\n'.format(self.snpdb_name))
             make_db_conn_string = 'host=\'{0}\' dbname=postgres user=\'{1}\' password=\'{2}\''.format(self.pg_host,
@@ -318,8 +318,6 @@ class SNPdb:
         rows = cur.fetchall()
         for row in rows:
             strain_list.append(row[0])
-
-        ## not currently handling meta - perhaps should add?
 
         return strain_list
 
@@ -784,35 +782,6 @@ class SNPdb:
             strain_ig = row[0]
         return strain_ig
 
-# -------------------------------------------------------------------------------------------------
-
-    #def check_matrix(self, data_list, update_strain):
-    #    cur = self.snpdb_conn.cursor()
-    #    seen_strain = []
-    #    for strain1 in update_strain:
-    #        seen_strain.append(strain1)
-    #        print "Populating matrix for: " + strain1
-    #        strain1_good_var = self.strains_snps[strain1]
-    #        strain1_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain1)
-    #        for strain2 in data_list:
-    #            if strain1 != strain2 and strain2 not in seen_strain:
-    #                strain2_good_var = self.strains_snps[strain2]
-    #                strain2_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain2)
-    #                # getunion of bad_pos
-    #                self.all_bad_pos = set(strain1_ig_pos) | set(strain2_ig_pos)
-    #                # getsymmetric difference of variants
-    #                all_var = set(strain1_good_var) ^ set(strain2_good_var)
-    #                diff = 0
-    #                for var_id in all_var:
-    #                    if self.variants[var_id].pos not in self.igposIDMap[self.variants[var_id].contig].keys():
-    #                        diff = diff + 1
-    #                    elif self.igposIDMap[self.variants[var_id].contig][self.variants[var_id].pos] not in self.all_bad_pos:
-    #                        diff = diff + 1
-
-    #                # add to db
-    #                sql2 = "insert into dist_matrix (strain1, strain2, snp_dist) VALUES (\'%s\',\'%s\',%s)" % (strain1, strain2, diff)
-    #                cur.execute(sql2)
-    #                self.snpdb_conn.commit()
 
 # -------------------------------------------------------------------------------------------------
 
@@ -1068,6 +1037,9 @@ class SNPdb:
             sql = sql + ')'
             cur.execute(sql)
             self.snpdb_conn.commit()
+
+    #def add_ref_clusters_to_table(self):
+
 
     def add_clusters_to_existing_table(self, clusters, profile_dict, levels, cluster_strain_list):
         cur = self.snpdb_conn.cursor()
