@@ -15,7 +15,7 @@ SnapperDB has been used internally within Public Health England to process >20,0
 
 ### Version
 
-0.2
+1.0
 
 ### Dependencies
 
@@ -25,6 +25,8 @@ samtools
 picardtools
 pip install biopython
 pip install pyscopg2
+GATK
+BWA
 
 
 

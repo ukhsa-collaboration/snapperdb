@@ -78,6 +78,8 @@ def run_command(args):
         vcf = make_fastq(args, config_dict)
         vcf_to_db(args, config_dict, vcf)
 
+        #add reference genome to strain_clusters
+
     elif args.command == 'get_the_snps':
         logger = logging.getLogger('snapperdb.get_the_snps')
         logger.info(

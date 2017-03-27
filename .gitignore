@@ -1,5 +1,8 @@
+*.fastq.gz
 *.pyc
 .project
 .idea
 .pydevproject
 .DS_store
+logs
+snpdb
