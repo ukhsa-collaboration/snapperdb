@@ -26,6 +26,7 @@ class ParsedVcf:
         self.bad_pos = []
         self.good_var = []
 
+# -------------------------------------------------------------------------------------------------
 
 
 class Vcf:
@@ -48,12 +49,13 @@ class Vcf:
         self.mq_cutoff = None
         self.ad_cutoff = None
         self.number_mixed_positions = None
-        self.mixed_positions = []
         self.rec_list = []
         self.vcf_max_pos = None
         self.ref = None
         self.contig = None
         self.parsed_vcf_container = []
+        self.mapper = None
+        self.variant_caller = None
 
     def parse_config_dict(self, config_dict):
         # # we loop through thusly in case not all these things are in the config
@@ -66,6 +68,12 @@ class Vcf:
                 self.mq_cutoff = config_dict[attr]
             if attr == 'ad_cutoff':
                 self.ad_cutoff = config_dict[attr]
+            if attr == 'mapper':
+                self.mapper = config_dict[attr]
+            if attr == 'variant_caller':
+                self.variant_caller = config_dict[attr]                                
+# -------------------------------------------------------------------------------------------------
+
 
     def mkdir_p(self, path):
         try:
@@ -75,6 +83,7 @@ class Vcf:
                 pass
             else:
                 raise
+# -------------------------------------------------------------------------------------------------
 
     def make_tmp_dir(self, args):
         try:
@@ -84,6 +93,7 @@ class Vcf:
             # # this is because we also call this from vcf_to_db, where args doesn't contain fastqs, but a vcf.
             self.tmp_dir = os.path.join(os.path.dirname(args.vcf[0]))
 
+# -------------------------------------------------------------------------------------------------
 
     def read_multi_contig_vcf(self):
 
@@ -181,6 +191,7 @@ class Vcf:
         for p_vcf in self.parsed_vcf_container:
             self.number_mixed_positions += len(p_vcf.mixed_positions)
 
+# -------------------------------------------------------------------------------------------------
 
     def make_ref_fastqs(self, args):
         try:
@@ -196,12 +207,14 @@ class Vcf:
 
         except IOError:
             sys.stderr.write('Error making reference FASTQ')
+# -------------------------------------------------------------------------------------------------
 
 
     def define_fastq_paths(self,args):
         args.fastqs.append(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq.gz'))
         args.fastqs.append(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R2.fastq.gz'))
 
+# -------------------------------------------------------------------------------------------------
 
     def define_class_variables_and_make_output_files(self, args):
         try:
@@ -218,10 +231,11 @@ class Vcf:
         except IOError:
             sys.stderr.write('Cant find reference genome %s' % self.reference_genome)
 
-        # ulf's hack
+        # set vcf path
         self.make_tmp_dir(args)
         self.vcf_filehandle = os.path.join(self.tmp_dir, os.path.pardir, '{0}.vcf'.format(self.sample_name))
         #self.vcf_filehandle = args.vcf[0]
+# -------------------------------------------------------------------------------------------------
 
     def check_reference_bwa_indexed(self):
         indices = ['amb', 'ann', 'bwt', 'pac', 'sa']
@@ -230,20 +244,20 @@ class Vcf:
                 pass
             else:
                 os.system('bwa index %s' % self.ref_genome_path)
-                # process = subprocess.Popen(['bwa', 'index', self.ref_genome_path],
-                #                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         for i in indices:
             if os.path.exists(self.ref_genome_path + '.' + i):
                 pass
             else:
                 sys.stderr.write('Reference not indexed, you need to index with `bwa index <ref_genome.fa>`')
                 sys.exit()
+# -------------------------------------------------------------------------------------------------
 
     def run_phoenix(self,args):
         self.check_reference_bwa_indexed()
         self.check_reference_gatk_indexed()
-        os.system('phenix.py run_snp_pipeline -r1 %s -r2 %s -r %s -o %s -m bwa -v gatk --sample-name %s --filters mq_score:%s,min_depth:%s,ad_ratio:%s --annotators coverage' % (args.fastqs[0], args.fastqs[1], self.ref_genome_path, self.tmp_dir, self.sample_name, self.mq_cutoff, self.depth_cutoff,self.ad_cutoff))
+        os.system('phenix.py run_snp_pipeline -r1 %s -r2 %s -r %s -o %s -m %s -v %s --sample-name %s --filters mq_score:%s,min_depth:%s,ad_ratio:%s --annotators coverage' % (args.fastqs[0], args.fastqs[1], self.ref_genome_path, self.tmp_dir, self.mapper, self.variant_caller, self.sample_name, self.mq_cutoff, self.depth_cutoff,self.ad_cutoff))
 
+# -------------------------------------------------------------------------------------------------
 
 
     def check_reference_gatk_indexed(self):
@@ -268,6 +282,7 @@ class Vcf:
                 sys.stderr.write('Reference not indexed for GATK, you need to index with according to '
                                  'https://www.broadinstitute.org/gatk/guide/article?id=1601')
                 sys.exit()
+# -------------------------------------------------------------------------------------------------
 
 
     def read_rec_file(self, rec_file):

@@ -20,6 +20,7 @@ def fastq_to_vcf(args, config_dict):
     logger.info('Running Pheonix')
     fastq_bam_vcf.run_phoenix(args)
     return fastq_bam_vcf
+
     
 def make_fastq(args, config_dict):
 

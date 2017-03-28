@@ -7,4 +7,5 @@ depth_cutoff 10
 mq_cutoff 30
 ad_cutoff 0.9
 average_depth_cutoff 30
-mixed_position_cutoff 
+mapper bwa
+variant_caller gatk

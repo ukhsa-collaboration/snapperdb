@@ -20,7 +20,8 @@ class Igpos:
         self._pos = int
         self._id = int
         self._contig = str
-
+# -------------------------------------------------------------------------------------------------
+ 
 class SNPdb:
     """
     Some really insteresting documnetation about the awesome class that this is!
@@ -79,6 +80,7 @@ class SNPdb:
         else:
             sys.stderr.write('Ref genome dir %s not found\n' % self.ref_genome_dir)
             sys.exit()
+# -------------------------------------------------------------------------------------------------
 
     def parse_config_dict(self, config_dict):
         # # we loop through thusly in case not all these things are in the config
@@ -102,6 +104,8 @@ class SNPdb:
             if attr == 'average_depth_cutoff':
                 self.average_depth_cutoff = config_dict[attr]
 
+# -------------------------------------------------------------------------------------------------
+
     def mkdir_p(self, path):
         try:
             os.makedirs(path)
@@ -110,10 +114,13 @@ class SNPdb:
                 pass
             else:
                 raise
+# -------------------------------------------------------------------------------------------------
 
     def make_tmp_dir(self, args):
         self.tmp_dir = os.path.join(os.path.dirname(args.vcf[0]), 'snpdb')
         self.mkdir_p(self.tmp_dir)
+
+# -------------------------------------------------------------------------------------------------
 
     def define_class_variables_and_make_output_files(self, args, vcf):
         # # need to handle either vcf or fastqs
@@ -121,9 +128,12 @@ class SNPdb:
             vcf.sample_name = os.path.basename(args.vcf[0]).split(os.extsep)[0]
         except AttributeError:
             vcf.sample_name = os.path.basename(args.fastqs[0]).split(os.extsep)[0]
+        
         vcf.ref_genome_path = os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')
         vcf.make_tmp_dir(args)
         vcf.vcf_filehandle = os.path.join(vcf.tmp_dir, '{0}.filtered.vcf'.format(vcf.sample_name))
+
+# -------------------------------------------------------------------------------------------------
 
     def _connect_to_snpdb(self):
         self.conn_string = 'host=\'{0}\' dbname={1} user=\'{2}\' password=\'{3}\''.format(self.pg_host, self.snpdb_name,
@@ -135,6 +145,8 @@ class SNPdb:
             print 'Cant find snpdb %s' % self.snpdb_name
             pass
 
+# -------------------------------------------------------------------------------------------------
+
     def _check_if_snpdb_exists(self):
         try:
             psycopg2.connect(self.conn_string)
@@ -142,10 +154,11 @@ class SNPdb:
         except psycopg2.OperationalError:
             return False
 
+# -------------------------------------------------------------------------------------------------
     def make_snpdb(self):
         does_snpdb_exist = self._check_if_snpdb_exists()
         if does_snpdb_exist == True:
-            sys.stderr.write('This SNPdb already exists\n')
+            sys.stderr.write(self.snpdb_name + ' already exists\n')
         else:
             sys.stdout.write('The SNPdb {0} does not exist - running sql to  make snpdb\n'.format(self.snpdb_name))
             make_db_conn_string = 'host=\'{0}\' dbname=postgres user=\'{1}\' password=\'{2}\''.format(self.pg_host,
@@ -163,9 +176,17 @@ class SNPdb:
             cur.execute(open(sql_script, 'r').read())
             conn.commit()
             conn.close()
+        return does_snpdb_exist
 
+# -------------------------------------------------------------------------------------------------
 
+    def add_cluster(self):
+        cur = self.snpdb_conn.cursor()
+        cur.execute("insert into strain_clusters (name, t250, t100, t50, t25, t10, t5, t0) VALUES (\'%s\',1,1,1,1,1,1,1)" % self.reference_genome)
+        self.snpdb_conn.commit()
 
+ # -------------------------------------------------------------------------------------------------
+   
     def check_duplicate(self, vcf, database):
         dup = False
         dict_cursor = self.snpdb_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -174,6 +195,8 @@ class SNPdb:
             dup = True
         dict_cursor.close()
         return dup
+
+# -------------------------------------------------------------------------------------------------
 
     def add_info_to_strain_stats(self, vcf):
         if self.check_duplicate(vcf, 'strain_stats') == False:
@@ -186,6 +209,8 @@ class SNPdb:
             self.snpdb_conn.commit()
             cur.close()
 
+# -------------------------------------------------------------------------------------------------
+
 
     def add_new_variants(self, pos, ref_base, var_base, contig, cursor):
         cursor.execute("insert into variants (pos, var_base, ref_base, contig) VALUES (%s,\'%s\',\'%s\',\'%s\')" %
@@ -195,6 +220,8 @@ class SNPdb:
         seq_id = str(res[0][0])
         return int(seq_id)
 
+# -------------------------------------------------------------------------------------------------
+
     def add_new_ig_pos(self, cursor, contig, pos):
         cursor.execute('insert into ignored_pos (pos, contig) VALUES (%s, \'%s\')' % (pos, contig))
         cursor.execute("select currval(\'ignored_pos_id_seq\')")
@@ -202,6 +229,80 @@ class SNPdb:
         seq_id = res[0][0]
         return seq_id
 
+# -------------------------------------------------------------------------------------------------
+
+    def snpdb_annotate_vars(self, vcf):
+        #get genbank
+        ref_gbk_path = os.path.join(self.ref_genome_dir, self.reference_genome + '.gbk')
+        #get variant objects that arnet annotated
+        self.variants = self.get_variants_annotate()    
+        self.get_gbk(ref_gbk_path)
+        self.add_annotate_vars_to_db()
+
+# -------------------------------------------------------------------------------------------------
+
+    def add_annotate_vars_to_db(self):
+        for variant_id in self.variants:
+            cur = self.snpdb_conn.cursor()
+            sql = "update variants set locus_tag = %s, amino_acid = %s, product = %s, gene = %s where id = %s"
+            cur.execute(sql, (self.variants[variant_id].locus_tag, self.variants[variant_id].amino_acid, self.variants[variant_id].product, self.variants[variant_id].gene, variant_id))
+            self.snpdb_conn.commit()
+            cur.close()
+
+  # -------------------------------------------------------------------------------------------------
+       
+
+    def get_gbk(self, gb_file):
+        try:
+            gb_records = list(SeqIO.parse(gb_file, "genbank"))
+            for variant_id in self.variants:
+                flag = 0
+                pos = self.variants[variant_id].pos
+                for gb_record in gb_records:
+                    if gb_record.id in self.variants[variant_id].contig:
+                        for feature in gb_record.features:
+                            if feature.type == 'CDS':
+                                if pos >= feature.location.start and pos < feature.location.end:
+                                        flag = 1
+                                        ref_sequence = gb_record.seq[feature.location.start:feature.location.end]
+                                        var_sequence = gb_record.seq[feature.location.start:pos-1] + self.variants[variant_id].var_base + gb_record.seq[pos:feature.location.end]
+                                        ref_prot = ""
+                                        var_prot = ""
+                                        if feature.strand == 1:
+                                            ref_prot = ref_sequence.translate(table=11) 
+                                            var_prot = var_sequence.translate(table=11)
+                                        elif feature.strand == -1:
+                                            ref_prot = ref_sequence.reverse_complement().translate(table=11)    
+                                            var_prot = var_sequence.reverse_complement().translate(table=11)
+                                        if str(ref_prot) ==  str(var_prot):
+                                            self.variants[variant_id].amino_acid = 'SYNONYMOUS'
+                                        else:
+                                            for i, base in enumerate(ref_prot):
+                                                if ref_prot[i] != var_prot[i]:
+                                                    self.variants[variant_id].amino_acid = str(ref_prot[i]) + str(i+1) + str(var_prot[i])
+                                        if "product" in feature.qualifiers:
+                                            self.variants[variant_id].product = str(feature.qualifiers['product'][0])
+                                        else:
+                                            self.variants[variant_id].product = '' 
+                                        if "gene" in feature.qualifiers:
+                                            self.variants[variant_id].gene = str(feature.qualifiers['gene'][0])
+                                        else:
+                                            self.variants[variant_id].gene = ''    
+                                        if "locus_tag" in feature.qualifiers:
+                                            self.variants[variant_id].locus_tag = str(feature.qualifiers['locus_tag'][0])
+                                        else:
+                                            self.variants[variant_id].locus_tag = ''                               
+
+                if flag == 0:
+                    self.variants[variant_id].amino_acid = 'NON CODING'                                
+                    self.variants[variant_id].product = '' 
+                    self.variants[variant_id].gene = ''    
+                    self.variants[variant_id].locus_tag = ''
+        except IOError:
+            print 'Cannot find {0}'.format(gb_file)
+            sys.exit()   
+
+# -------------------------------------------------------------------------------------------------
 
     def add_to_snpdb(self, vcf):
         #get reference genome
@@ -269,7 +370,6 @@ class SNPdb:
                     else:
                         ig_dic[row['pos']] = {}
                         ig_dic[row['pos']] = row['id']
-            #print len(parsed_vcf.bad_pos)
 
             #go through the ignored_pos in this contig
             for pos in parsed_vcf.bad_pos:
@@ -283,6 +383,7 @@ class SNPdb:
         insert_statement = 'insert into strains_snps (name, variants_id, ignored_pos) values (%s, %s, %s)'
         cursor.execute(insert_statement, (vcf.sample_name, var_db_list, ig_db_list))
         self.snpdb_conn.commit()
+# -------------------------------------------------------------------------------------------------
 
     def snpdb_upload(self, vcf):
         #lets check
@@ -290,7 +391,7 @@ class SNPdb:
             #add strains
             self.add_info_to_strain_stats(vcf)
             #CHANGE - this needs to be logged
-            print 'depth is', vcf.depth_average, self.average_depth_cutoff
+            print 'Depth is', vcf.depth_average, self.average_depth_cutoff
             if float(vcf.depth_average) >= float(self.average_depth_cutoff):
                 self.add_to_snpdb(vcf)
             else:
@@ -301,11 +402,12 @@ class SNPdb:
                 self.snpdb_conn.commit()
                 cur.close()
                 #CHANGE this needs to be logged
-                sys.stderr.write('average depth below cutoff, not added to SNPdb')
+                sys.stderr.write('Average depth below cutoff, not added to SNPdb')
         elif self.check_duplicate(vcf, 'strains_snps'):
             #CHANGE this needs to be logged
             sys.stderr.write('%s is already in SNPdb strains_snps %s\n' % (vcf.sample_name, self.reference_genome))
 
+# -------------------------------------------------------------------------------------------------
 
 
     # # functions below here are for querying the snpdb
@@ -313,13 +415,13 @@ class SNPdb:
     def get_background(self, strain_list, args):
         cur = self.snpdb_conn.cursor()
         sql = 'SELECT name FROM strain_clusters WHERE id IN (SELECT MIN(id) FROM strain_clusters GROUP BY %s)' % args.back_flag
-        # sql = "select distinct(%s) from strain_clusters"
         cur.execute(sql)
         rows = cur.fetchall()
         for row in rows:
             strain_list.append(row[0])
 
         return strain_list
+# -------------------------------------------------------------------------------------------------
 
     def add_strains_to_sql_co(self, sql, strain_list, co, name):
         for strain in strain_list:
@@ -327,6 +429,7 @@ class SNPdb:
         sql = sql[:-4]
         sql += ") and icount(" + name + ") < " + co
         return sql
+# -------------------------------------------------------------------------------------------------
 
     def get_all_good_ids(self, strain_list, snp_co):
         #set up cursor
@@ -346,6 +449,7 @@ class SNPdb:
             strain_snps[row[1]] = row[0]
         return totlist, strain_snps
 
+# -------------------------------------------------------------------------------------------------
 
     def get_variants_mc(self):
         cur = self.snpdb_conn.cursor()
@@ -380,7 +484,29 @@ class SNPdb:
                     pos_2_id_list[row[4]][row[0]] = []
                     pos_2_id_list[row[4]][row[0]].append(row[1])
         return variant_container, pos_2_id_list
+# -------------------------------------------------------------------------------------------------
 
+    def get_variants_annotate(self):
+        cur = self.snpdb_conn.cursor()
+        #set up dict for Variant objects where key is variant id
+        variant_container = {}
+        #set up dict of contig : pos : id
+        pos_2_id_list = {}
+        sql = "select pos , id, ref_base, var_base, contig from variants where amino_acid is NULL order by contig, pos"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            variant = Variant()
+            variant.pos = row[0]
+            variant.id = row[1]
+            variant.ref_base = row[2]
+            variant.var_base = row[3]
+            variant.contig = row[4]
+            variant_container[row[1]] = variant
+            # if this variant is present in the list of strains we are interested in add to pos_2_id_list
+        return variant_container        
+
+# -------------------------------------------------------------------------------------------------
 
     def get_bad_pos_mc(self):
         cur = self.snpdb_conn.cursor()
@@ -502,6 +628,7 @@ class SNPdb:
         else:
               del self.strains_snps[reference_genome_name]
         return fasta, var_look, n_look,var_id_list
+# -------------------------------------------------------------------------------------------------
 
 
     def calc_matrix_mc(self):
@@ -516,6 +643,7 @@ class SNPdb:
                             if self.fasta[strain1][contig][var-1] != self.fasta[strain2][contig][var-1] and self.fasta[strain1][contig][var-1] != 'N' and self.fasta[strain2][contig][var-1] !='N':
                                 diff_matrix[strain1][strain2]+=1
         return diff_matrix
+# -------------------------------------------------------------------------------------------------
 
 
     def parse_args_for_get_the_snps_mc(self, args, strain_list, ref_seq, reference_genome_name):
@@ -557,6 +685,7 @@ class SNPdb:
         self.fasta, self.var_look, self.n_look, self.var_id_list = self.make_consensus_mc(ref_seq, args, reference_genome_name)
         if args.mat_flag == 'Y':
             self.matrix = self.calc_matrix_mc()
+# -------------------------------------------------------------------------------------------------
 
 
     def print_fasta_mc(self,args, rec_dict):
@@ -567,7 +696,7 @@ class SNPdb:
             f.write(">" + strain + "\n")
             #for each contig
             for contig in sorted(self.fasta[strain]):
-                #if flag is for a whole genom alignment add whole contig
+                #if flag is for a whole genome alignment add whole contig
                 if args.alignment_type == 'W':
                     for i, seq in enumerate(self.fasta[strain][contig]):
                         f.write(seq)
@@ -644,6 +773,7 @@ class SNPdb:
             f.write("\n")
 
 
+# -------------------------------------------------------------------------------------------------
 
     def print_matrix(self, out):
         f = open(out + '.matrix', 'w')
@@ -652,6 +782,7 @@ class SNPdb:
                 if strain1 != strain2:
                     f.write(strain1 + "\t" + strain2 + "\t" + str(self.matrix[strain1][strain2]) + "\n")
 
+# -------------------------------------------------------------------------------------------------
 
 
     def print_vars_mc(self,args, rec_dict):
@@ -755,12 +886,7 @@ class SNPdb:
         return strain_list, update_strain
 
     def parse_args_for_update_matrix(self, snp_co, strain_list):
-        # # this populates class variables specific to querying the SNPdb
-        cur = self.snpdb_conn.cursor()
-        print "###  Getting good positions:" + str(datetime.now())
-        self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, snp_co)
-        print "###  Getting variants:" + str(datetime.now())
-        self.variants, self.posIDMap = self.get_variants_mc()
+
 
         logger = logging.getLogger('snapperdb.SNPdb.parse_args_for_update_matrix')
         logger.info('Getting good positions')
@@ -792,7 +918,7 @@ class SNPdb:
         lookup = range(6500000)
         strain_ig_pos_dict = {}
         for strn in set(data_list):
-            strain_ig_pos_dict[strn] = [lookup[x] for x in self.get_bad_pos_for_strain_update_matrix(cur, strn)]
+            strain_ig_pos_dict[strn] = [lookup[x] for x in self.get_bad_pos_for_strain_update_matrix(strn)]
 
         newrows = []
 
@@ -831,101 +957,29 @@ class SNPdb:
 
 # -------------------------------------------------------------------------------------------------
 
-    def chunks(self, l, n):
-        for i in xrange(0, len(l), n):
-            yield l[i:i + n]
 
-    def write_qsubs_to_check_matrix(self, args, strain_list, short_strain_list, update_strain, snpdb):
-        '''
-        how to call this particular function as a qsub - need access to check matrix on command line.
-        1. write lists
-        2. for each in lists, qsub
-        '''
-        # ulf's hack
-        #home_dir = os.path.expanduser('~')
-        #logs_dir = '/phengs/hpc_projects/routine_gidis/logs_chron_jobs'
-        #scripts_dir = '/phengs/hpc_projects/routine_gidis/scripts_chron_job/non_fastq_to_vcf'
-        home_dir = os.getcwd()
-        logs_dir = os.getcwd()
-        scripts_dir = os.getcwd()
-
-        this_dir = os.path.dirname(os.path.realpath(__file__))
-        snapperdb_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-
-
-        for i, each in enumerate(self.chunks(update_strain, args.hpc)):
-            with open('{0}/{1}.{3}.update_list_{2}'.format(scripts_dir, args.now, i, self.snpdb_name), 'w') as fo:
-                for x in each:
-                    fo.write(x + '\n')
-        with open('{0}/{1}.{2}.short_strain_list'.format(scripts_dir, args.now, self.snpdb_name), 'w') as fo:
-            for x in short_strain_list:
-                fo.write(x + '\n')
-
-        with open('{0}/{1}.{2}.strain_list'.format(scripts_dir, args.now, self.snpdb_name), 'w') as fo:
-            for x in strain_list:
-                fo.write(x + '\n')
-
-        res = sorted(glob.glob('{0}/{1}.{2}.update_list*'.format(scripts_dir, args.now, self.snpdb_name)))
-
-        for i, update_list in enumerate(res):
-            command = ('#! /bin/bash\n'
-                       '#$ -o {0}/{7}.check_matrix.stdout\n'
-                       '#$ -e {0}/{7}.check_matrix.stderr\n'
-                       '#$ -m e\n'
-                       '#$ -wd {1}\n'
-                       '#$ -N up_mat_{2}_{3}\n\n'
-                       '. /etc/profile.d/modules.sh\n'
-                       'module use /home/ulf/modulefiles'
-                       'module load gastro/snapperdb/0.2\n'
-                       'SnapperDB_main.py'
-                       ' qsub_to_check_matrix -c {4}'
-                       ' -l {5}/{7}.{8}.strain_list'
-                       ' -s {5}/{7}.{8}.short_strain_list'
-                       ' -u {6}\n'.format(logs_dir, logs_dir, snpdb, i, args.config_file, scripts_dir, update_list, args.now, self.snpdb_name))
-
-            with open('{0}/{2}.{3}.update_mat_{1}.sh'.format(scripts_dir, i, args.now, self.snpdb_name), 'w') as fo:
-                fo.write(command)
-            os.system('qsub {0}/{2}.{3}.update_mat_{1}.sh'.format(scripts_dir, i, args.now, self.snpdb_name))
-
-
-            # os.system('chmod u+x {0}/update_matrix_{1}.sh'.format(this_dir, i))
-            # os.system('{0}/update_matrix_{1}.sh'.format(this_dir, i))
-
-    def sweep_matrix(self):
-        '''
-        if the total number of strains in snpdb is n, check that for each strain there is n(n+1)/2 (or is ithis n-1?)
-        entries in matrix. if there isn't, run some version of check matrix.
-
-        or
-
-        for each strain in the original update_strain list, fill in the matrix, where seen strain includes everything in the
-        database that isn't in update strains.
-
-        1. wait until all qsub_check_matrix jobs finished
-        '''
-
-        pass
-
-    # ## all functions below here are to do with the clustering
 
     def get_input(self):
         cur = self.snpdb_conn.cursor()
-        profile_dict = {}
+        dist_mat = {}
         sql = "select strain1, strain2, snp_dist from dist_matrix"
         cur.execute(sql)
         rows = cur.fetchall()
         for row in rows:
-            if row[0] not in profile_dict:
-                profile_dict[row[0]] = {}
-                profile_dict[row[0]][row[1]] = row[2]
-            else:
-                profile_dict[row[0]][row[1]] = row[2]
-            if row[1] not in profile_dict:
-                profile_dict[row[1]] = {}
-                profile_dict[row[1]][row[0]] = row[2]
-            else:
-                profile_dict[row[1]][row[0]] = row[2]
-        return profile_dict
+            try:
+                dist_mat[row[0]][row[1]] = row[2]
+            except:
+                dist_mat[row[0]] = {}
+                dist_mat[row[0]][row[1]] = row[2]
+            try:
+                dist_mat[row[1]][row[0]] = row[2]
+            except:
+                dist_mat[row[1]] = {}
+                dist_mat[row[1]][row[0]] = row[2]                
+        return dist_mat
+
+# -------------------------------------------------------------------------------------------------
+
 
     def get_cutoffs(self):
         cur = self.snpdb_conn.cursor()
@@ -940,56 +994,82 @@ class SNPdb:
         co = sorted(co, key=int)
         return co
 
+# -------------------------------------------------------------------------------------------------
 
-    def make_links(self, profile_dict, co, cluster_dict):
+
+    def make_links(self, dist_mat, co, cluster_dict):
         clusters = {}
         seen_strain = []
+        #for each set of clusters
         for i, cluster in enumerate(sorted(cluster_dict, key=int)):
+            #take a copy of the clusters 
             clusters[cluster] = cluster_dict[cluster]
+            # for each strain in the defined cluster
             for strain1 in cluster_dict[cluster]:
+                #add it to the seen list
                 seen_strain.append(strain1)
-                for strain2 in profile_dict[strain1]:
-                    if int(profile_dict[strain1][strain2]) <= int(co) and strain2 not in cluster_dict[cluster]:
+                #compare all the strains to this and add to new cluster if within threshold and not already in there
+                for strain2 in dist_mat[strain1]:
+                    if int(dist_mat[strain1][strain2]) <= int(co) and strain2 not in cluster_dict[cluster]:
                         clusters[cluster].append(strain2)
                         seen_strain.append(strain2)
 
+        #count what number cluster we are up to
         cluster_count = int(cluster)
-        for i, strain1 in enumerate(profile_dict):
+
+        #go through the distance matrix
+        for i, strain1 in enumerate(dist_mat):
+                #if the strain has not been seen before we need to add it to a cluster
                 if strain1 not in seen_strain:
                     cluster_count = cluster_count + 1
                     clusters[cluster_count] = []
                     clusters[cluster_count].append(strain1)
-                    for strain2 in profile_dict[strain1]:
-                        if int(profile_dict[strain1][strain2]) <= int(co) and strain2 not in seen_strain:
+                    #compare to all other strains and see if we can join any other strains to this cluster
+                    for strain2 in dist_mat[strain1]:
+                        if int(dist_mat[strain1][strain2]) <= int(co) and strain2 not in seen_strain:
                             clusters[cluster_count].append(strain2)
 
         return clusters
 
-    def define_clusters(self, slvs):
+# -------------------------------------------------------------------------------------------------
+
+
+    def define_clusters(self, links):
         clusters = {}
-        for each in slvs:
-            clusters[each] = set(slvs[each])
-            for each2 in slvs:
-                    int_set = set(slvs[each]) & set(slvs[each2])
+        for each in links:
+            clusters[each] = set(links[each])
+            for each2 in links:
+                    #check to see if the clusters have anysample in common
+                    int_set = set(links[each]) & set(links[each2])
                     if len(int_set) >= 1:
-                        clusters[each] = set(clusters[each]) | set(slvs[each2])
-                        # can we merge with any other clusters
+                        #if they have take the union between them
+                        clusters[each] = set(clusters[each]) | set(links[each2])
+                        # loop through again to see if we can merge with any other clusters
                         for made_clusters in clusters:
+                            #check to see if the clusters have anysample in common
                             int_set = set(clusters[each]) & set(clusters[made_clusters])
                             if len(int_set) >= 1:
+                                #if they have take the union between them
                                 clusters[each] = set(clusters[made_clusters]) | set(clusters[each])
+                                #update made clusters
                                 clusters[made_clusters] = clusters[each]
         return clusters
+
+# -------------------------------------------------------------------------------------------------
 
 
     def remove_duplicate_clusters(self, clusters):
         clean_clusters = {}
+        #get clusters with largest members
         for cluster1 in clusters:
             if tuple(sorted(clusters[cluster1])) not in clean_clusters:
                 clean_clusters[tuple(sorted(clusters[cluster1]))] = cluster1
             elif int(cluster1) < int(clean_clusters[tuple(sorted(clusters[cluster1]))]):
                 clean_clusters[tuple(sorted(clusters[cluster1]))] = cluster1
         return clean_clusters
+
+# -------------------------------------------------------------------------------------------------
+
 
     def print_slv_clusters(self, clusters, levels):
         strain_list = {}
@@ -1008,6 +1088,9 @@ class SNPdb:
                 hier = hier + str(clust) + "."
             print strain + "\t",
             print hier[:-1]
+
+# -------------------------------------------------------------------------------------------------
+
 
     def add_clusters_to_table(self, clusters, levels):
         cur = self.snpdb_conn.cursor()
@@ -1038,10 +1121,10 @@ class SNPdb:
             cur.execute(sql)
             self.snpdb_conn.commit()
 
-    #def add_ref_clusters_to_table(self):
+# -------------------------------------------------------------------------------------------------
 
 
-    def add_clusters_to_existing_table(self, clusters, profile_dict, levels, cluster_strain_list):
+    def add_clusters_to_existing_table(self, clusters, dist_mat, levels, cluster_strain_list):
         cur = self.snpdb_conn.cursor()
         strain_list = {}
         for co in (sorted(clusters, key=clusters.get)):
@@ -1071,6 +1154,9 @@ class SNPdb:
                 self.snpdb_conn.commit()
         return strain_list
 
+
+# -------------------------------------------------------------------------------------------------
+
     def get_clusters(self):
         cur = self.snpdb_conn.cursor()
         co = []
@@ -1097,21 +1183,20 @@ class SNPdb:
             cluster_strain_list[row[0]] = []
             for i, h in enumerate(sorted(co, key=int)):
                 cluster_strain_list[row[0]].append(int(row[i+1]))
-                if i not in cluster_dict:
-                    cluster_dict[i] = {}
-                    if h not in cluster_dict[i]:
+                try:
+                    cluster_dict[i][row[i+1]].append(row[0])
+                except:
+                    try:
                         cluster_dict[i][row[i+1]] = []
                         cluster_dict[i][row[i+1]].append(row[0])
-                    else:
+                    except:
+                        cluster_dict[i] = {}
+                        cluster_dict[i][row[i+1]] = []
                         cluster_dict[i][row[i+1]].append(row[0])
-                elif h not in cluster_dict[i]:
-                    cluster_dict[i][row[i+1]] = []
-                    cluster_dict[i][row[i+1]].append(row[0])
-                else:
-                    cluster_dict[i][row[i+1]].append(row[0])
-
-
         return co, cluster_strain_list, cluster_dict
+
+# -------------------------------------------------------------------------------------------------
+
 
     def merged_clusters(self, cluster_strain_list, strain_list):
         cur = self.snpdb_conn.cursor()
@@ -1122,6 +1207,7 @@ class SNPdb:
                 self.snpdb_conn.commit()
                 print "!    cluster merge " + strain + " " + str(tuple(cluster_strain_list[strain])) + " to " + str(tuple(strain_list[strain]))
 
+# -------------------------------------------------------------------------------------------------
 
     def get_outliers(self):
         cur = self.snpdb_conn.cursor()
@@ -1133,8 +1219,9 @@ class SNPdb:
             outliers.append(row[0])
         return outliers
 
+# -------------------------------------------------------------------------------------------------
 
-    def check_clusters(self,clusters, profile_dict,levels, cluster_strain_list,outliers):
+    def check_clusters(self,clusters, dist_mat,levels, cluster_strain_list,outliers):
         strain_list = {}
         cluster_list = {}
         bad_list = []
@@ -1153,6 +1240,7 @@ class SNPdb:
         seen_clusters = {}
         for strain in (sorted(tuple(strain_list), key=strain_list.get)):
             if strain not in cluster_strain_list:
+                #print new results
                 print strain, strain_list[strain]
                 for i, level in enumerate(sorted(levels, reverse=True, key=int)):
 
@@ -1168,28 +1256,20 @@ class SNPdb:
                         except KeyError:
                             seen_clusters[level] = [strain_list[strain][i]]
 
-                        # check_list = cluster_list[level][strain_list[strain][i]]
                         check_list = set(cluster_list[level][strain_list[strain][i]])
 
                         total_dist = {}
                         total = 0
                         for strain1 in check_list:
-                            # total_dist[strain1] = 0
 
-                            # maybe faster - ulf
-                            # strain2_list = profile_dict[strain1]
-                            strain2_list = set(profile_dict[strain1]).intersection(check_list)
+                            strain2_list = set(dist_mat[strain1]).intersection(check_list)
 
-                            # for strain2 in strain2_list:
-                                # if strain2 in check_list: #not needed because of set operation above
-                                # total_dist[strain1] += profile_dict[strain1][strain2]
-                            total_dist[strain1] = sum([profile_dict[strain1][strain2] for strain2 in strain2_list])
+                            total_dist[strain1] = sum([dist_mat[strain1][strain2] for strain2 in strain2_list])
 
-                                    # total = total + profile_dict[strain1][strain2]
+
                             total += total_dist[strain1]
 
                             total_dist[strain1] = float(total_dist[strain1]) / float(len(check_list))
-                            #print strain1, total_dist[strain1]
 
                         av = float(total) / (float(len(check_list))*float(len(check_list)))
                         print "### Average Distance ",
@@ -1205,22 +1285,25 @@ class SNPdb:
                                 for strain1 in total_dist:
                                     z_score = (total_dist[strain1]-av)/ sd
                                     if z_score <= -1.75:
-                                        print "### Outlier Z-Score ",
-                                        print strain1, total_dist[strain1], z_score
                                         if strain1 not in outliers:
                                             bad_list.append(strain1)
-                                        else:
-                                            print "Known outlier"
+                                            print "### Outlier Z-Score ",
+                                            print strain1, total_dist[strain1], z_score
         return bad_list
 
+# -------------------------------------------------------------------------------------------------
+
+
     def update_clusters(self):
-        profile_dict = self.get_input()
+        #get distance matrix
+        dist_mat = self.get_input()
+        #get clusters
         co, cluster_strain_list, cluster_dict = self.get_clusters()
         clean_clusters = {}
         for i, cuts in enumerate(sorted(co,reverse=True,key=int)):
             print "###  Cluster level "+str(cuts)+" :"+ str(datetime.time(datetime.now()))
             #print "making links"
-            links = self.make_links(profile_dict, cuts, cluster_dict[i])
+            links = self.make_links(dist_mat, cuts, cluster_dict[i])
             #print "defining_clusters"
             clusters = self.define_clusters(links)
             #print "removing duplicates"
@@ -1230,19 +1313,11 @@ class SNPdb:
         outliers = self.get_outliers()
 
         print "###  Checking Clusters:"+ str(datetime.time(datetime.now()))
-        bad_list = self.check_clusters(clean_clusters, profile_dict, co,cluster_strain_list,outliers)
+        bad_list = self.check_clusters(clean_clusters, dist_mat, co,cluster_strain_list,outliers)
 
         if not bad_list:
-            strain_list = self.add_clusters_to_existing_table(clean_clusters, profile_dict, co, cluster_strain_list)
+            strain_list = self.add_clusters_to_existing_table(clean_clusters, dist_mat, co, cluster_strain_list)
             self.merged_clusters(cluster_strain_list, strain_list)
         else:
             print "###  Not Updating Clusters:"+ str(datetime.time(datetime.now()))
 
-
-    ## functions below here are for getting variants of interest
-
-    def x(self):
-        '''
-        To do
-        '''
-        pass

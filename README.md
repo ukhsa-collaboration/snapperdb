@@ -50,7 +50,7 @@ BWA
 
 ### Querying the Database
 
-
+(recombination)
 
 So, you have successfully loaded the module and run SnapperDB_main.py. What next?
 
