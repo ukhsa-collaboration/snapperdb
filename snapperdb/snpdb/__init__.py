@@ -3,7 +3,6 @@ __author__ = 'gidis'
 from datetime import datetime
 import inspect
 import os
-import pickle
 import re
 import sys
 import logging
@@ -11,9 +10,7 @@ import psycopg2, psycopg2.extras
 from snpdb import SNPdb
 import snapperdb
 from snapperdb.gbru_vcf import Vcf
-import glob
 import pprint
-
 
 def vcf_to_db(args, config_dict, vcf):
     #set up loggging
@@ -49,12 +46,39 @@ def vcf_to_db(args, config_dict, vcf):
     logger.info('Uploading to SNPdb')
     #upload vcf
     snpdb.snpdb_upload(vcf)
+    #annotate vars
+    logger.info('Annotating new variants')
 
+    snpdb.snpdb_annotate_vars(vcf)
+
+# -------------------------------------------------------------------------------------------------
+
+def add_ref_cluster(args, config_dict):
+    #set up loggging
+    logger = logging.getLogger('snapperdb.snpdb.add_ref_cluster')
+    logger.info('Initialising SNPdb class')
+
+    #create snpdb class
+    snpdb = SNPdb(config_dict)
+
+    #parse config into snpdb object
+    logger.info('Parsing config dict')
+    snpdb.parse_config_dict(config_dict)
+    
+    #connect to snpdb postgres
+    snpdb._connect_to_snpdb()
+    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
+
+    snpdb.add_cluster()
+
+# -------------------------------------------------------------------------------------------------
 
 def make_snpdb(config_dict):
     snpdb = SNPdb(config_dict)
     snpdb._connect_to_snpdb()
     snpdb.make_snpdb()
+
+# -------------------------------------------------------------------------------------------------
 
 def read_file(file_name):
     #read list of strains for get the snps
@@ -68,6 +92,7 @@ def read_file(file_name):
         strain_list.append(line.strip())
     return strain_list
 
+# -------------------------------------------------------------------------------------------------
 
 def read_multi_contig_fasta(ref):
     try:
@@ -87,9 +112,10 @@ def read_multi_contig_fasta(ref):
             ref_seq[contig[0]] = []
     return ref_seq
 
+# -------------------------------------------------------------------------------------------------
 
 def read_rec_file_mc(rec_file):
-    #read recombination file - tab delineated with reference genome
+    #read recombination file - tab delineated with contig
     try:
         openfile = open(rec_file, 'r')
     except:
@@ -104,8 +130,9 @@ def read_rec_file_mc(rec_file):
             rec_dict[split_line[0]] = set(rec_dict[split_line[0]]) | set(rec_range)
         else:
             rec_dict[split_line[0]] = set(rec_range)
-    # print rec_dict
     return rec_dict
+
+# -------------------------------------------------------------------------------------------------
 
 def create_contig_index_for_consensus_genome(reference_genome):
     ## first, need to concatenate the reference genome in the order of 
@@ -114,7 +141,6 @@ def create_contig_index_for_consensus_genome(reference_genome):
     contig_names = sorted(reference_genome.keys())
     for c in contig_names:
         concatenated_ref_genome += ''.join(reference_genome[c])
-    # print len(concatenated_ref_genome)
     ## contig dict is going to be {(contig start in concat ref genome, contig stop in concat ref genome):contig_name}
     contig_index = {}
     ## start at 0
@@ -130,16 +156,14 @@ def create_contig_index_for_consensus_genome(reference_genome):
     pprint.pprint(contig_index)
     return contig_index
 
+# -------------------------------------------------------------------------------------------------
+
 def make_recomb_dict_from_gubbins(recombinant_sections, contig_index):
     rec_dict = {}
     for rs in recombinant_sections:
         for contig in contig_index:
             if contig[0] <= rs[0] <= contig[1]:
                 if contig[0] <= rs[1] <= contig[1]:
-                    ## what is the difference between the start of the contig and the start of the recombinant section?
-                    ## what is the difference between the start of the contig and the end of the recombinant section?
-                    ## the plus one gives the correct co-ordinates, not sure why adjustment necassary
-                    # print contig_index[contig], (rs[0] - contig[0]), (rs[1] - contig[0]), 'bla'
                     recomb_start = (rs[0] - contig[0])
                     recomb_stop = (rs[1] - contig[0])
                     if contig_index[contig] in rec_dict:
@@ -150,10 +174,10 @@ def make_recomb_dict_from_gubbins(recombinant_sections, contig_index):
                 else:
                     print 'The recombination section is not on one contig, this may not be a real recombination event, this is not currently being exlcuded.', rs, contig, contig_index[contig]
     for contig in rec_dict:
-        # print rec_dict[contig]
         rec_dict[contig] = set(rec_dict[contig])
     return rec_dict
 
+# -------------------------------------------------------------------------------------------------
 
 def read_rec_file_mc_gubbins(gubbins_rec_file, reference_genome):
     contig_index = create_contig_index_for_consensus_genome(reference_genome)
@@ -168,13 +192,11 @@ def read_rec_file_mc_gubbins(gubbins_rec_file, reference_genome):
             split_line = line.strip().split('\t')
             recombinant_sections.append((int(split_line[3]), int(split_line[4])))
             
-
     rec_dict = make_recomb_dict_from_gubbins(recombinant_sections, contig_index)
     return rec_dict
     
-    
-
-    
+ # -------------------------------------------------------------------------------------------------
+   
 
 def get_the_snps(args, config_dict):
     #set up logging
@@ -207,7 +229,6 @@ def get_the_snps(args, config_dict):
         #should we set this as none
         rec_dict = {}
     
-    # sys.exit()
 
     #query snadb    
     snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, snpdb.reference_genome)
@@ -222,8 +243,7 @@ def get_the_snps(args, config_dict):
         logger.info('Printing variants')
         snpdb.print_vars_mc(args,rec_dict)
 
-
-
+# -------------------------------------------------------------------------------------------------
 
 def update_distance_matrix(config_dict, args):
     logger = logging.getLogger('snapperdb.snpdb.update_distance_matrix')
@@ -238,90 +258,16 @@ def update_distance_matrix(config_dict, args):
     if update_strain:
         print "###  Populating distance matrix: " + str(datetime.now())
         snpdb.parse_args_for_update_matrix(snp_co, strain_list)
-        if args.hpc == 'N':
-            print '### Launching serial update_distance_matrix ' + str(datetime.now())
-            snpdb.check_matrix(strain_list, update_strain)
-            snpdb.update_clusters()
-        else:
-            try:
-                print '### Launching parallel update_distance_matrix ' + str(datetime.now())
-                args.hpc = int(args.hpc)
-                short_strain_list = set(strain_list) - set(update_strain)
-                snpdb.write_qsubs_to_check_matrix(args, strain_list, short_strain_list, update_strain, config_dict['snpdb_name'])
-                # # on cluster version this will have to be subject to a qsub hold - no it wont, can just run on headnode
-                snpdb.check_matrix(update_strain, update_strain)
-            except ValueError as e:
-                print '\n#### Error ####'
-                print e, '-m has to be an integer'
+        print '### Launching serial update_distance_matrix ' + str(datetime.now())
+        snpdb.check_matrix(strain_list, update_strain)
+        snpdb.update_clusters()
     else:
         print '### Nothing to update ' + str(datetime.now())
+# -------------------------------------------------------------------------------------------------
 
-def qsub_to_check_matrix(config_dict, args):
-    snpdb = SNPdb(config_dict)
-    snpdb.parse_config_dict(config_dict)
-    snpdb._connect_to_snpdb()
-    snp_co = '1000000'
-    strain_list = []
-    with open(args.strain_list) as fi:
-        for x in fi.readlines():
-            strain_list.append(x.strip())
-    short_strain_list = []
-    with open(args.short_strain_list) as fi:
-        for x in fi.readlines():
-            short_strain_list.append(x.strip())
-    update_strain = []
-    with open(args.update_list) as fi:
-        for x in fi.readlines():
-            update_strain.append(x.strip())
-    snpdb.parse_args_for_update_matrix(snp_co, strain_list)
-    snpdb.check_matrix(short_strain_list, update_strain)
-
-    # # need to clean up as otherwise the glob
-    os.system('rm -f {0}'.format(args.strain_list))
-    direc, name = os.path.split(args.strain_list)
-    list_number = name.split('_')[-1]
-    shell_script = '{0}/update_matrix_{1}.sh'.format(direc, list_number)
-    os.system('rm -f {0}'.format(shell_script))
 
 def update_clusters(config_dict):
     snpdb = SNPdb(config_dict)
     snpdb.parse_config_dict(config_dict)
     snpdb._connect_to_snpdb()
     snpdb.update_clusters()
-
-def get_variants_of_interest(config_dict, args):
-    background_list = read_file(args.background_list)
-    of_interest_list = read_file(args.of_interest_list)
-
-
-    '''
-    To do
-    1. for each list, get the good quality variants for each isolate into {strain:[good, vars], ...}
-    2.
-
-    '''
-
-def upload_indels(config_dict, args):
-    snpdb = SNPdb(config_dict)
-    snpdb._connect_to_snpdb()
-    vcf = Vcf()
-    vcf.parse_config_dict(config_dict)
-    snpdb.define_class_variables_and_make_output_files_indels(args, vcf)
-    snpdb.add_indels_to_snpdb(vcf)
-
-
-
-    '''
-    1. parse vcf for indels - have different function based on parse_vcf for now
-        a. check that length of ref and alt are different
-        b. then apply normal quality filters - dp, ad, gq
-
-    2. get all indels from indels table in snpdb
-        a. run equivalent of snpdb.add_to_snpdb for indels
-
-    science - need to check how often indels start at the same or similar (within a few positions) positions
-
-    '''
-    pass
-
-

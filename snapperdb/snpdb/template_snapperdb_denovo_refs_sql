@@ -207,14 +207,11 @@ ALTER SEQUENCE strain_clusters_id_seq OWNED BY strain_clusters.id;
 CREATE TABLE strain_stats (
     id integer NOT NULL,
     name character varying,
-    total_reads integer,
-    mapped_reads integer,
     av_cov double precision,
     time_of_upload timestamp without time zone,
     ignore character varying,
     number_mixed_positions integer,
     zscore_check character varying,
-    mixed_positions character varying[]
 );
 
 
@@ -288,6 +285,7 @@ CREATE TABLE variants (
     var_base character varying,
     id integer NOT NULL,
     contig character varying,
+    locus_tag character varying,
     product character varying
 );
 
