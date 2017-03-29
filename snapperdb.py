@@ -85,13 +85,12 @@ def run_command(args):
     elif args.command == 'make_snpdb':
         logger = logging.getLogger('snapperdb.make_snpdb')
         logger.info('PARAMS: config = %s' % args.config_file)
-        does_snpdb_exist = make_snpdb(config_dict)
-        if does_snpdb_exist  == False:
-            #map reference against itself wgsim some FASTQs if not provided
-            vcf = make_fastq(args, config_dict)
-            vcf_to_db(args, config_dict, vcf)
-            #add reference genome to strain_clusters
-            add_ref_cluster(args,config_dict)
+        make_snpdb(config_dict)
+        #map reference against itself wgsim some FASTQs if not provided
+        vcf = make_fastq(args, config_dict)
+        vcf_to_db(args, config_dict, vcf)
+        #add reference genome to strain_clusters
+        add_ref_cluster(args,config_dict)
 
     elif args.command == 'get_the_snps':
         logger = logging.getLogger('snapperdb.get_the_snps')

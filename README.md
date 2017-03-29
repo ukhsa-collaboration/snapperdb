@@ -12,23 +12,47 @@ As the database is populated a pair-wise distance matrix of SNP distances is cal
 
 SnapperDB has been used internally within Public Health England to process >20,000 isolates of *Salmonella*, *E. coli* and other gastrointestinal pathogens.
 
+---
 
 ### Version
 
 1.0
 
-### Dependencies
+---
 
-python 2.7.6
-phenix 
-samtools
-picardtools
-pip install biopython
-pip install pyscopg2
-GATK
-BWA
+### Installation:
 
+---
 
+### Dependencies:
+
+### Python:
+
+- Python >= 2.7
+- biopython
+- pyscopg2
+
+### Postgres
+Postgres package can be downloaded from https://www.postgresql.org/
+
+### PHEnix 
+PHEnix is available from https://github.com/phe-bioinformatics/PHEnix
+
+### Samtools 
+Samtools can be downloaded from https://github.com/samtools/samtools. It is used to filter and convert to SAM/BAM files and in mpileup variant caller.
+
+### Picard
+The Picard tool suite is available from http://broadinstitute.github.io/picard/
+
+### GATK
+GATK is available from https://www.broadinstitute.org/gatk/. Please read the licencing information before using (https://www.broadinstitute.org/gatk/about/#licensing)
+
+Set *GATK_JAR* - full path to the GATK Java archive.
+
+### BWA
+The BWA mapper can be downloaded from http://bio-bwa.sourceforge.net/.
+
+---
 
 ### Creating a Database
 

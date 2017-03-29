@@ -138,7 +138,7 @@ class SNPdb:
     def _connect_to_snpdb(self):
         self.conn_string = 'host=\'{0}\' dbname={1} user=\'{2}\' password=\'{3}\''.format(self.pg_host, self.snpdb_name,
                                                                                           self.pg_uname, self.pg_pword)
-        does_snpdb_exist = self._check_if_snpdb_exists()
+        does_snpdb_exist = self.check_if_snpdb_exists()
         if does_snpdb_exist == True:
             self.snpdb_conn = psycopg2.connect(self.conn_string)
         else:
@@ -147,7 +147,7 @@ class SNPdb:
 
 # -------------------------------------------------------------------------------------------------
 
-    def _check_if_snpdb_exists(self):
+    def check_if_snpdb_exists(self):
         try:
             psycopg2.connect(self.conn_string)
             return True
@@ -156,11 +156,11 @@ class SNPdb:
 
 # -------------------------------------------------------------------------------------------------
     def make_snpdb(self):
-        does_snpdb_exist = self._check_if_snpdb_exists()
+        does_snpdb_exist = self.check_if_snpdb_exists()
         if does_snpdb_exist == True:
             sys.stderr.write(self.snpdb_name + ' already exists\n')
         else:
-            sys.stdout.write('The SNPdb {0} does not exist - running sql to  make snpdb\n'.format(self.snpdb_name))
+            sys.stdout.write('The SNPdb {0} does not exist - running sql to create database\n'.format(self.snpdb_name))
             make_db_conn_string = 'host=\'{0}\' dbname=postgres user=\'{1}\' password=\'{2}\''.format(self.pg_host,
                                                                                           self.pg_uname, self.pg_pword)
             conn = psycopg2.connect(make_db_conn_string)
@@ -233,11 +233,14 @@ class SNPdb:
 
     def snpdb_annotate_vars(self, vcf):
         #get genbank
+
+
         ref_gbk_path = os.path.join(self.ref_genome_dir, self.reference_genome + '.gbk')
-        #get variant objects that arnet annotated
-        self.variants = self.get_variants_annotate()    
-        self.get_gbk(ref_gbk_path)
-        self.add_annotate_vars_to_db()
+        if os.path.exists(ref_gbk_path):
+            #get variant objects that arnet annotated
+            self.variants = self.get_variants_annotate()    
+            self.get_gbk(ref_gbk_path)
+            self.add_annotate_vars_to_db()
 
 # -------------------------------------------------------------------------------------------------
 
@@ -300,7 +303,6 @@ class SNPdb:
                     self.variants[variant_id].locus_tag = ''
         except IOError:
             print 'Cannot find {0}'.format(gb_file)
-            sys.exit()   
 
 # -------------------------------------------------------------------------------------------------
 

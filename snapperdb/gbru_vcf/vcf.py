@@ -267,7 +267,7 @@ class Vcf:
             pass
         else:
             picard_dict_path = os.path.splitext(self.ref_genome_path)[0]
-            os.system('picard CreateSequenceDictionary.jar R= %s O= %s.dict'
+            os.system('picard CreateSequenceDictionary R= %s O= %s.dict'
                       % (self.ref_genome_path, picard_dict_path))
 
         if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + 'dict'):
@@ -279,8 +279,7 @@ class Vcf:
             if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + i):
                 pass
             else:
-                sys.stderr.write('Reference not indexed for GATK, you need to index with according to '
-                                 'https://www.broadinstitute.org/gatk/guide/article?id=1601')
+                sys.stderr.write('Reference not indexed for GATK, you need to index with according to ''https://www.broadinstitute.org/gatk/guide/article?id=1601/n')
                 sys.exit()
 # -------------------------------------------------------------------------------------------------
 

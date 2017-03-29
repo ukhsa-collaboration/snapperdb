@@ -211,7 +211,7 @@ CREATE TABLE strain_stats (
     time_of_upload timestamp without time zone,
     ignore character varying,
     number_mixed_positions integer,
-    zscore_check character varying,
+    zscore_check character varying
 );
 
 
