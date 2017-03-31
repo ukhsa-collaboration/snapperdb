@@ -679,10 +679,15 @@ class SNPdb:
         logger.info('Ignored positions: ' + str(len(self.badlist)))
 
         #get actual variant objects
+        print '### Creating Variant Objects'
         self.variants, self.posIDMap = self.get_variants_mc()
         # get ignored position objects
+        print '### Creating Ignored Positions Objects'
+
         self.all_bad_pos = []
         self.IgPos_container, self.igposIDMap = self.get_igs_mc()
+        print '### Creating Consensus... '
+
         # make consensus sequence based on the above
         self.fasta, self.var_look, self.n_look, self.var_id_list = self.make_consensus_mc(ref_seq, args, reference_genome_name)
         if args.mat_flag == 'Y':
@@ -923,6 +928,9 @@ class SNPdb:
             strain_ig_pos_dict[strn] = [lookup[x] for x in self.get_bad_pos_for_strain_update_matrix(strn)]
 
         newrows = []
+        #add the reference genomes bad positions
+        ref_ig_pos = set()
+        ref_ig_pos = self.get_bad_pos_for_strain_update_matrix(self.reference_genome)
 
         for strain1 in update_strain:
             seen_strain.add(strain1)
@@ -943,7 +951,7 @@ class SNPdb:
                 # strain2_ig_pos = self.get_bad_pos_for_strain_update_matrix(strain2)
                 strain2_ig_pos = strain_ig_pos_dict[strain2]
                 # get union of bad position ids
-                all_bad_ids = strain1_ig_pos | set(strain2_ig_pos)
+                all_bad_ids = strain1_ig_pos | set(strain2_ig_pos) | set(ref_ig_pos)
                 # get symmetric difference of variant ids
                 all_var = set(strain1_good_var) ^ set(strain2_good_var)
                 # get sets of (position, contig) tuples
