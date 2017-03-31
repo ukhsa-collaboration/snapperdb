@@ -142,8 +142,9 @@ class SNPdb:
         if does_snpdb_exist == True:
             self.snpdb_conn = psycopg2.connect(self.conn_string)
         else:
-            print 'Cant find snpdb %s' % self.snpdb_name
-            pass
+            print '### Cant connect to SnapperDB %s' % self.snpdb_name
+            print '### Please check database exists and Postgres server is running'
+            sys.exit()
 
 # -------------------------------------------------------------------------------------------------
 
@@ -658,24 +659,23 @@ class SNPdb:
 
         #get all varitants and variants for each strains
         logger.info('Getting good positions')
-        print 'Getting good positions'
+        print '### Revcovering Variants...'
         self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, args.snp_co)
-        print 'Variable positions: ' + str(len(self.goodids))
+        print '### Variable positions: ' + str(len(self.goodids))
         logger.info('Variable positions: ' + str(len(self.goodids)))
 
         #If there are no variants returned we can exit
         if len(self.goodids) == 0:
-            print 'No variable positions found: EXITING'
-            # logger.error('No variable positions found: EXITING')
+            print '### No variable positions found: EXITING'
             sys.exit()
 
-        print str(len(self.strains_snps)) + ' strains used out of ' + str(len(strain_list))
+        print '### '+str(len(self.strains_snps)) + ' strains used out of ' + str(len(strain_list))
         logger.info(str(len(self.strains_snps)) + ' strains used out of ' + str(len(strain_list)))
 
-        print 'Getting ignored positions'
+        print '### Recovering ignored positions...'
         logger.info('Getting ignored positions')
         self.badlist, self.igpos = self.get_bad_pos_mc()
-        print 'Ignored positions: ' + str(len(self.badlist))
+        print '### Ignored positions: ' + str(len(self.badlist))
         logger.info('Ignored positions: ' + str(len(self.badlist)))
 
         #get actual variant objects

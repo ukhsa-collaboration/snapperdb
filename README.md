@@ -5,8 +5,7 @@ Welcome to SnapperDB, A scalable database for routine sequencing of bacterial is
 
 SnapperDB is a python application that sits upon one or more postgres databases to manage reference based SNP typing of bacterial isolates.
 
-SnapperDB can take a pair of FASTQ sequencing reads and execute a user-defined variant calling pipeline storing the result variant calls and absent positions for each isolate.
-
+SnapperDB can take a pair of Illumina FASTQ sequencing reads and execute a user-defined variant calling pipeline storing the result variant calls and absent positions for each isolate.
 
 As the database is populated a pair-wise distance matrix of SNP distances is calculated that can be used to generate a isolate level hierichical clustering nomenclature - the SNP Address.
 
@@ -22,57 +21,140 @@ SnapperDB has been used internally within Public Health England to process >20,0
 
 ### Installation:
 
+SnapperDB is available at https://github.com/phe-bioinformatics/snapperdb
+
+
 ---
 
 ### Dependencies:
 
-### Python:
+**Python**
 
 - Python >= 2.7
 - biopython
 - pyscopg2
 
-### Postgres
+**Postgres**
+
 Postgres package can be downloaded from https://www.postgresql.org/
 
-### PHEnix 
+**PHEnix**
+
 PHEnix is available from https://github.com/phe-bioinformatics/PHEnix
 
-### Samtools 
+**Samtools**
+
 Samtools can be downloaded from https://github.com/samtools/samtools. It is used to filter and convert to SAM/BAM files and in mpileup variant caller.
 
-### Picard
+**Picard**
+
 The Picard tool suite is available from http://broadinstitute.github.io/picard/
 
-### GATK
+**GATK**
+
 GATK is available from https://www.broadinstitute.org/gatk/. Please read the licencing information before using (https://www.broadinstitute.org/gatk/about/#licensing)
 
 Set *GATK_JAR* - full path to the GATK Java archive.
 
-### BWA
+**BWA**
+
 The BWA mapper can be downloaded from http://bio-bwa.sourceforge.net/.
 
 ---
 
 ### Creating a Database
 
+The first step of SnapperDB is to create a database to populate.  To do this a reference genome is required in FASTA format and config file.
+The config file is a tab deliminated file containing information about the connection, the name of the reference genome your choice of mapper and variant caller and some user defined features.   Currently SnapperDB supports BWA and GATK only.
+
+An example of *Salmonella* Enteritidis is shown below - lets call this file ebg4_config.txt
+
+```
+snpdb_name ebg_4_snps
+reference_genome AM933172
+pg_uname timdallman
+pg_pword
+pg_host localhost
+depth_cutoff 10
+mq_cutoff 30
+ad_cutoff 0.9
+average_depth_cutoff 30
+mapper bwa
+variant_caller gatk
+
+```
+
+*depth_cutoff* is the minimum consensus depth, positions below this will be ignored.
+
+*mq_cutoff* is the mapping quality below which a position will be ignored
+
+*ad_cutoff* is the proportion of the majority variant below which a position is ignored
+
+*average_depth_cutoff* is the average coverage accross the genome, samples with coverage below this will be ignored.
+
+The default home for the configs is in 
+```
+/$PATH/snapperdb/user_configs
+```
+
+The reference genome should have the .fa suffix and be placed in.
+```
+/$PATH/snapperdb/reference_genomes
+```
+
+If the reference is a *de novo* assembly place the orginal FASTQ files in the reference_genomes directory and it will use them to mask ambigous mapping regions.  They need to be of the format $reference_genome.R1.fastq.gz $reference_genome.R2.fastq.gz.  If you want your variants to be annotated you can add a Genbank file to this directory with the naming convention reference_genome.gb
+
+
+To create the database run the command:
+
+```sh
+snapperdb.py make_snpdb -c $myconfigname
+```
+
+This command will execute the SQL to create the postgres database.  Then it will either simulate reads or use the user supplied reads to map against the reference genome.  Regions of ambigous mapping (and any variants!) are stored in SNP database. 
+
 
 ### Populating a Database with FASTQs
 
+Once a SnapperDB instance has been created you will want to populate it with FASTQs.
 
-### Populating a Database with VCFs
+SnapperDB can import samples in one by one basis using the **fastq_to_db** command
+
+```sh
+snapperdb.py fastq_to_db -c $myconfigname $FASTQ1 $FASTQ2
+```
+
+If you want to batch load a set of samples.  It is recommended you run **fastq_to_vcf** in parralel followed by **fastq_to_db** in serial. 
 
 
 ### Populating a Database with JSON Export
 
+*To follow*
+
 
 ### Updating the distance matrix
 
+After uploading samples to your SnapperDB instance you can populate the distance matrix with pairwise SNP differnces.
+
+```sh
+snapperdb.py update_distance_matrix -c $myconfigname
+```
 
 ### Generating SNP Addresses
 
+Using hierarchical single linkage clustering of the pairwise SNP distances we are able to derive an isolate level nomenclature for each genome sequence.  This allows efficient searching of the population studied as well as automated cluster detection.  By default the SNP address performs single linkage clustering at seven SNP thresholds; 250, 100, 50, 25, 10, 5, 0.
 
-### Querying the Database
+```sh
+snapperdb.py update_clusters -c $myconfigname
+```
+
+### Generating Alignments for Phylogenetic Analysis
+
+The command **get_the_snps** is used to produce alignments  
+
+
+
+
 
 (recombination)
 
@@ -101,50 +183,6 @@ ad_cutoff 0.9
 *mq_cutoff* is the mapping quality below which a position will be ignored
 *ad_cutoff* is the proportion of the majority variant below which a position is ignored
 
-Once you have made your config file and filled it with your info, save it in as e.g. *gas_config.txt* 
-```
-/phengs/hpc_software/snapperdb/0.2/user_configs
-```
-Now you are ready to make your SNPdb. Run 
-
-```sh
-SnapperDB_main.py make_snpdb -c gas_config.txt
-```
-Hopefully, SnapperDB will read your config files and create a database for you on the postgres server you gave it.
-
-Then, save your reference genome (with bwa index, [samtools faidx and picard sequnced dictionary for vcf calling]) in: 
-```
-/phengs/hpc_software/snapperdb/0.2/reference_genomes
-```
-
-Now, you are ready to run some samples!
-
-There are two intended modes of operation, sample-by-sample and high-throughput.
-
-### Sample-by-sample (s-b-s)
-
-If you are not running anything in parallel, you can run s-b-s.
-
-```sh
-SnapperDB_main.py fastq_to_db -c gas_config.txt reads.1.fq reads.2.fq
-```
-This will run the whole pipeline and deposit the variants and ignored positions in the SNPdb specificed in your config file.
-
-### High-thoughput (h-t)
-
-If you want to run a large number of samples in parallel (i.e. via qsub on the cluster) you should use h-t. This essentially divides the workflow into two, fastq_to_vcf (which is slow and can be done in parallel) and vcf_to_db (which is fast and must be done serially).
-
-Launch lots of qsub jobs that run:
-
-```sh
-SnapperDB_main.py fastq_to_vcf -c gas_config.txt reads.1.fq reads.2.fq
-```
-
-Then, either set up a qsub wait job or, just manually wait for all the fastq_to_vcf jobs to finish and then run a single job that will run:
-```sh
-SnapperDB_main.py vcf_to_db -c gas_config.txt sample.vcf
-```
-on each vcf you are interested in (in serial!).
 
 ### Get the SNPs!
 

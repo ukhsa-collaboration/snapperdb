@@ -232,7 +232,9 @@ def get_the_snps(args, config_dict):
 
     #query snadb    
     snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, snpdb.reference_genome)
-    #print fasta
+    
+    print fasta
+
     snpdb.print_fasta_mc(args, rec_dict)
 
     #print matrix

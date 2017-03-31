@@ -103,9 +103,6 @@ def run_command(args):
             logger.error('Please only pass one of rec_file or gubbins_rec_file.')
             print 'Please only pass one of rec_file or gubbins_rec_file.'
             sys.exit()
-        elif args.rec_file == 'N' and args.gubbins_rec_file == None:
-            logger.info('No recombination list has been given, assuming you have checked for recombination and found none?')
-            print '### WARNING\nNo recombination list has been given, assuming you have checked for recombination and found none?'
         get_the_snps(args, config_dict)
 
 # -------------------------------------------------------------------------------------------------
@@ -138,7 +135,7 @@ def main():
     parser_vcf_to_db.add_argument('vcf', metavar='VCF file', nargs='+', help='A vcf file (generated using '
                                                                              'emit_all_positions?)')
     parser_vcf_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True,
-                                  help='The name of a config file in the user_configs directory (not the full path)')
+                                  help='The name of a config file in the user_configs directory (or the contig path)')
     parser_vcf_to_db.add_argument('-g', dest='log_dir', default=None,
                                   help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
     parser_make_snpdb = subparsers.add_parser('make_snpdb', help='Takes a config and makes a snpdb')
@@ -154,10 +151,6 @@ def main():
     parser_update_distance_matrix.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                                help='The name of a config file in the user_configs directory '
                                                     '(not the full path)')
-    parser_update_distance_matrix.add_argument('-m', dest='hpc', default='N',
-                                               help='This is a PHE only function '
-                                                    '<int>/N, where int is the number of comparisons you want to do on '
-                                                    'each core')
     parser_update_distance_matrix.add_argument('-g', dest='log_dir',
                                                default=os.path.join(os.path.expanduser('~'), 'logs'),
                                                help='Where do you want the logs written to? Will default to a '
@@ -179,15 +172,15 @@ def main():
     parser_get_the_snps.add_argument('-o', dest='out', help='Prefix for output, will default to '
                                                             '<date>.<snpdb_name>_vs_<list_name>')
     parser_get_the_snps.add_argument('-a', dest='alignment_type',
-                                     help='Alignment type (W=whole consensus, A=Accessory, C=Core), default is Core',
-                                     default='C')
+                                     help='Alignment type (W=whole Consensus, A=Soft Core, C=Core), default is alignments where at least 80%% of the samples are A/C/T/G at each position (A:80)',
+                                     default='A:80')
     parser_get_the_snps.add_argument('-x', dest='mat_flag',
                                      help='Would you like a pairwise distance matrix? Y/N (default = N)', default='N')
     parser_get_the_snps.add_argument('-v', dest='var_flag', help='Would you like a more detailed list of the variant '
                                                                  'attributes? Y/N (default = N)')
     parser_get_the_snps.add_argument('-r', dest='ref_flag',
                                      help='Would you like the reference genome in the alignment? Y/N ('
-                                          'default = Y)', default='Y')
+                                          'default = N)', default='N')
     parser_get_the_snps.add_argument('-n', dest='rec_file',
                                      help='File with list of positions to ignore due to expected '
                                           'recombination', default='N')
@@ -195,7 +188,7 @@ def main():
                                     'recombinant positions in it.')
     parser_get_the_snps.add_argument('-b', dest='back_flag',
                                      help='Would you like a background cluster level? SNP cluster level '
-                                          'from which to take one representative/N', default='N')
+                                          'from which to take one representative', default='N')
     parser_get_the_snps.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
                                      help='Where do you want the logs written to? Will default to a /user/home/logs')
     parser_update_clusters = subparsers.add_parser('update_clusters',

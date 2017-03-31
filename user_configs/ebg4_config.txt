@@ -9,3 +9,4 @@ ad_cutoff 0.9
 average_depth_cutoff 30
 mapper bwa
 variant_caller gatk
+
