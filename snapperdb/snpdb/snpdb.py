@@ -320,7 +320,7 @@ class SNPdb:
                     ref_fasta_dict[contig.id] = contig.seq
         else:
             #CHANGE this needs to be logged and and try and except
-            sys.stderr.write('Could not find {0}, check your file extension (needs to be .fa)\n'.format
+            sys.stderr.write('### Could not find {0}, check your file extension (needs to be .fa)\n'.format
                              (ref_genome_path))
             sys.exit()
 
@@ -1311,7 +1311,7 @@ class SNPdb:
         co, cluster_strain_list, cluster_dict = self.get_clusters()
         clean_clusters = {}
         for i, cuts in enumerate(sorted(co,reverse=True,key=int)):
-            print "###  Cluster level "+str(cuts)+" :"+ str(datetime.time(datetime.now()))
+            print "### Cluster level "+str(cuts)+" :"+ str(datetime.time(datetime.now()))
             #print "making links"
             links = self.make_links(dist_mat, cuts, cluster_dict[i])
             #print "defining_clusters"
@@ -1319,15 +1319,15 @@ class SNPdb:
             #print "removing duplicates"
             clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
 
-        print "###  Getting previously checked outliers:"+ str(datetime.time(datetime.now()))
+        print "### Getting previously checked outliers:"+ str(datetime.time(datetime.now()))
         outliers = self.get_outliers()
 
-        print "###  Checking Clusters:"+ str(datetime.time(datetime.now()))
+        print "### Checking Clusters:"+ str(datetime.time(datetime.now()))
         bad_list = self.check_clusters(clean_clusters, dist_mat, co,cluster_strain_list,outliers)
 
         if not bad_list:
             strain_list = self.add_clusters_to_existing_table(clean_clusters, dist_mat, co, cluster_strain_list)
             self.merged_clusters(cluster_strain_list, strain_list)
         else:
-            print "###  Not Updating Clusters:"+ str(datetime.time(datetime.now()))
+            print "### Not Updating Clusters:"+ str(datetime.time(datetime.now()))
 

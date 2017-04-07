@@ -202,8 +202,10 @@ def main():
 
 
     args = parser.parse_args()
+    print args
     run_command(args)
 
+    print "### Completed "+str(datetime.datetime.now())
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 __author__ = 'gidis'
 
-from datetime import datetime
+import datetime
 import inspect
 import os
 import re
@@ -85,7 +85,8 @@ def read_file(file_name):
     try:
         openfile = open(file_name, 'r')
     except:
-        print file_name + " not found ... "
+        print "### Strain list '" + file_name + "' not found ... "
+        print "### Exiting "+str(datetime.datetime.now())
         sys.exit()
     strain_list = []
     for line in openfile:
@@ -98,8 +99,10 @@ def read_multi_contig_fasta(ref):
     try:
         openfile = open(ref, 'r')
     except:
-        print (ref + " not found ... ")
+        print "### Reference genome "+ ref + " not found ... "  
+        print "### Exiting "+str(datetime.datetime.now())
         sys.exit()
+
     ref_seq = {}
     contig = ""
     for line in openfile:
@@ -119,7 +122,8 @@ def read_rec_file_mc(rec_file):
     try:
         openfile = open(rec_file, 'r')
     except:
-        print (rec_file + " not found ... ")
+        print "### Recombination list "+ rec_file + " not found ... "  
+        print "### Exiting "+str(datetime.datetime.now())        
         sys.exit()
     
     rec_dict = {}
@@ -184,7 +188,8 @@ def read_rec_file_mc_gubbins(gubbins_rec_file, reference_genome):
     try:
         openfile = open(gubbins_rec_file, 'r')
     except IOError:
-        print gubbins_rec_file + ' not found ...'
+        print "### Gubbins GFF file "+ gubbins_rec_file + " not found ... "  
+        print "### Exiting "+str(datetime.datetime.now())         
         sys.exit()
     recombinant_sections = []
     for line in openfile.readlines():
@@ -256,13 +261,13 @@ def update_distance_matrix(config_dict, args):
     # # get_all_good_ids from snpdb2 takes a snp cutoff as well, here, we don't have a SNP cutoff so we set it arbitrarily high.
     snp_co = '1000000'
     if update_strain:
-        print "###  Populating distance matrix: " + str(datetime.now())
+        print "###  Populating distance matrix: " + str(datetime.datetime.now())
         snpdb.parse_args_for_update_matrix(snp_co, strain_list)
-        print '### Launching serial update_distance_matrix ' + str(datetime.now())
+        print '### Launching serial update_distance_matrix ' + str(datetime.datetime.now())
         snpdb.check_matrix(strain_list, update_strain)
         snpdb.update_clusters()
     else:
-        print '### Nothing to update ' + str(datetime.now())
+        print '### Nothing to update ' + str(datetime.datetime.now())
 # -------------------------------------------------------------------------------------------------
 
 
