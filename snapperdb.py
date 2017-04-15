@@ -30,18 +30,10 @@ def setup_logging(args):
   logger : 
       logger object
 
+
   """
-  
-  if args.command.startswith('fastq'):
-      args.log_dir = os.path.join(os.path.dirname(args.fastqs[0]), 'logs')
-  elif args.command == 'vcf_to_db':
-      args.log_dir = os.path.join(os.path.dirname(os.path.dirname(args.vcf[0])), 'logs')
-  elif args.command == 'check_vcf_for_mixed':
-      args.log_dir = os.path.join(os.path.dirname(args.outdir), 'logs')
-  elif args.command == 'make_snpdb':
-      args.log_dir = os.path.join(os.path.dirname(os.path.dirname(args.config_file[0])), 'logs')
-  if not os.path.exists(args.log_dir):
-      os.makedirs(args.log_dir)
+
+        
   logger = logging.getLogger('snapperdb')
   args.now = str(datetime.datetime.now()).split('.')[0].replace(' ', '_').replace(':', '.')
   logging.basicConfig(filename='%s/%s.snapperdb.log' % (args.log_dir, args.now), level=logging.DEBUG,
@@ -121,13 +113,15 @@ def main():
     parser_fastq_to_db.add_argument('fastqs', metavar='FASTQ file(s)', nargs='+', help='At least one fastq file')
     parser_fastq_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                     help='The name of a config file in the user_configs directory (not the full path)')
+    parser_fastq_to_db.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
+                                     help='Where do you want the logs written to? Will default to /path/to/fastq/logs')    
     parser_fastq_to_vcf = subparsers.add_parser('fastq_to_vcf', help='Takes fastqs and a config file and produces a '
                                                                      'vcf and '
                                                                      'serialised SNPs and ignored positions')
     parser_fastq_to_vcf.add_argument('fastqs', metavar='FASTQ file(s)', nargs='+', help='At least one fastq file')
     parser_fastq_to_vcf.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                      help='The name of a config file in the user_configs directory (not the full path)')
-    parser_fastq_to_vcf.add_argument('-g', dest='log_dir', default=None,
+    parser_fastq_to_vcf.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
                                      help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
     parser_vcf_to_db = subparsers.add_parser('vcf_to_db', help='Takes a vcf and a config file, parses the vcf and then '
                                                                'adds to '
@@ -136,12 +130,12 @@ def main():
                                                                              'emit_all_positions?)')
     parser_vcf_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                   help='The name of a config file in the user_configs directory (or the contig path)')
-    parser_vcf_to_db.add_argument('-g', dest='log_dir', default=None,
+    parser_vcf_to_db.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
                                   help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
     parser_make_snpdb = subparsers.add_parser('make_snpdb', help='Takes a config and makes a snpdb')
     parser_make_snpdb.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                    help='The name of a config file in the user_configs directory (not the full path)')
-    parser_make_snpdb.add_argument('-g', dest = 'log_dir', default = None,
+    parser_make_snpdb.add_argument('-g', dest = 'log_dir', default = os.path.join(os.path.expanduser('~'), 'logs'),
                                      help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
     parser_make_snpdb.add_argument('-f', dest = 'fastqs', default = [], nargs='+',
                                      help='This should be ignored - I DONT KNOW HOW TO ADD FASTQ TO NAMESPACE')

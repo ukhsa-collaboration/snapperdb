@@ -270,7 +270,7 @@ class Vcf:
             os.system('picard CreateSequenceDictionary R= %s O= %s.dict'
                       % (self.ref_genome_path, picard_dict_path))
 
-        if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + 'dict'):
+        if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + 'fa.fai'):
             pass
         else:
             os.system('samtools faidx %s' % self.ref_genome_path)
