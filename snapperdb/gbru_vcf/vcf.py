@@ -37,7 +37,7 @@ class Vcf:
         self.good_var = None
         self.bad_pos = None
         self.sample_name = None
-        self.depth_average = None
+        self.depth_average = 'not calculated'
         self.depth_sd = None
         self.path_to_config = None
         self.reference_genome = None
@@ -233,8 +233,10 @@ class Vcf:
 
         # set vcf path
         self.make_tmp_dir(args)
-        self.vcf_filehandle = os.path.join(self.tmp_dir, os.path.pardir, '{0}.vcf'.format(self.sample_name))
-        #self.vcf_filehandle = args.vcf[0]
+        try:
+            self.vcf_filehandle = args.vcf[0]
+        except:
+            self.vcf_filehandle = os.path.join(self.tmp_dir, os.path.pardir, '{0}.vcf'.format(self.sample_name))
 # -------------------------------------------------------------------------------------------------
 
     def check_reference_bwa_indexed(self):

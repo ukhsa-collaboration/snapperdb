@@ -9,7 +9,11 @@ SnapperDB can take a pair of Illumina FASTQ sequencing reads and execute a user-
 
 As the database is populated a pair-wise distance matrix of SNP distances is calculated that can be used to generate a isolate level hierichical clustering nomenclature - the SNP Address.
 
+SnapperDB instancies can be queried to produce alignments for phylogenetic analysis.
+
 SnapperDB has been used internally within Public Health England to process >20,000 isolates of *Salmonella*, *E. coli* and other gastrointestinal pathogens.
+
+SnapperDB is intended to be used at the clonal complex / eBURST group level where isolates are less than 10K SNPs from the reference genome.
 
 ---
 
@@ -140,6 +144,8 @@ After uploading samples to your SnapperDB instance you can populate the distance
 snapperdb.py update_distance_matrix -c $myconfigname
 ```
 
+If you have access to a HPC cluster the **-m** flag can be used to partition your job into.  This paramter expects an integer that will be the number of strains you want update in each qsub job.
+
 ### Generating SNP Addresses
 
 Using hierarchical single linkage clustering of the pairwise SNP distances we are able to derive an isolate level nomenclature for each genome sequence.  This allows efficient searching of the population studied as well as automated cluster detection.  By default the SNP address performs single linkage clustering at seven SNP thresholds; 250, 100, 50, 25, 10, 5, 0.
@@ -150,49 +156,14 @@ snapperdb.py update_clusters -c $myconfigname
 
 ### Generating Alignments for Phylogenetic Analysis
 
-The command **get_the_snps** is used to produce alignments  
-
-
-
-
-
-(recombination)
-
-So, you have successfully loaded the module and run SnapperDB_main.py. What next?
-
-First, you need to make a SNPdb to fill with all your lovely data.
-
-Read the output of
-```sh
-$ SnapperDB_main.py make_snpdb -h
-```
-
-Apparently you need a config file. What do they look like? Well, like this:
-
-```
-snpdb_name what_you_want_the_snpdb_to_be_called
-reference_genome the_reference_genome_name
-pg_uname your_postgres_username
-pg_pword your_postgres_password
-pg_host your_postgres_server
-depth_cutoff 10
-mq_cutoff 30
-ad_cutoff 0.9
-```
-*depth_cutoff* is the minimum consensus depth, positions below this will be ignored.
-*mq_cutoff* is the mapping quality below which a position will be ignored
-*ad_cutoff* is the proportion of the majority variant below which a position is ignored
-
-
-### Get the SNPs!
-
-Now, you should have lots of lovely data in your SNPdb, get it out by
+The command **get_the_snps** is used to produce alignments to use for phylogenetic analysis.  In it's simpliest form the **get_the_snps** function takes the name of the config file and list of strains in your database that you want to generate the alignment from.
 
 ```sh
-SnapperDB_main.py get_the_snps -c gas_config.txt -l strain_list
+SnapperDB_main.py get_the_snps -c $myconfigname -l $mylistofstrains
 ```
-where the strain_list is a list of strain ids that are in your SNPdb. There are lots of other options in get_the_snps. To see them, supply -h. There are sensible-ish defaults for most of these. One of the most relevant to your final phylogeny of all of these is ALIGNMENT_TYPE (-a), which defaults to core. This means that only positions that were present in each isolate in your analysis will be included in your alignment. If you set this to A (i.e. -a A) then SNPs in positions that were only present in a single isolate will be included. Core is the default because it is more robust to strains that have a large number of SNPs in spurious positions. However, Accessory is a very useful option as it is more robust to strains that ignore positions that are true SNPs, that contribute to your phylogeny, possibly because the original isolate was a mix of two strains, leading to bad AD ratios for those positions. With core, if they are ignored in one strain, they are ignored in all strains and so your tree will collapse.
 
-get_the_snps will output you a fasta file that is suitable for running through e.g. FasTree or Raxml.
+There are lots of other options in **get_the_snps**.  To see them supply **-h**.  We think we have provided fairly sensible defaults.  One key option is **-m** which sets the maximum number of SNPs away from the reference that's allowed (Default 5000).  Strains with more SNPs than this will be ignored.  Another important option is **-a** which is alignment type.  The three options available are; **C** (Core) -  only allows positions that are present in all strains, **A** (Soft Core) - produces alignments where at least specified percentage of the samples are A/C/T/G at each position (Default A:80), **W** produce whole genome alignments.  If you wish to mask regions of the genome out of the alignment, for example parts of the reference known to have recombined the you can either supply a file of coordinates to ignore with the **-n** flag or supply a GFF file produced by gubbins for example with the **-ng** option.  The **-b** flag allows the list of strains supplied with the -l flag to be complemented with other background strains from the database.  To include a representative from each 100 SNP cluster you would provide the option **t100**.  Finally if you would like to output a list of annotated variants or a distance matrix of pairwise SNP distances provide a 'Y' option to the **-v** and **-x** flags respectivley.
+
+
 
 

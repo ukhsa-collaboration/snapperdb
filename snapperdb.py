@@ -11,11 +11,11 @@ import datetime
 from snapperdb import __version__, parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, make_fastq
 from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix,\
-                            update_clusters, add_ref_cluster
+                            update_clusters, add_ref_cluster, qsub_to_check_matrix
 
 
 def setup_logging(args):
-  
+
   """
   Function to set up logging
 
@@ -27,13 +27,13 @@ def setup_logging(args):
 
   Returns
   -------
-  logger : 
+  logger :
       logger object
 
 
   """
 
-        
+
   logger = logging.getLogger('snapperdb')
   args.now = str(datetime.datetime.now()).split('.')[0].replace(' ', '_').replace(':', '.')
   logging.basicConfig(filename='%s/%s.snapperdb.log' % (args.log_dir, args.now), level=logging.DEBUG,
@@ -69,6 +69,10 @@ def run_command(args):
         logger.info('PARAMS: config = %s;' % (args.config_file))
         update_distance_matrix(config_dict, args)
 
+    elif args.command == 'qsub_to_check_matrix':
+        qsub_to_check_matrix(config_dict, args)
+
+
     elif args.command == 'update_clusters':
         logger = logging.getLogger('snapperdb.update_clusters')
         logger.info('PARAMS: config = %s' % args.config_file)
@@ -101,7 +105,7 @@ def run_command(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog='snapperdb')
+    parser = argparse.ArgumentParser(prog='snapperdb.py')
     parser.add_argument("-v", "--version", help="Installed snapperdb version", action="version",
                         version="%(prog)s " + str(__version__))
 
@@ -114,7 +118,9 @@ def main():
     parser_fastq_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                     help='The name of a config file in the user_configs directory (not the full path)')
     parser_fastq_to_db.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
-                                     help='Where do you want the logs written to? Will default to /path/to/fastq/logs')    
+                                     help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
+    parser_fastq_to_db.add_argument('-f', dest='force', default='N', help='Force samples if depth is absent or below cutoff'),
+    
     parser_fastq_to_vcf = subparsers.add_parser('fastq_to_vcf', help='Takes fastqs and a config file and produces a '
                                                                      'vcf and '
                                                                      'serialised SNPs and ignored positions')
@@ -132,6 +138,8 @@ def main():
                                   help='The name of a config file in the user_configs directory (or the contig path)')
     parser_vcf_to_db.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
                                   help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
+    parser_vcf_to_db.add_argument('-f', dest='force', default='N', help='Force samples if depth is absent or below cutoff'),
+    
     parser_make_snpdb = subparsers.add_parser('make_snpdb', help='Takes a config and makes a snpdb')
     parser_make_snpdb.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                    help='The name of a config file in the user_configs directory (not the full path)')
@@ -152,6 +160,20 @@ def main():
     parser_update_distance_matrix.add_argument('-n', dest='now', default='N',
                                                help='')
 
+    parser_update_distance_matrix.add_argument('-m', dest='hpc', default='N',
+                                               help='This will submit parallelise the matrix update')
+
+    parser_qsub_to_check_matrix = subparsers.add_parser('qsub_to_check_matrix', help='This is only for internal use by snapperdb'
+                                                                               ' when update matrix is being run in hpc mode.')
+    parser_qsub_to_check_matrix.add_argument('-c', dest='config_file', metavar='Config file', required=True, help='The name of a'
+                                                                ' config file in the user_configs directory (not the full path)')
+    parser_qsub_to_check_matrix.add_argument('-l', dest='added_list', required=True,
+                                            help='The new strain to update')
+    parser_qsub_to_check_matrix.add_argument('-s', dest='present_strains', required=True, help='The list of all the strains '
+                                                                                            'already in the distance matrix')
+    parser_qsub_to_check_matrix.add_argument('-g', dest = 'log_dir', default = os.path.join(os.path.expanduser('~'), 'logs'),
+                                     help='Where do you want the logs written to? Will default to a /user/home/logs')
+
     parser_get_the_snps = subparsers.add_parser('get_the_snps',
                                                 help='Takes a config file, a list, and a bunch of other flags and '
                                                      'provides you with snps and more')
@@ -159,10 +181,10 @@ def main():
                                      help='The name of a config file in the user_configs directory (not the full path)')
     parser_get_the_snps.add_argument('-l', dest='strain_list', required=True)
 
-    parser_get_the_snps.add_argument('-m', dest='snp_co', required=True,
+    parser_get_the_snps.add_argument('-m', dest='snp_co', default='5000',
                                      help='SNP cut off (has to be integer), strains more than this number of '
                                           'SNPs from the reference will be excluded from the analysis. '
-                                          'A sensible starting point is 3000')
+                                          'A sensible starting point is 5000')
     parser_get_the_snps.add_argument('-o', dest='out', help='Prefix for output, will default to '
                                                             '<date>.<snpdb_name>_vs_<list_name>')
     parser_get_the_snps.add_argument('-a', dest='alignment_type',

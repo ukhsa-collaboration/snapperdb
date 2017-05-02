@@ -7,10 +7,11 @@ import re
 import sys
 import logging
 import psycopg2, psycopg2.extras
-from snpdb import SNPdb
 import snapperdb
+from snpdb import SNPdb
 from snapperdb.gbru_vcf import Vcf
 import pprint
+
 
 def vcf_to_db(args, config_dict, vcf):
     #set up loggging
@@ -23,7 +24,7 @@ def vcf_to_db(args, config_dict, vcf):
     #parse config into snpdb object
     logger.info('Parsing config dict')
     snpdb.parse_config_dict(config_dict)
-    
+
     #connect to snpdb postgres
     snpdb._connect_to_snpdb()
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
@@ -32,7 +33,7 @@ def vcf_to_db(args, config_dict, vcf):
     if inspect.stack()[0][3] == 'fastq_to_db':
         # fastq_to_db we will alread have a vcf object to work wih
         logger.info('You are running fastq_to_db.')
-        
+
     elif inspect.stack()[0][3] == 'vcf_to_db':
         ## there is no existing vcf class here, but there will definitely be a vcf
         logger.info('You are running vcf_to_db. Initialising Vcf class.')
@@ -40,12 +41,12 @@ def vcf_to_db(args, config_dict, vcf):
         logger.info('Making SNPdb variables and output files')
         #set up variables
         snpdb.define_class_variables_and_make_output_files(args, vcf)
-    
+
     #read vcf
     vcf.read_multi_contig_vcf()
     logger.info('Uploading to SNPdb')
     #upload vcf
-    snpdb.snpdb_upload(vcf)
+    snpdb.snpdb_upload(vcf,args)
     #annotate vars
     logger.info('Annotating new variants')
 
@@ -64,7 +65,7 @@ def add_ref_cluster(args, config_dict):
     #parse config into snpdb object
     logger.info('Parsing config dict')
     snpdb.parse_config_dict(config_dict)
-    
+
     #connect to snpdb postgres
     snpdb._connect_to_snpdb()
     snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)
@@ -99,7 +100,7 @@ def read_multi_contig_fasta(ref):
     try:
         openfile = open(ref, 'r')
     except:
-        print "### Reference genome "+ ref + " not found ... "  
+        print "### Reference genome "+ ref + " not found ... "
         print "### Exiting "+str(datetime.datetime.now())
         sys.exit()
 
@@ -122,10 +123,10 @@ def read_rec_file_mc(rec_file):
     try:
         openfile = open(rec_file, 'r')
     except:
-        print "### Recombination list "+ rec_file + " not found ... "  
-        print "### Exiting "+str(datetime.datetime.now())        
+        print "### Recombination list "+ rec_file + " not found ... "
+        print "### Exiting "+str(datetime.datetime.now())
         sys.exit()
-    
+
     rec_dict = {}
     for line in openfile:
         split_line = line.strip().split('\t')
@@ -139,7 +140,7 @@ def read_rec_file_mc(rec_file):
 # -------------------------------------------------------------------------------------------------
 
 def create_contig_index_for_consensus_genome(reference_genome):
-    ## first, need to concatenate the reference genome in the order of 
+    ## first, need to concatenate the reference genome in the order of
     ## alphanumerically sorted contig names
     concatenated_ref_genome = ''
     contig_names = sorted(reference_genome.keys())
@@ -156,7 +157,7 @@ def create_contig_index_for_consensus_genome(reference_genome):
         j = i + len(reference_genome[contig]) - 1
         contig_index[(i, j)] = contig
         i += len(reference_genome[contig])
-        
+
     pprint.pprint(contig_index)
     return contig_index
 
@@ -188,20 +189,20 @@ def read_rec_file_mc_gubbins(gubbins_rec_file, reference_genome):
     try:
         openfile = open(gubbins_rec_file, 'r')
     except IOError:
-        print "### Gubbins GFF file "+ gubbins_rec_file + " not found ... "  
-        print "### Exiting "+str(datetime.datetime.now())         
+        print "### Gubbins GFF file "+ gubbins_rec_file + " not found ... "
+        print "### Exiting "+str(datetime.datetime.now())
         sys.exit()
     recombinant_sections = []
     for line in openfile.readlines():
         if not line.startswith('##'):
             split_line = line.strip().split('\t')
             recombinant_sections.append((int(split_line[3]), int(split_line[4])))
-            
+
     rec_dict = make_recomb_dict_from_gubbins(recombinant_sections, contig_index)
     return rec_dict
-    
+
  # -------------------------------------------------------------------------------------------------
-   
+
 
 def get_the_snps(args, config_dict):
     #set up logging
@@ -233,22 +234,25 @@ def get_the_snps(args, config_dict):
     else:
         #should we set this as none
         rec_dict = {}
-    
 
-    #query snadb    
+
+    #query snadb
     snpdb.parse_args_for_get_the_snps_mc(args, strain_list, ref_seq, snpdb.reference_genome)
-    
+
     snpdb.print_fasta_mc(args, rec_dict)
 
     #print matrix
     if args.mat_flag == 'Y':
         snpdb.print_matrix(args.out)
-    # print variant list    
+    # print variant list
     if args.var_flag == 'Y':
         logger.info('Printing variants')
         snpdb.print_vars_mc(args,rec_dict)
 
 # -------------------------------------------------------------------------------------------------
+def chunks(l, n):
+    for i in xrange(0, len(l), n):
+        yield l[i:i + n]
 
 def update_distance_matrix(config_dict, args):
     logger = logging.getLogger('snapperdb.snpdb.update_distance_matrix')
@@ -263,11 +267,41 @@ def update_distance_matrix(config_dict, args):
     if update_strain:
         print "###  Populating distance matrix: " + str(datetime.datetime.now())
         snpdb.parse_args_for_update_matrix(snp_co, strain_list)
-        print '### Launching serial update_distance_matrix ' + str(datetime.datetime.now())
-        snpdb.check_matrix(strain_list, update_strain)
-        snpdb.update_clusters()
+        if args.hpc == 'N':
+            print '### Launching serial update_distance_matrix ' + str(datetime.datetime.now())
+            snpdb.check_matrix(strain_list, update_strain)
+            snpdb.update_clusters()
+        else:
+            print '### Launching parallel update_distance_matrix ' +str(datetime.datetime.now())
+            present_stains = list(set(strain_list) - set(update_strain))
+            for idx, one_strain in enumerate(chunks(list(update_strain), int(args.hpc))):
+                snpdb.write_qsubs_to_check_matrix(args, idx, one_strain, present_stains, config_dict['snpdb_name'])
+        snpdb.check_matrix(update_strain, update_strain)
+
     else:
         print '### Nothing to update ' + str(datetime.datetime.now())
+# -------------------------------------------------------------------------------------------------
+
+def qsub_to_check_matrix(config_dict, args):
+
+    snpdb = SNPdb(config_dict)
+    snpdb.parse_config_dict(config_dict)
+    snpdb._connect_to_snpdb()
+    snp_co = '1000000'
+    added_list = []
+    with open(args.added_list) as fi:
+        for x in fi.readlines():
+            added_list.append(x.strip())
+    present_strains = []
+    with open(args.present_strains) as fi:
+        for x in fi.readlines():
+            present_strains.append(x.strip())
+
+    strain_list = list(set(present_strains) | set(added_list))
+    snpdb.parse_args_for_update_matrix(snp_co, strain_list)
+    snpdb.check_matrix(strain_list,added_list)
+
+
 # -------------------------------------------------------------------------------------------------
 
 
