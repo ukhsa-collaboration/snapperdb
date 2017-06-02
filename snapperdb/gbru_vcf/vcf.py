@@ -257,12 +257,19 @@ class Vcf:
     def run_phoenix(self,args):
         self.check_reference_bwa_indexed()
         self.check_reference_gatk_indexed()
+        #self.mapper = 'bwa'
+        #self.variant_caller = 'gatk'        
         os.system('phenix.py run_snp_pipeline -r1 %s -r2 %s -r %s -o %s -m %s -v %s --sample-name %s --filters mq_score:%s,min_depth:%s,ad_ratio:%s --annotators coverage' % (args.fastqs[0], args.fastqs[1], self.ref_genome_path, self.tmp_dir, self.mapper, self.variant_caller, self.sample_name, self.mq_cutoff, self.depth_cutoff,self.ad_cutoff))
 
 # -------------------------------------------------------------------------------------------------
 
 
     def check_reference_gatk_indexed(self):
+        try:
+            picard_path = "java -jar "+os.environ['PICARDPATH']
+        except KeyError:
+            picard_path = 'picard CreateSequenceDictionary'
+                    
         indicies = ['dict', 'fa.fai']
         # print (os.path.splitext(self.ref_genome_path)[0] + '.' + i)
         if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + 'dict'):

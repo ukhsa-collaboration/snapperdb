@@ -117,7 +117,7 @@ def main():
     parser_fastq_to_db.add_argument('fastqs', metavar='FASTQ file(s)', nargs='+', help='At least one fastq file')
     parser_fastq_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                     help='The name of a config file in the user_configs directory (not the full path)')
-    parser_fastq_to_db.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
+    parser_fastq_to_db.add_argument('-g', dest='log_dir', default=os.getcwd(),
                                      help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
     parser_fastq_to_db.add_argument('-f', dest='force', default='N', help='Force samples if depth is absent or below cutoff'),
     
@@ -127,7 +127,7 @@ def main():
     parser_fastq_to_vcf.add_argument('fastqs', metavar='FASTQ file(s)', nargs='+', help='At least one fastq file')
     parser_fastq_to_vcf.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                      help='The name of a config file in the user_configs directory (not the full path)')
-    parser_fastq_to_vcf.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
+    parser_fastq_to_vcf.add_argument('-g', dest='log_dir', default=os.getcwd(),
                                      help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
     parser_vcf_to_db = subparsers.add_parser('vcf_to_db', help='Takes a vcf and a config file, parses the vcf and then '
                                                                'adds to '
@@ -136,14 +136,14 @@ def main():
                                                                              'emit_all_positions?)')
     parser_vcf_to_db.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                   help='The name of a config file in the user_configs directory (or the contig path)')
-    parser_vcf_to_db.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
-                                  help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
-    parser_vcf_to_db.add_argument('-f', dest='force', default='N', help='Force samples if depth is absent or below cutoff'),
+    parser_vcf_to_db.add_argument('-g', dest='log_dir', default=os.getcwd(),
+                                     help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
+    parser_vcf_to_db.add_argument('-f', dest='force', default='N', help='Force samples if depth is absent or below cutoff')
     
     parser_make_snpdb = subparsers.add_parser('make_snpdb', help='Takes a config and makes a snpdb')
     parser_make_snpdb.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                    help='The name of a config file in the user_configs directory (not the full path)')
-    parser_make_snpdb.add_argument('-g', dest = 'log_dir', default = os.path.join(os.path.expanduser('~'), 'logs'),
+    parser_make_snpdb.add_argument('-g', dest = 'log_dir', default=os.getcwd(),
                                      help='Where do you want the logs written to? Will default to /path/to/fastq/logs')
     parser_make_snpdb.add_argument('-f', dest = 'fastqs', default = [], nargs='+',
                                      help='This should be ignored - I DONT KNOW HOW TO ADD FASTQ TO NAMESPACE')
@@ -154,7 +154,7 @@ def main():
                                                help='The name of a config file in the user_configs directory '
                                                     '(not the full path)')
     parser_update_distance_matrix.add_argument('-g', dest='log_dir',
-                                               default=os.path.join(os.path.expanduser('~'), 'logs'),
+                                               default=os.getcwd(),
                                                help='Where do you want the logs written to? Will default to a '
                                                     '/user/home/logs')
     parser_update_distance_matrix.add_argument('-n', dest='now', default='N',
@@ -171,7 +171,7 @@ def main():
                                             help='The new strain to update')
     parser_qsub_to_check_matrix.add_argument('-s', dest='present_strains', required=True, help='The list of all the strains '
                                                                                             'already in the distance matrix')
-    parser_qsub_to_check_matrix.add_argument('-g', dest = 'log_dir', default = os.path.join(os.path.expanduser('~'), 'logs'),
+    parser_qsub_to_check_matrix.add_argument('-g', dest = 'log_dir', default=os.getcwd(),
                                      help='Where do you want the logs written to? Will default to a /user/home/logs')
 
     parser_get_the_snps = subparsers.add_parser('get_the_snps',
@@ -205,7 +205,7 @@ def main():
     parser_get_the_snps.add_argument('-b', dest='back_flag',
                                      help='Would you like a background cluster level? SNP cluster level '
                                           'from which to take one representative', default='N')
-    parser_get_the_snps.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
+    parser_get_the_snps.add_argument('-g', dest='log_dir', default=os.getcwd(),
                                      help='Where do you want the logs written to? Will default to a /user/home/logs')
     parser_update_clusters = subparsers.add_parser('update_clusters',
                                                    help='Given a config file, updates the SNP clustering '
@@ -213,7 +213,7 @@ def main():
     parser_update_clusters.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                         help='The name of a config '
                                              'file in the user_configs directory (not the full path)')
-    parser_update_clusters.add_argument('-g', dest='log_dir', default=os.path.join(os.path.expanduser('~'), 'logs'),
+    parser_update_clusters.add_argument('-g', dest='log_dir', default=os.getcwd(),
                                         help='Where do you want the logs written to? Will default to a /user/home/logs')
 
 

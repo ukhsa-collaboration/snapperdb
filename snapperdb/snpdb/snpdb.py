@@ -135,7 +135,7 @@ class SNPdb:
         try:
             vcf.vcf_filehandle = args.vcf[0]
         except:
-            vcf.vcf_filehandle = os.path.join(vcf.tmp_dir, '{0}.filteredvcf'.format(vcf.sample_name))
+            vcf.vcf_filehandle = os.path.join(vcf.tmp_dir, '{0}.filtered.vcf'.format(vcf.sample_name))
 
 # -------------------------------------------------------------------------------------------------
 
@@ -374,13 +374,13 @@ class SNPdb:
                 for row in res:
                     try:
                         ig_dic[row['pos']] = row['id']
-                    except:                        
+                    except:
                         ig_dic[row['pos']] = {}
                         ig_dic[row['pos']] = row['id']
 
             #go through the ignored_pos in this contig
             for pos in parsed_vcf.bad_pos:
-                if int(pos) not in set(ig_dic):
+                if int(pos) not in ig_dic:
                     seq_id = self.add_new_ig_pos(cursor, parsed_vcf.ref, pos)
                     ig_db_list.append(seq_id)
                 else:
@@ -392,13 +392,25 @@ class SNPdb:
         self.snpdb_conn.commit()
 # -------------------------------------------------------------------------------------------------
 
+    def is_number(self,s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
+# -------------------------------------------------------------------------------------------------
+
     def snpdb_upload(self, vcf,args):
         #lets check if they are forcing
         
         if not self.check_duplicate(vcf, 'strains_snps'):
             print 'Calulated depth is %s - cuttoff is %s' % (vcf.depth_average, self.average_depth_cutoff)
-            if args.force == 'Y' or float(vcf.depth_average) >= float(self.average_depth_cutoff):
+            if args.force == 'Y' or (self.is_number(vcf.depth_average) == True and  float(vcf.depth_average) >= float(self.average_depth_cutoff)):
                 #add strains
+                if (args.force == 'Y' and self.is_number(vcf.depth_average) == False):
+                    vcf.depth_average = None
+
                 self.add_info_to_strain_stats(vcf)
                 #CHANGE - this needs to be logged
                 self.add_to_snpdb(vcf)
@@ -410,7 +422,7 @@ class SNPdb:
                 self.snpdb_conn.commit()
                 cur.close()
                 #CHANGE this needs to be logged
-                sys.stderr.write('Average depth below cutoff, not added to SNPdb')
+                sys.stderr.write('Average depth below cutoff, not added to SNPdb\n')
         elif self.check_duplicate(vcf, 'strains_snps'):
             #CHANGE this needs to be logged
             sys.stderr.write('%s is already in SNPdb strains_snps %s\n' % (vcf.sample_name, self.reference_genome))
