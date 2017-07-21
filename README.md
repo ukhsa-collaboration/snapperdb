@@ -37,6 +37,8 @@ SnapperDB is available at https://github.com/phe-bioinformatics/snapperdb
 - Python >= 2.7
 - biopython
 - pyscopg2
+- paramiko
+- hashids
 
 **Postgres**
 

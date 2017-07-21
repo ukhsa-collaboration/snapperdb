@@ -989,7 +989,7 @@ class SNPdb:
         lookup = range(6500000)
         strain_ig_pos_dict = {}
         for strn in set(data_list):
-            strain_ig_pos_dict[strn] = [lookup[x] for x in self.get_bad_pos_for_strain_update_matrix(strn)]
+            strain_ig_pos_dict[strn] = [lookup[x] if x < 6500000 else x in self.get_bad_pos_for_strain_update_matrix(strn)]
 
         newrows = []
         #add the reference genomes bad positions
@@ -1023,7 +1023,6 @@ class SNPdb:
                 all_bad_pos = set([(self.IgPos_container[bad_id].pos, self.IgPos_container[bad_id].contig) for bad_id in all_bad_ids])
                 # the difference is the number of variants that are not at a bad position
                 diff = len(all_var_pos.difference(all_bad_pos))
-                print strain1, strain2, diff
                 newrows.append((strain1, strain2, diff))
         # add to db
         sql2 = "insert into dist_matrix (strain1, strain2, snp_dist) VALUES (%s, %s, %s)"
