@@ -81,6 +81,8 @@ def make_snpdb(config_dict):
 
 # -------------------------------------------------------------------------------------------------
 
+
+
 def read_file(file_name):
     #read list of strains for get the snps
     try:
@@ -248,6 +250,36 @@ def get_the_snps(args, config_dict):
     if args.var_flag == 'Y':
         logger.info('Printing variants')
         snpdb.print_vars_mc(args,rec_dict)
+
+
+# -------------------------------------------------------------------------------------------------
+
+
+def export_json(args, config_dict):
+    #set up logging
+    logger = logging.getLogger('snapperdb.snpdb.export_json')
+    logger.info('Inititialising SnpDB Class')
+    #initalise snpdb class
+    snpdb = SNPdb(config_dict)
+    #parse confif
+    snpdb.parse_config_dict(config_dict)
+    #read strainlist
+    strain_list = read_file(args.strain_list)
+
+    #connect to postgresdb
+    snpdb._connect_to_snpdb()
+    #get reference genome path
+    ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
+    #read the reference fasta
+    ref_seq = read_multi_contig_fasta(ref_seq_file)
+
+
+    snpdb.parse_args_for_export(args, strain_list, ref_seq)
+
+
+   
+
+
 
 # -------------------------------------------------------------------------------------------------
 def chunks(l, n):

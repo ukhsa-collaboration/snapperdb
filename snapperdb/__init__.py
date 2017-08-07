@@ -71,3 +71,9 @@ def parse_ancillary_info(infile):
             split = line.strip().split('\t')
             res_dict[split[0]] = split[1]
     return res_dict
+
+# -------------------------------------------------------------------------------------------------
+
+
+
+

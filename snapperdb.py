@@ -11,7 +11,7 @@ import datetime
 from snapperdb import __version__, parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, make_fastq
 from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix,\
-                            update_clusters, add_ref_cluster, qsub_to_check_matrix
+                            update_clusters, add_ref_cluster, qsub_to_check_matrix, export_json
 
 
 def setup_logging(args):
@@ -87,6 +87,12 @@ def run_command(args):
         vcf_to_db(args, config_dict, vcf)
         #add reference genome to strain_clusters
         add_ref_cluster(args,config_dict)
+
+    elif args.command == 'export_json':
+        logger = logging.getLogger('snapperdb.export_json')
+        logger.info('PARAMS: config = %s' % args.config_file)
+        export_json(args, config_dict)
+        
 
     elif args.command == 'get_the_snps':
         logger = logging.getLogger('snapperdb.get_the_snps')
@@ -214,6 +220,14 @@ def main():
                                         help='The name of a config '
                                              'file in the user_configs directory (not the full path)')
     parser_update_clusters.add_argument('-g', dest='log_dir', default=os.getcwd(),
+                                        help='Where do you want the logs written to? Will default to a /user/home/logs')
+    parser_export_json = subparsers.add_parser('export_json',
+                                                   help='Given a config file, and a list of strains will produce JSON exports to send to other SNAPPERDB instances.')
+    parser_export_json.add_argument('-c', dest='config_file', metavar='Config file', required=True,
+                                        help='The name of a config '
+                                             'file in the user_configs directory (not the full path)')
+    parser_export_json.add_argument('-l', dest='strain_list', required=True)
+    parser_export_json.add_argument('-g', dest='log_dir', default=os.getcwd(),
                                         help='Where do you want the logs written to? Will default to a /user/home/logs')
 
 

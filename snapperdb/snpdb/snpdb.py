@@ -5,6 +5,7 @@ import errno
 import glob
 import os
 import math
+import json
 import sys
 import re
 from Bio import SeqIO
@@ -989,7 +990,7 @@ class SNPdb:
         lookup = range(6500000)
         strain_ig_pos_dict = {}
         for strn in set(data_list):
-            strain_ig_pos_dict[strn] = [lookup[x] if x < 6500000 else x in self.get_bad_pos_for_strain_update_matrix(strn)]
+            strain_ig_pos_dict[strn] = [lookup[x] if x < 6500000 else x for x in self.get_bad_pos_for_strain_update_matrix(strn)]
 
         newrows = []
         #add the reference genomes bad positions
@@ -1390,3 +1391,85 @@ class SNPdb:
             self.merged_clusters(cluster_strain_list, strain_list)
         else:
             print "### Not Updating Clusters:"+ str(datetime.time(datetime.now()))
+
+
+# -------------------------------------------------------------------------------------------------
+
+    def sql_single_extrac(self,data, data_type, table):
+        cur = self.snpdb_conn.cursor()
+        sql = "SELECT "+ data_type + " FROM " + table + " WHERE name = %s"
+        cur.execute(sql, (data,))
+        value = (cur.fetchone())[0]
+        return value        
+
+# -------------------------------------------------------------------------------------------------
+
+
+    def parse_args_for_export(self, args, strain_list, ref_seq):
+        
+        logger = logging.getLogger('snapperdb.SNPdb.parse_args_for_export')
+        snp_co = '1000000'
+   
+        self.goodids, self.strains_snps = self.get_all_good_ids(strain_list,snp_co)
+        self.badlist, self.igpos = self.get_bad_pos_mc()
+        self.variants, self.posIDMap = self.get_variants_mc()
+        self.IgPos_container, self.igposIDMap = self.get_igs_mc()
+
+
+        for strain in strain_list:
+            self.output_dict = {}
+            print "###  Exporting JSON for "+strain+": " + str(datetime.time(datetime.now()))
+
+            #get strain stats average coverage
+            self.output_dict['stain_stats'] = self.sql_single_extrac(strain, "av_cov", "strain_stats")
+            #get variants
+            self.convert_seq_for_export(ref_seq,strain)
+            self.output_dict['sample'] = strain
+            self.output_dict['config_file'] = args.config_file
+
+            self.write_json(strain)
+
+
+  # -------------------------------------------------------------------------------------------------
+
+
+    def convert_seq_for_export(self,ref_seq,strain):          
+
+        base_tuple = ('A', 'C', 'G', 'T')
+        for s_contig in ref_seq:
+            pos_dict = {}
+            for base in base_tuple:
+                pos_list = []
+                for var_id in self.strains_snps[strain]:
+                    if base in self.variants[var_id].var_base and s_contig in self.variants[var_id].contig:
+                        pos_list.append(str(self.variants[var_id].pos)+"."+self.variants[var_id].ref_base)
+                    else:
+                        continue
+                    if not pos_list:
+                        pos_dict[base] = [0]
+                    else:
+                        pos_dict[base] = pos_list
+            pos_list = []
+            if s_contig in self.igposIDMap:
+                for pos in self.igposIDMap[s_contig]:
+                    pos_list.append(pos) 
+            if not pos_list:
+                pos_dict['N'] = [0]
+            else:
+                pos_dict['N'] = pos_list
+            # adding gaps as place holder for now
+            pos_dict['-'] = [0]
+            self.output_dict[s_contig] = pos_dict
+
+
+  # -------------------------------------------------------------------------------------------------
+
+    def write_json(self,strain):
+        #translate dictionnary to Json
+        output_file = strain + "_json.txt"
+        outfile = open(output_file, 'w')
+        outfile.write(json.dumps(self.output_dict))
+        outfile.close()
+        bash_command = "tar -czvf " + output_file + ".tar.gz " + output_file
+        os.system(bash_command)
+
