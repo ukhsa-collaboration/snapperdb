@@ -82,6 +82,8 @@ def run_command(args):
         logger = logging.getLogger('snapperdb.make_snpdb')
         logger.info('PARAMS: config = %s' % args.config_file)
         make_snpdb(config_dict)
+        args.force = 'N'
+        
         #map reference against itself wgsim some FASTQs if not provided
         vcf = make_fastq(args, config_dict)
         vcf_to_db(args, config_dict, vcf)

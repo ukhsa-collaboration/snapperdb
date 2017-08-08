@@ -407,8 +407,11 @@ class SNPdb:
         
         if not self.check_duplicate(vcf, 'strains_snps'):
             print 'Calulated depth is %s - cuttoff is %s' % (vcf.depth_average, self.average_depth_cutoff)
-            if args.force == 'Y' or float(vcf.depth_average) >= float(self.average_depth_cutoff):
+            if args.force == 'Y' or (self.is_number(vcf.depth_average) == True and  float(vcf.depth_average) >= float(self.average_depth_cutoff)):
                 #add strains
+                if (args.force == 'Y' and self.is_number(vcf.depth_average) == False):
+                    vcf.depth_average = None
+
                 self.add_info_to_strain_stats(vcf)
                 #CHANGE - this needs to be logged
                 self.add_to_snpdb(vcf)
