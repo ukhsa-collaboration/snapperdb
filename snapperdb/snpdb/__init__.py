@@ -4,12 +4,15 @@ import datetime
 import inspect
 import os
 import re
+import subprocess
 import sys
+import json
 import logging
 import psycopg2, psycopg2.extras
 import snapperdb
 from snpdb import SNPdb
 from snapperdb.gbru_vcf import Vcf
+from snapperdb import parse_config
 import pprint
 
 
@@ -277,11 +280,77 @@ def export_json(args, config_dict):
     snpdb.parse_args_for_export(args, strain_list, ref_seq)
 
 
-   
+  # -------------------------------------------------------------------------------------------------
 
+ 
+def import_json(args):
+    #set up logging
+    logger = logging.getLogger('snapperdb.snpdb.import_json')
+    json_path= untar_file(args.json_file)
+    json_dict = {}
 
+    #import json
+    try:
+        with open (json_path) as json_data:
+            json_dict = json.load(json_data)
+        json_data.close()
+    except IOError:
+        print "Issue with JSON file. Exiting."
+        exit()
+
+    #parse config
+    args.config_file = json_dict['config_file']
+    config_dict = parse_config(args)
+    
+    #initalise snpdb class
+    snpdb = SNPdb(config_dict)
+    #parse confif
+    snpdb.parse_config_dict(config_dict)
+    #get reference genome path
+    ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
+    #read the reference fasta
+    ref_seq = read_multi_contig_fasta(ref_seq_file)
+
+    #create VCF class
+    vcf = Vcf()
+    vcf.parse_json_dict(json_dict, ref_seq)
+    vcf.depth_average = json_dict['strain_stats']
+    vcf.sample_name = json_dict['sample']
+
+    logger.info('Uploading to SNPdb')
+    #upload vcf
+    #connect to snpdb postgres
+    snpdb._connect_to_snpdb()
+    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)    
+    
+    if args.write_flag == 'W':
+
+        snpdb.snpdb_upload(vcf,args)
+        #annotate vars
+        logger.info('Annotating new variants')
+
+        snpdb.snpdb_annotate_vars(vcf)
+    elif args.write_flag == 'R':
+        print "do stuff"
+        snpdb.snpdb_query(vcf,args)
 
 # -------------------------------------------------------------------------------------------------
+
+def untar_file(file_path):
+    if not file_path.endswith(".tar.gz"):
+        print "Not a Tar file. Exiting."
+        exit()
+    bash_command = "tar -xzvf " + file_path
+    flag = subprocess.call(bash_command, shell = True)
+    if flag != 0:
+        print "Issue with Tar file. Exiting."
+        exit()
+    new_path = file_path[0:-7]
+    return new_path
+
+# -------------------------------------------------------------------------------------------------
+
+
 def chunks(l, n):
     for i in xrange(0, len(l), n):
         yield l[i:i + n]

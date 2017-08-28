@@ -24,17 +24,7 @@ class Igpos:
 # -------------------------------------------------------------------------------------------------
 
 class SNPdb:
-    """
-    Some really insteresting documnetation about the awesome class that this is!
-
-    Examples
-    --------
-    To use this in your code do the following:
-
-         # >>> from blah import SNPdb
-         # >>> db = SNPdb(config="/path")
-         # >>> db.get_matrix()
-    """
+    
     path_to_config = None
     """Path to the config"""
     snpdb_name = None
@@ -309,6 +299,12 @@ class SNPdb:
                     self.variants[variant_id].locus_tag = ''
         except IOError:
             print 'Cannot find {0}'.format(gb_file)
+# -------------------------------------------------------------------------------------------------
+
+
+    def query_snpdb(self,vcf):
+        print "bum"
+
 
 # -------------------------------------------------------------------------------------------------
 
@@ -431,7 +427,16 @@ class SNPdb:
 # -------------------------------------------------------------------------------------------------
 
 
+    def snpdb_query(self, vcf,args):
+        
+        #need to return something like a strains_snps dict
+        self.query_snpdb(vcf)
+
+
     # # functions below here are for querying the snpdb
+
+# -------------------------------------------------------------------------------------------------
+
 
     def get_background(self, strain_list, args):
         cur = self.snpdb_conn.cursor()
@@ -1421,7 +1426,7 @@ class SNPdb:
             print "###  Exporting JSON for "+strain+": " + str(datetime.time(datetime.now()))
 
             #get strain stats average coverage
-            self.output_dict['stain_stats'] = self.sql_single_extrac(strain, "av_cov", "strain_stats")
+            self.output_dict['strain_stats'] = self.sql_single_extrac(strain, "av_cov", "strain_stats")
             #get variants
             self.convert_seq_for_export(ref_seq,strain)
             self.output_dict['sample'] = strain
@@ -1450,9 +1455,11 @@ class SNPdb:
                     else:
                         pos_dict[base] = pos_list
             pos_list = []
+
             if s_contig in self.igposIDMap:
                 for pos in self.igposIDMap[s_contig]:
-                    pos_list.append(pos) 
+                    if self.igposIDMap[s_contig][pos] in self.igpos[strain]:
+                        pos_list.append(pos)
             if not pos_list:
                 pos_dict['N'] = [0]
             else:

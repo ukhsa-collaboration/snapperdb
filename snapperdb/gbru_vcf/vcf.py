@@ -193,6 +193,29 @@ class Vcf:
 
 # -------------------------------------------------------------------------------------------------
 
+    def parse_json_dict(self, json_dict, ref_seq):
+        
+        parsed_vcf = ""
+        for ref_contig in ref_seq:
+            parsed_vcf = ParsedVcf()
+            parsed_vcf.ref = ref_contig
+            for base in json_dict[ref_contig]:
+                if base == 'N':
+                    for pos in json_dict[ref_contig][base]:
+                        parsed_vcf.bad_pos.append(pos)
+                elif base != '-':
+                    for var in json_dict[ref_contig][base]:
+                        pos, ref_call = var.split(".")
+                        parsed_vcf.good_var.append(pos)                       
+                        parsed_vcf.var[pos] = base
+                        parsed_vcf.ref_base[pos] = ref_call    
+
+            self.parsed_vcf_container.append(parsed_vcf)
+
+
+
+#-------------------------------------------------------------------------------------------------
+
     def make_ref_fastqs(self, args):
         try:
             if os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq.gz')):

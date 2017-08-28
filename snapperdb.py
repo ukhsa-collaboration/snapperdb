@@ -11,7 +11,7 @@ import datetime
 from snapperdb import __version__, parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, make_fastq
 from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix,\
-                            update_clusters, add_ref_cluster, qsub_to_check_matrix, export_json
+                            update_clusters, add_ref_cluster, qsub_to_check_matrix, export_json, import_json
 
 
 def setup_logging(args):
@@ -44,7 +44,8 @@ def setup_logging(args):
 
 
 def run_command(args):
-    config_dict = parse_config(args)
+    if 'config_file' in args: 
+      config_dict = parse_config(args)
     setup_logging(args)
 
     if args.command == 'fastq_to_db':
@@ -95,6 +96,11 @@ def run_command(args):
         logger.info('PARAMS: config = %s' % args.config_file)
         export_json(args, config_dict)
         
+    elif args.command == 'import_json':
+        logger = logging.getLogger('snapperdb.import_json')
+        args.force = 'N'
+        
+        import_json(args)
 
     elif args.command == 'get_the_snps':
         logger = logging.getLogger('snapperdb.get_the_snps')
@@ -231,7 +237,13 @@ def main():
     parser_export_json.add_argument('-l', dest='strain_list', required=True)
     parser_export_json.add_argument('-g', dest='log_dir', default=os.getcwd(),
                                         help='Where do you want the logs written to? Will default to a /user/home/logs')
-
+    parser_import_json = subparsers.add_parser('import_json',
+                                                   help='Take a JSON file exported from another SNAPPERDB instance')
+    parser_import_json.add_argument('-j', dest='json_file', metavar='JSON file', required=True,
+                                        help='The name of the JSON file to import')
+    parser_import_json.add_argument('-w', dest='write_flag', required=True, help='R will simply read from SnapperDB database and return best match(es) for SNP address (low impact method). W will write to SnapperDB and return SNP address (full impact method).')
+    parser_import_json.add_argument('-g', dest='log_dir', default=os.getcwd(),
+                                        help='Where do you want the logs written to? Will default to a /user/home/logs')
 
     args = parser.parse_args()
     print args
