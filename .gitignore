@@ -5,6 +5,5 @@
 .pydevproject
 .DS_store
 logs
-snpdb
 reference_genomes
 user_configs

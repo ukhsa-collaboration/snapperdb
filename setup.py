@@ -37,9 +37,9 @@ setup(name='snapperdb',
       author='Public Health England',
       author_email='NGSSBioinformatics@phe.gov.uk',
       url='http://phoenix.readthedocs.org/en/latest/index.html',
-      package=['snapperdb',
-               'snapperdb.snpdb',
-               'snapperdb.gbru_vcf'],
+      package=['phe',
+               'phe.snpdb',
+               'phe.gbru_vcf'],
       scripts=['snapperdb.py'],
       install_requires=install_requires
      )

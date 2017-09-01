@@ -9,16 +9,16 @@ import sys
 import json
 import logging
 import psycopg2, psycopg2.extras
-import snapperdb
+import phe
 from snpdb import SNPdb
-from snapperdb.gbru_vcf import Vcf
-from snapperdb import parse_config
+from phe.gbru_vcf import Vcf
+from phe import parse_config
 import pprint
 
 
 def vcf_to_db(args, config_dict, vcf):
     #set up loggging
-    logger = logging.getLogger('snapperdb.snpdb.vcf_to_db')
+    logger = logging.getLogger('phe.snpdb.vcf_to_db')
     logger.info('Initialising SNPdb class')
 
     #create snpdb class
@@ -59,7 +59,7 @@ def vcf_to_db(args, config_dict, vcf):
 
 def add_ref_cluster(args, config_dict):
     #set up loggging
-    logger = logging.getLogger('snapperdb.snpdb.add_ref_cluster')
+    logger = logging.getLogger('phe.snpdb.add_ref_cluster')
     logger.info('Initialising SNPdb class')
 
     #create snpdb class
@@ -211,7 +211,7 @@ def read_rec_file_mc_gubbins(gubbins_rec_file, reference_genome):
 
 def get_the_snps(args, config_dict):
     #set up logging
-    logger = logging.getLogger('snapperdb.snpdb.get_the_snps')
+    logger = logging.getLogger('phe.snpdb.get_the_snps')
     logger.info('Inititialising SnpDB Class')
     #initalise snpdb class
     snpdb = SNPdb(config_dict)
@@ -223,7 +223,7 @@ def get_the_snps(args, config_dict):
     #connect to postgresdb
     snpdb._connect_to_snpdb()
     #get reference genome path
-    ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
+    ref_seq_file = os.path.join(phe.__ref_genome_dir__, snpdb.reference_genome + '.fa')
     #read the reference fasta
     ref_seq = read_multi_contig_fasta(ref_seq_file)
     #add reference genome to strain_list
@@ -260,7 +260,7 @@ def get_the_snps(args, config_dict):
 
 def export_json(args, config_dict):
     #set up logging
-    logger = logging.getLogger('snapperdb.snpdb.export_json')
+    logger = logging.getLogger('phe.snpdb.export_json')
     logger.info('Inititialising SnpDB Class')
     #initalise snpdb class
     snpdb = SNPdb(config_dict)
@@ -272,7 +272,7 @@ def export_json(args, config_dict):
     #connect to postgresdb
     snpdb._connect_to_snpdb()
     #get reference genome path
-    ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
+    ref_seq_file = os.path.join(phe.__ref_genome_dir__, snpdb.reference_genome + '.fa')
     #read the reference fasta
     ref_seq = read_multi_contig_fasta(ref_seq_file)
 
@@ -285,7 +285,7 @@ def export_json(args, config_dict):
  
 def import_json(args):
     #set up logging
-    logger = logging.getLogger('snapperdb.snpdb.import_json')
+    logger = logging.getLogger('phe.snpdb.import_json')
     json_path= untar_file(args.json_file)
     json_dict = {}
 
@@ -307,7 +307,7 @@ def import_json(args):
     #parse confif
     snpdb.parse_config_dict(config_dict)
     #get reference genome path
-    ref_seq_file = os.path.join(snapperdb.__ref_genome_dir__, snpdb.reference_genome + '.fa')
+    ref_seq_file = os.path.join(phe.__ref_genome_dir__, snpdb.reference_genome + '.fa')
     #read the reference fasta
     ref_seq = read_multi_contig_fasta(ref_seq_file)
 
@@ -356,7 +356,7 @@ def chunks(l, n):
         yield l[i:i + n]
 
 def update_distance_matrix(config_dict, args):
-    logger = logging.getLogger('snapperdb.snpdb.update_distance_matrix')
+    logger = logging.getLogger('phe.snpdb.update_distance_matrix')
     logger.info('Inititialising SnpDB Class')
     snpdb = SNPdb(config_dict)
     snpdb.parse_config_dict(config_dict)
