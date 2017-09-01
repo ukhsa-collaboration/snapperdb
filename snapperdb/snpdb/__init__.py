@@ -331,8 +331,8 @@ def import_json(args):
 
         snpdb.snpdb_annotate_vars(vcf)
     elif args.write_flag == 'R':
-        print "do stuff"
-        snpdb.snpdb_query(vcf,args)
+        print "under development"
+        #snpdb.snpdb_query(vcf,args)
 
 # -------------------------------------------------------------------------------------------------
 
