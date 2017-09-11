@@ -27,6 +27,12 @@ SnapperDB is intended to be used at the clonal complex / eBURST group level wher
 
 SnapperDB is available at https://github.com/phe-bioinformatics/snapperdb
 
+From source:
+
+```
+$ git clone https://github.com/phe-bioinformatics/snapperdb.git
+$ pip2 install -e snapperdb
+```
 
 ---
 
