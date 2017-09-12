@@ -8,11 +8,22 @@ import logging
 import os
 import sys
 import datetime
-from phe import __version__, parse_config
-from phe.gbru_vcf import fastq_to_vcf, make_fastq
-from phe.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix,\
+from snapperdb import parse_config
+from snapperdb.gbru_vcf import fastq_to_vcf, make_fastq
+from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix,\
                             update_clusters, add_ref_cluster, qsub_to_check_matrix, export_json, import_json
 
+
+def get_version():
+    version_file = os.path.join(os.path.abspath(os.path.dirname(__file__)), "VERSION")
+    version = "N/A"
+    if os.path.exists(version_file):
+        try:
+            with open(version_file) as fp:
+                version = fp.next().strip()
+        except IOError:
+            pass
+    return version
 
 def setup_logging(args):
 
@@ -34,7 +45,7 @@ def setup_logging(args):
   """
 
 
-  logger = logging.getLogger('phe')
+  logger = logging.getLogger('snapperdb')
   args.now = str(datetime.datetime.now()).split('.')[0].replace(' ', '_').replace(':', '.')
   logging.basicConfig(filename='%s/%s.snapperdb.log' % (args.log_dir, args.now), level=logging.DEBUG,
                       format='%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s')
@@ -49,24 +60,24 @@ def run_command(args):
     setup_logging(args)
 
     if args.command == 'fastq_to_db':
-        logger = logging.getLogger('phe.fastq_to_db')
+        logger = logging.getLogger('snapperdb.fastq_to_db')
         args.fastqs = sorted(args.fastqs)
         logger.info('PARAMS: config = %s; fastqs = %s' % (args.config_file, str(args.fastqs)))
         vcf = fastq_to_vcf(args, config_dict)
         vcf_to_db(args, config_dict, vcf)
     elif args.command == 'fastq_to_vcf':
-        logger = logging.getLogger('phe.fastq_to_vcf')
+        logger = logging.getLogger('snapperdb.fastq_to_vcf')
         args.fastqs = sorted(args.fastqs)
         logger.info('PARAMS: config = %s; fastqs = %s' % (args.config_file, str(args.fastqs)))
         vcf = fastq_to_vcf(args, config_dict)
     elif args.command == 'vcf_to_db':
-        logger = logging.getLogger('phe.vcf_to_db')
+        logger = logging.getLogger('snapperdb.vcf_to_db')
         logger.info('PARAMS: config = %s; vcf = %s' % (args.config_file, args.vcf))
         # third argument is for an instance of a vcf class, which doesnt exist in this case
         vcf_to_db(args, config_dict, None)
 
     elif args.command == 'update_distance_matrix':
-        logger = logging.getLogger('phe.update_distance_matrix')
+        logger = logging.getLogger('snapperdb.update_distance_matrix')
         logger.info('PARAMS: config = %s;' % (args.config_file))
         update_distance_matrix(config_dict, args)
 
@@ -75,12 +86,12 @@ def run_command(args):
 
 
     elif args.command == 'update_clusters':
-        logger = logging.getLogger('phe.update_clusters')
+        logger = logging.getLogger('snapperdb.update_clusters')
         logger.info('PARAMS: config = %s' % args.config_file)
         update_clusters(config_dict)
 
     elif args.command == 'make_snpdb':
-        logger = logging.getLogger('phe.make_snpdb')
+        logger = logging.getLogger('snapperdb.make_snpdb')
         logger.info('PARAMS: config = %s' % args.config_file)
         make_snpdb(config_dict)
         args.force = 'N'
@@ -92,18 +103,18 @@ def run_command(args):
         add_ref_cluster(args,config_dict)
 
     elif args.command == 'export_json':
-        logger = logging.getLogger('phe.export_json')
+        logger = logging.getLogger('snapperdb.export_json')
         logger.info('PARAMS: config = %s' % args.config_file)
         export_json(args, config_dict)
         
     elif args.command == 'import_json':
-        logger = logging.getLogger('phe.import_json')
+        logger = logging.getLogger('snapperdb.import_json')
         args.force = 'N'
         
         import_json(args)
 
     elif args.command == 'get_the_snps':
-        logger = logging.getLogger('phe.get_the_snps')
+        logger = logging.getLogger('snapperdb.get_the_snps')
         logger.info(
             'PARAMS: config = %s; list = %s; snp_cutoff = %s' % (args.config_file, args.strain_list, args.snp_co))
         if args.out == None:
@@ -119,6 +130,9 @@ def run_command(args):
 
 
 def main():
+
+    __version__ = get_version()
+ 
     parser = argparse.ArgumentParser(prog='snapperdb.py')
     parser.add_argument("-v", "--version", help="Installed snapperdb version", action="version",
                         version="%(prog)s " + str(__version__))

@@ -8,7 +8,7 @@ import subprocess
 import sys
 from Bio import SeqIO
 
-import phe
+import snapperdb
 
 class ParsedVcf:
     def __init__(self):
@@ -218,11 +218,11 @@ class Vcf:
 
     def make_ref_fastqs(self, args):
         try:
-            if os.path.exists(os.path.join(phe.__ref_genome_dir__, self.reference_genome + '.R1.fastq.gz')):
+            if os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq.gz')):
                 sys.stderr.write('FASTQs found for  %s\n' % self.reference_genome)
             else:
-                fastq_path1 = (os.path.join(phe.__ref_genome_dir__, self.reference_genome + '.R1.fastq'))
-                fastq_path2 = (os.path.join(phe.__ref_genome_dir__, self.reference_genome + '.R2.fastq'))
+                fastq_path1 = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq'))
+                fastq_path2 = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R2.fastq'))
                 print fastq_path1, fastq_path2, self.ref_genome_path
                 os.system('wgsim -e 0 -N 3000000 -1 100 -2 100 -r 0 -R 0 -X 0 %s %s %s' % (self.ref_genome_path,fastq_path1,fastq_path2))
                 os.system('gzip %s' % (fastq_path1))
@@ -234,8 +234,8 @@ class Vcf:
 
 
     def define_fastq_paths(self,args):
-        args.fastqs.append(os.path.join(phe.__ref_genome_dir__, self.reference_genome + '.R1.fastq.gz'))
-        args.fastqs.append(os.path.join(phe.__ref_genome_dir__, self.reference_genome + '.R2.fastq.gz'))
+        args.fastqs.append(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R1.fastq.gz'))
+        args.fastqs.append(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.R2.fastq.gz'))
 
 # -------------------------------------------------------------------------------------------------
 
@@ -245,12 +245,12 @@ class Vcf:
         except AttributeError:
             self.sample_name = os.path.basename(args.fastqs[0]).split(os.extsep)[0]
         try:
-            if os.path.exists(os.path.join(phe.__ref_genome_dir__, self.reference_genome + '.fa')):
-                self.ref_genome_path = os.path.join(phe.__ref_genome_dir__, self.reference_genome + '.fa')
-            elif os.path.exists(os.path.join(phe.__ref_genome_dir__, self.reference_genome + '.fasta')):
-                self.ref_genome_path = (os.path.join(phe.__ref_genome_dir__, self.reference_genome + '.fasta'))
-            elif os.path.exists(os.path.join(phe.__ref_genome_dir__, self.reference_genome)):
-                self.ref_genome_path = (os.path.join(phe.__ref_genome_dir__, self.reference_genome))
+            if os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')):
+                self.ref_genome_path = os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')
+            elif os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fasta')):
+                self.ref_genome_path = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fasta'))
+            elif os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome)):
+                self.ref_genome_path = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome))
         except IOError:
             sys.stderr.write('Cant find reference genome %s' % self.reference_genome)
 

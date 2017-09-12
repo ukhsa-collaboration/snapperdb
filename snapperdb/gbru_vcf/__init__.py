@@ -10,7 +10,7 @@ except:
     import pickle
 
 def fastq_to_vcf(args, config_dict):
-    logger = logging.getLogger('phe.fastq_to_vcf')
+    logger = logging.getLogger('snapperdb.fastq_to_vcf')
     logger.info('Running fastq_to_vcf')
     fastq_bam_vcf = Vcf()
     logger.info('Parsing config_dict')
@@ -24,7 +24,7 @@ def fastq_to_vcf(args, config_dict):
     
 def make_fastq(args, config_dict):
 
-    logger = logging.getLogger('phe.fastq_to_vcf')
+    logger = logging.getLogger('snapperdb.fastq_to_vcf')
     logger.info('Running fastq_to_vcf')
     fastq_bam_vcf = Vcf()
     logger.info('Parsing config_dict')

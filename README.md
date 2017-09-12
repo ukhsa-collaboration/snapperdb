@@ -29,7 +29,7 @@ SnapperDB is available at https://github.com/phe-bioinformatics/snapperdb
 
 From source:
 
-```
+```bash
 $ git clone https://github.com/phe-bioinformatics/snapperdb.git
 $ pip2 install -e snapperdb
 ```

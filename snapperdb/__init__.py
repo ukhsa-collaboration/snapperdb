@@ -4,9 +4,6 @@ import os
 import sys
 
 
-__version__ = "v0.1.1 "  
-
-
 __config_dir__ = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'user_configs')
 
 # in the brave new world we no longer keep stuff in relative paths to the code

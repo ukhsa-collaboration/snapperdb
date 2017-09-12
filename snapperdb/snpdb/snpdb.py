@@ -13,7 +13,7 @@ import psycopg2
 import psycopg2.extras
 import logging
 from variant import Variant
-import phe
+import snapperdb
 from copy import deepcopy
 
 class Igpos:
@@ -65,7 +65,7 @@ class SNPdb:
         self.strains_snps = {}
         self.parse_config_dict(config_dict)
         self.snpdb_conn = None
-        self.ref_genome_dir = phe.__ref_genome_dir__
+        self.ref_genome_dir = snapperdb.__ref_genome_dir__
         if os.path.exists(self.ref_genome_dir):
             pass
         else:
@@ -120,7 +120,7 @@ class SNPdb:
         except AttributeError:
             vcf.sample_name = os.path.basename(args.fastqs[0]).split(os.extsep)[0]
 
-        vcf.ref_genome_path = os.path.join(phe.__ref_genome_dir__, self.reference_genome + '.fa')
+        vcf.ref_genome_path = os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fa')
         vcf.make_tmp_dir(args)
 
         try:
@@ -673,7 +673,7 @@ class SNPdb:
 
 
     def parse_args_for_get_the_snps_mc(self, args, strain_list, ref_seq, reference_genome_name):
-        logger = logging.getLogger('phe.SNPdb.parse_args_for_get_the_snps')
+        logger = logging.getLogger('snapperdb.SNPdb.parse_args_for_get_the_snps')
 
         #get some background strains if requested
         if args.back_flag != 'N':
@@ -922,7 +922,7 @@ class SNPdb:
     def parse_args_for_update_matrix(self, snp_co, strain_list):
 
 
-        logger = logging.getLogger('phe.SNPdb.parse_args_for_update_matrix')
+        logger = logging.getLogger('snapperdb.SNPdb.parse_args_for_update_matrix')
         logger.info('Getting good positions')
         self.goodids, self.strains_snps = self.get_all_good_ids(strain_list, snp_co)
         logger.info('Variable positions: ' + str(len(self.goodids)))
@@ -1412,7 +1412,7 @@ class SNPdb:
 
     def parse_args_for_export(self, args, strain_list, ref_seq):
         
-        logger = logging.getLogger('phe.SNPdb.parse_args_for_export')
+        logger = logging.getLogger('snapperdb.SNPdb.parse_args_for_export')
         snp_co = '1000000'
    
         self.goodids, self.strains_snps = self.get_all_good_ids(strain_list,snp_co)
