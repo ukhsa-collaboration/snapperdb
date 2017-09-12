@@ -40,6 +40,6 @@ setup(name='Snapperdb',
       packages=['snapperdb',
                'snapperdb.snpdb',
                'snapperdb.gbru_vcf'],
-      scripts=['scripts/snapperdb.py'],
+      scripts=['snapperdb.py'],
       install_requires=install_requires
      )
