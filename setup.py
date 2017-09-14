@@ -31,13 +31,13 @@ else:
 
 install_requires = [str(ir.req) for ir in install_reqs]
 
-setup(name='Snapperdb',
+setup(name='SnapperDB',
       version=get_version(),
       description='Public Health England(UK) SNP calling pipeline tools.',
       author='Public Health England',
       author_email='NGSSBioinformatics@phe.gov.uk',
       url='http://phoenix.readthedocs.org/en/latest/index.html',
-      packages=['snapperdb',
+            packages=['snapperdb',
                'snapperdb.snpdb',
                'snapperdb.gbru_vcf'],
       scripts=['snapperdb.py'],

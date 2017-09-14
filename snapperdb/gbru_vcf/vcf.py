@@ -56,6 +56,9 @@ class Vcf:
         self.parsed_vcf_container = []
         self.mapper = None
         self.variant_caller = None
+        self.mapper_threads = None
+        self.variant_caller_threads = None
+
 
     def parse_config_dict(self, config_dict):
         # # we loop through thusly in case not all these things are in the config
@@ -71,7 +74,11 @@ class Vcf:
             if attr == 'mapper':
                 self.mapper = config_dict[attr]
             if attr == 'variant_caller':
-                self.variant_caller = config_dict[attr]                                
+                self.variant_caller = config_dict[attr]        
+            if attr == 'mapper_threads':
+                self.mapper_threads = config_dict[attr]  
+            if attr == 'variant_caller_threads':
+                self.variant_caller_threads = config_dict[attr]                                                          
 # -------------------------------------------------------------------------------------------------
 
 
@@ -280,9 +287,24 @@ class Vcf:
     def run_phoenix(self,args):
         self.check_reference_bwa_indexed()
         self.check_reference_gatk_indexed()
+        map_opts = ""
+        var_opts = ""
+
+        #set threads
+        if self.mapper_threads is None:
+            map_opts = '--mapper-options \'-t 1\''
+        else:
+            map_opts = '--mapper-options \'-t %s\'' % self.mapper_threads
+
+        if self.variant_caller_threads is None:
+            var_opts = '--variant-options \'--sample_ploidy 2 --genotype_likelihoods_model SNP -rf BadCigar -out_mode EMIT_ALL_SITES -nt 1\''
+        else:
+            var_opts = '--variant-options \'--sample_ploidy 2 --genotype_likelihoods_model SNP -rf BadCigar -out_mode EMIT_ALL_SITES -nt %s\'' % self.variant_caller_threads            
+
         #self.mapper = 'bwa'
-        #self.variant_caller = 'gatk'        
-        os.system('phenix.py run_snp_pipeline -r1 %s -r2 %s -r %s -o %s -m %s -v %s --sample-name %s --filters mq_score:%s,min_depth:%s,ad_ratio:%s --annotators coverage' % (args.fastqs[0], args.fastqs[1], self.ref_genome_path, self.tmp_dir, self.mapper, self.variant_caller, self.sample_name, self.mq_cutoff, self.depth_cutoff,self.ad_cutoff))
+        #self.variant_caller = 'gatk'
+        
+        os.system('phenix.py run_snp_pipeline -r1 %s -r2 %s -r %s -o %s -m %s -v %s --sample-name %s --filters mq_score:%s,min_depth:%s,ad_ratio:%s --annotators coverage %s %s' % (args.fastqs[0], args.fastqs[1], self.ref_genome_path, self.tmp_dir, self.mapper, self.variant_caller, self.sample_name, self.mq_cutoff, self.depth_cutoff,self.ad_cutoff, var_opts, map_opts))
 
 # -------------------------------------------------------------------------------------------------
 

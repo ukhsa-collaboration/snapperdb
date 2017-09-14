@@ -1,3 +1,4 @@
+
 __author__ = 'gidis'
 
 import os
@@ -48,10 +49,14 @@ def parse_config(args):
                     config_dict['ad_cutoff'] = float(line.strip().split(' ')[-1])
                 if line.startswith('average_depth_cutoff'):
                     config_dict['average_depth_cutoff'] = int(line.strip().split()[-1])
-                if line.startswith('mapper'):
+                if line.startswith('mapper '):
                     config_dict['mapper'] = line.strip().split()[-1]
-                if line.startswith('variant_caller'):
-                    config_dict['variant_caller'] = line.strip().split()[-1]           
+                if line.startswith('variant_caller '):
+                    config_dict['variant_caller'] = line.strip().split()[-1]
+                if line.startswith('mapper_threads'):
+                    config_dict['mapper_threads'] = line.strip().split()[-1]
+                if line.startswith('variant_caller_threads'):
+                    config_dict['variant_caller_threads'] = line.strip().split()[-1]                                 
 
     except IOError:
         print 'Cannot find {0}'.format(path_to_config)

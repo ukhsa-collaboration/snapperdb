@@ -34,6 +34,8 @@ $ git clone https://github.com/phe-bioinformatics/snapperdb.git
 $ pip2 install -e snapperdb
 ```
 
+Add the installation destination to your PYTHONPATH or run from the installtion path.
+
 ---
 
 ### Dependencies:
@@ -42,7 +44,7 @@ $ pip2 install -e snapperdb
 
 - Python >= 2.7
 - biopython
-- pyscopg2
+- psycopg2
 - paramiko
 - hashids
 - joblib
@@ -93,7 +95,9 @@ mq_cutoff 30
 ad_cutoff 0.9
 average_depth_cutoff 30
 mapper bwa
+mapper_threads 4
 variant_caller gatk
+variant_caller_threads 4
 
 ```
 
@@ -140,10 +144,15 @@ snapperdb.py fastq_to_db -c $myconfigname $FASTQ1 $FASTQ2
 If you want to batch load a set of samples.  It is recommended you run **fastq_to_vcf** in parralel followed by **fastq_to_db** in serial. 
 
 
-### Populating a Database with JSON Export
+### Populating a Database from a JSON file
 
-*To follow*
+If you have received a JSON export of variants from another SNAPPERDB you can import that sample into your own local database.
 
+```sh
+snapperdb.py import_json -j $myjsonfile
+```
+
+There are two modes of import that can be selecged by the **-w** flag. R will simply read from SnapperDB database and return the best match(es) for SNP address. W will write to SnapperDB equivalent to if you were importing a VCF.  R mode is still under development
 
 ### Updating the distance matrix
 
@@ -172,6 +181,15 @@ SnapperDB_main.py get_the_snps -c $myconfigname -l $mylistofstrains
 ```
 
 There are lots of other options in **get_the_snps**.  To see them supply **-h**.  We think we have provided fairly sensible defaults.  One key option is **-m** which sets the maximum number of SNPs away from the reference that's allowed (Default 5000).  Strains with more SNPs than this will be ignored.  Another important option is **-a** which is alignment type.  The three options available are; **C** (Core) -  only allows positions that are present in all strains, **A** (Soft Core) - produces alignments where at least specified percentage of the samples are A/C/T/G at each position (Default A:80), **W** produce whole genome alignments.  If you wish to mask regions of the genome out of the alignment, for example parts of the reference known to have recombined the you can either supply a file of coordinates to ignore with the **-n** flag or supply a GFF file produced by gubbins for example with the **-ng** option.  The **-b** flag allows the list of strains supplied with the -l flag to be complemented with other background strains from the database.  To include a representative from each 100 SNP cluster you would provide the option **t100**.  Finally if you would like to output a list of annotated variants or a distance matrix of pairwise SNP distances provide a 'Y' option to the **-v** and **-x** flags respectivley.
+
+### Exporting variants into a JSON object for importing into another database
+
+This will create a set of JSON files containing all the information to share to another database
+
+```sh
+SnapperDB_main.py export_json -c $myconfigname -l $mylistofstrains
+```
+
 
 
 

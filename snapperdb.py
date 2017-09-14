@@ -7,6 +7,7 @@ import argparse
 import logging
 import os
 import sys
+
 import datetime
 from snapperdb import parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, make_fastq
@@ -255,7 +256,7 @@ def main():
                                                    help='Take a JSON file exported from another SNAPPERDB instance')
     parser_import_json.add_argument('-j', dest='json_file', metavar='JSON file', required=True,
                                         help='The name of the JSON file to import')
-    parser_import_json.add_argument('-w', dest='write_flag', required=True, help='R will simply read from SnapperDB database and return best match(es) for SNP address (low impact method). W will write to SnapperDB and return SNP address (full impact method).')
+    parser_import_json.add_argument('-w', dest='write_flag', help='R will simply read from SnapperDB database and return the best match(es) for SNP address. W will write to SnapperDB equivalent to if you were importing a VCF. R is still under development', default='W')
     parser_import_json.add_argument('-g', dest='log_dir', default=os.getcwd(),
                                         help='Where do you want the logs written to? Will default to a /user/home/logs')
 
