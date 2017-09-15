@@ -1,7 +1,7 @@
 # SnapperDB README
 
 
-Welcome to SnapperDB, A scalable database for routine sequencing of bacterial isolates.
+Welcome to SnapperDB, A database solution for routine sequencing analysis of bacterial isolates.
 
 SnapperDB is a python application that sits upon one or more postgres databases to manage reference based SNP typing of bacterial isolates.
 
