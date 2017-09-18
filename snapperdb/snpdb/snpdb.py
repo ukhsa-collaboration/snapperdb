@@ -303,7 +303,7 @@ class SNPdb:
 
 
     def query_snpdb(self,vcf):
-        print "bum"
+        print "Under development"
 
 
 # -------------------------------------------------------------------------------------------------

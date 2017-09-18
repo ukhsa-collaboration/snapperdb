@@ -5,9 +5,9 @@ Welcome to SnapperDB, A database solution for routine sequencing analysis of bac
 
 SnapperDB is a python application that sits upon one or more postgres databases to manage reference based SNP typing of bacterial isolates.
 
-SnapperDB can take a pair of Illumina FASTQ sequencing reads and execute a user-defined variant calling pipeline storing the result variant calls and absent positions for each isolate.
+SnapperDB can take a pair of Illumina FASTQ sequencing reads and execute a user-defined variant calling pipeline storing the resultant variant calls and absent positions for each isolate.
 
-As the database is populated a pair-wise distance matrix of SNP distances is calculated that can be used to generate a isolate level hierichical clustering nomenclature - the SNP Address.
+As the database is populated a pair-wise distance matrix of SNP distances is calculated that can be used to generate an isolate level hierarchical clustering nomenclature - the SNP Address.
 
 SnapperDB instancies can be queried to produce alignments for phylogenetic analysis.
 
