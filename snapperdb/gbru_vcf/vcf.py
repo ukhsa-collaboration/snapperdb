@@ -258,7 +258,11 @@ class Vcf:
                 self.ref_genome_path = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome + '.fasta'))
             elif os.path.exists(os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome)):
                 self.ref_genome_path = (os.path.join(snapperdb.__ref_genome_dir__, self.reference_genome))
-        except IOError:
+            else:
+               sys.stderr.write('Cant find reference genome %s\n' % self.reference_genome)
+               sys.exit()
+
+        except IOError:            
             sys.stderr.write('Cant find reference genome %s' % self.reference_genome)
 
         # set vcf path
