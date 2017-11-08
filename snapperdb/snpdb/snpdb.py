@@ -398,6 +398,42 @@ class SNPdb:
 
 # -------------------------------------------------------------------------------------------------
 
+
+    def remove_isolate(self, ig_strain):
+        #set strains to ignore
+        sql = "delete from dist_matrix where (strain1 = \'%s\' or strain2 = \'%s\')" % (ig_strain, ig_strain)
+        cur = self.snpdb_conn.cursor()
+        cur.execute(sql)
+        self.snpdb_conn.commit()        
+        
+        sql = "update strain_stats set ignore = 'i' where name = \'%s\'" % ig_strain
+        cur = self.snpdb_conn.cursor()
+        cur.execute(sql)
+        self.snpdb_conn.commit()
+
+        sql = "delete from strain_clusters where name = \'%s\'" % ig_strain
+        cur = self.snpdb_conn.cursor()
+        cur.execute(sql)
+        self.snpdb_conn.commit()
+
+        print "%s removed from clustering" % ig_strain
+
+# -------------------------------------------------------------------------------------------------
+
+
+    def zscore_exception(self, out_strain):
+        #set strains to ignore
+        sql = "update strain_stats set zscore_check = 'Y' where name = \'%s\'" % out_strain
+        cur = self.snpdb_conn.cursor()
+        cur.execute(sql)
+        self.snpdb_conn.commit()     
+    
+
+        print "Z-Score exception created for %s" % out_strain
+
+
+# -------------------------------------------------------------------------------------------------
+
     def snpdb_upload(self, vcf,args):
         #lets check if they are forcing
         

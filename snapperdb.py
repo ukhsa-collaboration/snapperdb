@@ -12,7 +12,7 @@ import datetime
 from snapperdb import parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, make_fastq
 from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix,\
-                            update_clusters, add_ref_cluster, qsub_to_check_matrix, export_json, import_json
+                            update_clusters, add_ref_cluster, qsub_to_check_matrix, export_json, import_json, ignore_isolate, accept_outlier
 
 
 def get_version():
@@ -113,6 +113,17 @@ def run_command(args):
         args.force = 'N'
         
         import_json(args)
+
+    elif args.command == 'ignore_isolate':
+        logger = logging.getLogger('snapperdb.ignore_isolate')
+        logger.info('PARAMS: config = %s' % args.config_file)
+        ignore_isolate(args, config_dict)
+    
+    elif args.command == 'accept_outlier':
+        logger = logging.getLogger('snapperdb.accept_outlier')
+        logger.info('PARAMS: config = %s' % args.config_file)
+        accept_outlier(args, config_dict)
+
 
     elif args.command == 'get_the_snps':
         logger = logging.getLogger('snapperdb.get_the_snps')
@@ -259,6 +270,24 @@ def main():
     parser_import_json.add_argument('-w', dest='write_flag', help='R will simply read from SnapperDB database and return the best match(es) for SNP address. W will write to SnapperDB equivalent to if you were importing a VCF. R is still under development', default='W')
     parser_import_json.add_argument('-g', dest='log_dir', default=os.getcwd(),
                                         help='Where do you want the logs written to? Will default to a /user/home/logs')
+    parser_ignore_isolate = subparsers.add_parser('ignore_isolate',
+                                                   help='Set an isolate to be ignored in the clustering')
+    parser_ignore_isolate.add_argument('-n', dest='ig_strain', metavar='JSON file', required=True,
+                                        help='The name of the isolate to ignore')
+    parser_ignore_isolate.add_argument('-c', dest='config_file', metavar='Config file', required=True,
+                                        help='The name of a config '
+                                             'file in the user_configs directory (not the full path)')
+    parser_ignore_isolate.add_argument('-g', dest='log_dir', default=os.getcwd(),
+                                        help='Where do you want the logs written to? Will default to a /user/home/logs')
+    parser_accept_outlier = subparsers.add_parser('accept_outlier',
+                                                   help='Set an isolate to be ignored in the clustering')
+    parser_accept_outlier.add_argument('-n', dest='out_strain', metavar='JSON file', required=True,
+                                        help='The name of the outiler to accept')
+    parser_accept_outlier.add_argument('-c', dest='config_file', metavar='Config file', required=True,
+                                        help='The name of a config '
+                                             'file in the user_configs directory (not the full path)')
+    parser_accept_outlier.add_argument('-g', dest='log_dir', default=os.getcwd(),
+                                        help='Where do you want the logs written to? Will default to a /user/home/logs')    
 
     args = parser.parse_args()
     print args
