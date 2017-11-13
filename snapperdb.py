@@ -272,7 +272,7 @@ def main():
                                         help='Where do you want the logs written to? Will default to a /user/home/logs')
     parser_ignore_isolate = subparsers.add_parser('ignore_isolate',
                                                    help='Set an isolate to be ignored in the clustering')
-    parser_ignore_isolate.add_argument('-n', dest='ig_strain', metavar='JSON file', required=True,
+    parser_ignore_isolate.add_argument('-n', dest='ig_strain', metavar='Isolate Name', required=True,
                                         help='The name of the isolate to ignore')
     parser_ignore_isolate.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                         help='The name of a config '
@@ -281,7 +281,7 @@ def main():
                                         help='Where do you want the logs written to? Will default to a /user/home/logs')
     parser_accept_outlier = subparsers.add_parser('accept_outlier',
                                                    help='Set an isolate to be ignored in the clustering')
-    parser_accept_outlier.add_argument('-n', dest='out_strain', metavar='JSON file', required=True,
+    parser_accept_outlier.add_argument('-n', dest='out_strain', metavar='Isolate Name', required=True,
                                         help='The name of the outiler to accept')
     parser_accept_outlier.add_argument('-c', dest='config_file', metavar='Config file', required=True,
                                         help='The name of a config '
