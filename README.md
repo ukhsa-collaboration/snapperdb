@@ -9,7 +9,7 @@ SnapperDB can take a pair of Illumina FASTQ sequencing reads and execute a user-
 
 As the database is populated a pair-wise distance matrix of SNP distances is calculated that can be used to generate an isolate level hierarchical clustering nomenclature - the SNP Address.
 
-SnapperDB instancies can be queried to produce alignments for phylogenetic analysis.
+SnapperDB instances can be queried to produce alignments for phylogenetic analysis.
 
 SnapperDB has been used internally within Public Health England to process >20,000 isolates of *Salmonella*, *E. coli* and other gastrointestinal pathogens.
 
@@ -19,7 +19,7 @@ SnapperDB is intended to be used at the clonal complex / eBURST group level wher
 
 ### Version
 
-1.0
+1.0.1
 
 ---
 
@@ -34,7 +34,7 @@ $ git clone https://github.com/phe-bioinformatics/snapperdb.git
 $ pip2 install -e snapperdb
 ```
 
-Add the installation destination to your PYTHONPATH or run from the installtion path.
+Add the installation destination to your PYTHONPATH or run from the installation path.
 
 ---
 
@@ -65,9 +65,11 @@ Samtools can be downloaded from https://github.com/samtools/samtools. It is used
 
 The Picard tool suite is available from http://broadinstitute.github.io/picard/
 
+Set *PICARD_JAR* - full path to the GATK Java archive.
+
 **GATK**
 
-GATK is available from https://www.broadinstitute.org/gatk/. Please read the licencing information before using (https://www.broadinstitute.org/gatk/about/#licensing)
+GATK is available from https://www.broadinstitute.org/gatk/. Please read the licensing information before using (https://www.broadinstitute.org/gatk/about/#licensing)
 
 Set *GATK_JAR* - full path to the GATK Java archive.
 
@@ -80,7 +82,7 @@ The BWA mapper can be downloaded from http://bio-bwa.sourceforge.net/.
 ### Creating a Database
 
 The first step of SnapperDB is to create a database to populate.  To do this a reference genome is required in FASTA format and config file.
-The config file is a tab deliminated file containing information about the connection, the name of the reference genome your choice of mapper and variant caller and some user defined features.   Currently SnapperDB supports BWA and GATK only.
+The config file is a tab delimited file containing information about the connection, the name of the reference genome your choice of mapper and variant caller and some user defined features.   Currently SnapperDB supports BWA and GATK only.
 
 An example of *Salmonella* Enteritidis is shown below - lets call this file ebg4_config.txt
 
@@ -107,9 +109,9 @@ variant_caller_threads 4
 
 *ad_cutoff* is the proportion of the majority variant below which a position is ignored
 
-*average_depth_cutoff* is the average coverage accross the genome, samples with coverage below this will be ignored.
+*average_depth_cutoff* is the average coverage across the genome, samples with coverage below this will be ignored.
 
-The default home for the configs is in 
+The default home for the configs is in
 ```
 /$PATH/snapperdb/user_configs
 ```
@@ -119,7 +121,7 @@ The reference genome should have the .fa suffix and be placed in.
 /$PATH/snapperdb/reference_genomes
 ```
 
-If the reference is a *de novo* assembly place the orginal FASTQ files in the reference_genomes directory and it will use them to mask ambigous mapping regions.  They need to be of the format $reference_genome.R1.fastq.gz $reference_genome.R2.fastq.gz.  If you want your variants to be annotated you can add a Genbank file to this directory with the naming convention reference_genome.gb
+If the reference is a *de novo* assembly place the original FASTQ files in the reference_genomes directory and it will use them to mask ambiguous mapping regions.  They need to be of the format $reference_genome.R1.fastq.gz $reference_genome.R2.fastq.gz.  If you want your variants to be annotated you can add a Genbank file to this directory with the naming convention reference_genome.gb
 
 
 To create the database run the command:
@@ -128,7 +130,7 @@ To create the database run the command:
 snapperdb.py make_snpdb -c $myconfigname
 ```
 
-This command will execute the SQL to create the postgres database.  Then it will either simulate reads or use the user supplied reads to map against the reference genome.  Regions of ambigous mapping (and any variants!) are stored in SNP database. 
+This command will execute the SQL to create the postgres database.  Then it will either simulate reads or use the user supplied reads to map against the reference genome.  Regions of ambiguous mapping (and any variants!) are stored in SNP database.
 
 
 ### Populating a Database with FASTQs
@@ -141,7 +143,7 @@ SnapperDB can import samples in one by one basis using the **fastq_to_db** comma
 snapperdb.py fastq_to_db -c $myconfigname $FASTQ1 $FASTQ2
 ```
 
-If you want to batch load a set of samples.  It is recommended you run **fastq_to_vcf** in parralel followed by **fastq_to_db** in serial. 
+If you want to batch load a set of samples.  It is recommended you run **fastq_to_vcf** in parallel followed by **fastq_to_db** in serial.
 
 
 ### Populating a Database from a JSON file
@@ -152,17 +154,17 @@ If you have received a JSON export of variants from another SNAPPERDB you can im
 snapperdb.py import_json -j $myjsonfile
 ```
 
-There are two modes of import that can be selecged by the **-w** flag. R will simply read from SnapperDB database and return the best match(es) for SNP address. W will write to SnapperDB equivalent to if you were importing a VCF.  R mode is still under development
+There are two modes of import that can be selected by the **-w** flag. R will simply read from SnapperDB database and return the best match(es) for SNP address. W will write to SnapperDB equivalent to if you were importing a VCF.  R mode is still under development
 
 ### Updating the distance matrix
 
-After uploading samples to your SnapperDB instance you can populate the distance matrix with pairwise SNP differnces.
+After uploading samples to your SnapperDB instance you can populate the distance matrix with pairwise SNP differences.
 
 ```sh
 snapperdb.py update_distance_matrix -c $myconfigname
 ```
 
-If you have access to a HPC cluster the **-m** flag can be used to partition your job into.  This paramter expects an integer that will be the number of strains you want update in each qsub job.
+If you have access to a HPC cluster the **-m** flag can be used to partition your job into.  This parameter expects an integer that will be the number of strains you want update in each qsub job.
 
 ### Generating SNP Addresses
 
@@ -174,13 +176,13 @@ snapperdb.py update_clusters -c $myconfigname
 
 ### Generating Alignments for Phylogenetic Analysis
 
-The command **get_the_snps** is used to produce alignments to use for phylogenetic analysis.  In it's simpliest form the **get_the_snps** function takes the name of the config file and list of strains in your database that you want to generate the alignment from.
+The command **get_the_snps** is used to produce alignments to use for phylogenetic analysis.  In it's simplest form the **get_the_snps** function takes the name of the config file and list of strains in your database that you want to generate the alignment from.
 
 ```sh
 SnapperDB_main.py get_the_snps -c $myconfigname -l $mylistofstrains
 ```
 
-There are lots of other options in **get_the_snps**.  To see them supply **-h**.  We think we have provided fairly sensible defaults.  One key option is **-m** which sets the maximum number of SNPs away from the reference that's allowed (Default 5000).  Strains with more SNPs than this will be ignored.  Another important option is **-a** which is alignment type.  The three options available are; **C** (Core) -  only allows positions that are present in all strains, **A** (Soft Core) - produces alignments where at least specified percentage of the samples are A/C/T/G at each position (Default A:80), **W** produce whole genome alignments.  If you wish to mask regions of the genome out of the alignment, for example parts of the reference known to have recombined the you can either supply a file of coordinates to ignore with the **-n** flag or supply a GFF file produced by gubbins for example with the **-ng** option.  The **-b** flag allows the list of strains supplied with the -l flag to be complemented with other background strains from the database.  To include a representative from each 100 SNP cluster you would provide the option **t100**.  Finally if you would like to output a list of annotated variants or a distance matrix of pairwise SNP distances provide a 'Y' option to the **-v** and **-x** flags respectivley.
+There are lots of other options in **get_the_snps**.  To see them supply **-h**.  We think we have provided fairly sensible defaults.  One key option is **-m** which sets the maximum number of SNPs away from the reference that's allowed (Default 5000).  Strains with more SNPs than this will be ignored.  Another important option is **-a** which is alignment type.  The three options available are; **C** (Core) -  only allows positions that are present in all strains, **A** (Soft Core) - produces alignments where at least specified percentage of the samples are A/C/T/G at each position (Default A:80), **W** produce whole genome alignments.  If you wish to mask regions of the genome out of the alignment, for example parts of the reference known to have recombined the you can either supply a file of coordinates to ignore with the **-n** flag or supply a GFF file produced by gubbins for example with the **-ng** option.  The **-b** flag allows the list of strains supplied with the -l flag to be complemented with other background strains from the database.  To include a representative from each 100 SNP cluster you would provide the option **t100**.  Finally if you would like to output a list of annotated variants or a distance matrix of pairwise SNP distances provide a 'Y' option to the **-v** and **-x** flags respectively.
 
 ### Exporting variants into a JSON object for importing into another database
 
@@ -189,8 +191,3 @@ This will create a set of JSON files containing all the information to share to 
 ```sh
 SnapperDB_main.py export_json -c $myconfigname -l $mylistofstrains
 ```
-
-
-
-
-
