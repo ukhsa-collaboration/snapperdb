@@ -74,11 +74,11 @@ class Vcf:
             if attr == 'mapper':
                 self.mapper = config_dict[attr]
             if attr == 'variant_caller':
-                self.variant_caller = config_dict[attr]        
+                self.variant_caller = config_dict[attr]
             if attr == 'mapper_threads':
-                self.mapper_threads = config_dict[attr]  
+                self.mapper_threads = config_dict[attr]
             if attr == 'variant_caller_threads':
-                self.variant_caller_threads = config_dict[attr]                                                          
+                self.variant_caller_threads = config_dict[attr]
 # -------------------------------------------------------------------------------------------------
 
 
@@ -201,7 +201,7 @@ class Vcf:
 # -------------------------------------------------------------------------------------------------
 
     def parse_json_dict(self, json_dict, ref_seq):
-        
+
         parsed_vcf = ""
         for ref_contig in ref_seq:
             parsed_vcf = ParsedVcf()
@@ -213,9 +213,9 @@ class Vcf:
                 elif base != '-':
                     for var in json_dict[ref_contig][base]:
                         pos, ref_call = var.split(".")
-                        parsed_vcf.good_var.append(pos)                       
+                        parsed_vcf.good_var.append(pos)
                         parsed_vcf.var[pos] = base
-                        parsed_vcf.ref_base[pos] = ref_call    
+                        parsed_vcf.ref_base[pos] = ref_call
 
             self.parsed_vcf_container.append(parsed_vcf)
 
@@ -262,7 +262,7 @@ class Vcf:
                sys.stderr.write('Cant find reference genome %s\n' % self.reference_genome)
                sys.exit()
 
-        except IOError:            
+        except IOError:
             sys.stderr.write('Cant find reference genome %s' % self.reference_genome)
 
         # set vcf path
@@ -303,30 +303,36 @@ class Vcf:
         if self.variant_caller_threads is None:
             var_opts = '--variant-options \'--sample_ploidy 2 --genotype_likelihoods_model SNP -rf BadCigar -out_mode EMIT_ALL_SITES -nt 1\''
         else:
-            var_opts = '--variant-options \'--sample_ploidy 2 --genotype_likelihoods_model SNP -rf BadCigar -out_mode EMIT_ALL_SITES -nt %s\'' % self.variant_caller_threads            
+            var_opts = '--variant-options \'--sample_ploidy 2 --genotype_likelihoods_model SNP -rf BadCigar -out_mode EMIT_ALL_SITES -nt %s\'' % self.variant_caller_threads
 
         #self.mapper = 'bwa'
         #self.variant_caller = 'gatk'
-        
+
         os.system('phenix.py run_snp_pipeline -r1 %s -r2 %s -r %s -o %s -m %s -v %s --sample-name %s --filters mq_score:%s,min_depth:%s,ad_ratio:%s --annotators coverage %s %s' % (args.fastqs[0], args.fastqs[1], self.ref_genome_path, self.tmp_dir, self.mapper, self.variant_caller, self.sample_name, self.mq_cutoff, self.depth_cutoff,self.ad_cutoff, var_opts, map_opts))
 
 # -------------------------------------------------------------------------------------------------
 
 
     def check_reference_gatk_indexed(self):
+        '''
+
+        '''
         try:
-            picard_path = "java -jar "+os.environ['PICARDPATH']
+            picard_path = "java -jar "+os.environ['PICARD_JAR']
         except KeyError:
-            picard_path = 'picard CreateSequenceDictionary'
-                    
+            sys.stderr.write('Did not find environmental variable PICARD_JAR,\
+                             please install Picard and set PICARD_JAR to point\
+                             to the picard.jar file.')
+            sys.exit()
+
         indicies = ['dict', 'fa.fai']
         # print (os.path.splitext(self.ref_genome_path)[0] + '.' + i)
         if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + 'dict'):
             pass
         else:
             picard_dict_path = os.path.splitext(self.ref_genome_path)[0]
-            os.system('picard CreateSequenceDictionary R= %s O= %s.dict'
-                      % (self.ref_genome_path, picard_dict_path))
+            os.system('%s CreateSequenceDictionary R= %s O= %s.dict'
+                      % (picard_path, self.ref_genome_path, picard_dict_path))
 
         if os.path.exists(os.path.splitext(self.ref_genome_path)[0] + '.' + 'fa.fai'):
             pass
