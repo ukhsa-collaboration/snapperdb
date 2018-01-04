@@ -401,23 +401,27 @@ def update_distance_matrix(config_dict, args):
     snpdb.parse_config_dict(config_dict)
     snpdb._connect_to_snpdb()
     logger.info('Getting strains')
-    strain_list, update_strain = snpdb.get_strains()
+    strain_list, update_strain, all_strains = snpdb.get_strains()
+
+
     # # get_all_good_ids from snpdb2 takes a snp cutoff as well, here, we don't have a SNP cutoff so we set it arbitrarily high.
     snp_co = '1000000'
-    if update_strain:
-        print "###  Populating distance matrix: " + str(datetime.datetime.now())
-        snpdb.parse_args_for_update_matrix(snp_co, strain_list)
-        if args.hpc == 'N':
-            print '### Launching serial update_distance_matrix ' + str(datetime.datetime.now())
-            snpdb.check_matrix(strain_list, update_strain)
-            snpdb.update_clusters()
+    if all_strains or len(update_strain) > 1:
+        if update_strain:
+            print "###  Populating distance matrix: " + str(datetime.datetime.now())
+            snpdb.parse_args_for_update_matrix(snp_co, strain_list)
+            if args.hpc == 'N':
+                print '### Launching serial update_distance_matrix ' + str(datetime.datetime.now())
+                snpdb.check_matrix(strain_list, update_strain)
+                snpdb.update_clusters()
+            else:
+                print '### Launching parallel update_distance_matrix ' +str(datetime.datetime.now())
+                present_stains = list(set(strain_list) - set(update_strain))
+                for idx, one_strain in enumerate(chunks(list(update_strain), int(args.hpc))):
+                    snpdb.write_qsubs_to_check_matrix(args, idx, one_strain, present_stains, config_dict['snpdb_name'])
+                snpdb.check_matrix(update_strain, update_strain)
         else:
-            print '### Launching parallel update_distance_matrix ' +str(datetime.datetime.now())
-            present_stains = list(set(strain_list) - set(update_strain))
-            for idx, one_strain in enumerate(chunks(list(update_strain), int(args.hpc))):
-                snpdb.write_qsubs_to_check_matrix(args, idx, one_strain, present_stains, config_dict['snpdb_name'])
-            snpdb.check_matrix(update_strain, update_strain)
-
+            print '### Nothing to update ' + str(datetime.datetime.now())
     else:
         print '### Nothing to update ' + str(datetime.datetime.now())
 # -------------------------------------------------------------------------------------------------

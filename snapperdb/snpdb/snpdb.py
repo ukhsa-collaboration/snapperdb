@@ -5,6 +5,7 @@ import errno
 import glob
 import os
 import math
+import subprocess
 import json
 import sys
 import re
@@ -953,7 +954,7 @@ class SNPdb:
 
         update_strain = set(strain_list) -  set(all_strains)
 
-        return strain_list, update_strain
+        return strain_list, update_strain, all_strains
 
     def parse_args_for_update_matrix(self, snp_co, strain_list):
 
@@ -1408,31 +1409,35 @@ class SNPdb:
     def update_clusters(self):
         #get distance matrix
         dist_mat = self.get_input()
-        #get clusters
-        co, cluster_strain_list, cluster_dict = self.get_clusters()
-        #print cluster_dict
-        clean_clusters = {}
-        for i, cuts in enumerate(sorted(co,reverse=True,key=int)):
-            print "### Cluster level "+str(cuts)+" :"+ str(datetime.time(datetime.now()))
-            #print "making links"
-            links = self.make_links(dist_mat, cuts, cluster_dict[i])
-            #print "defining_clusters"
-            clusters = self.define_clusters(links)
-            #print "removing duplicates"
-            clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
 
-        print "### Getting previously checked outliers:"+ str(datetime.time(datetime.now()))
-        outliers = self.get_outliers()
+        if dist_mat:
 
-        print "### Checking Clusters:"+ str(datetime.time(datetime.now()))
-        bad_list = self.check_clusters(clean_clusters, dist_mat, co,cluster_strain_list,outliers)
+            #get clusters
+            co, cluster_strain_list, cluster_dict = self.get_clusters()
+            #print cluster_dict
+            clean_clusters = {}
+            for i, cuts in enumerate(sorted(co,reverse=True,key=int)):
+                print "### Cluster level "+str(cuts)+" :"+ str(datetime.time(datetime.now()))
+                #print "making links"
+                links = self.make_links(dist_mat, cuts, cluster_dict[i])
+                #print "defining_clusters"
+                clusters = self.define_clusters(links)
+                #print "removing duplicates"
+                clean_clusters[cuts] = self.remove_duplicate_clusters(clusters)
 
-        if not bad_list:
-            strain_list = self.add_clusters_to_existing_table(clean_clusters, dist_mat, co, cluster_strain_list)
-            self.merged_clusters(cluster_strain_list, strain_list)
+            print "### Getting previously checked outliers:"+ str(datetime.time(datetime.now()))
+            outliers = self.get_outliers()
+
+            print "### Checking Clusters:"+ str(datetime.time(datetime.now()))
+            bad_list = self.check_clusters(clean_clusters, dist_mat, co,cluster_strain_list,outliers)
+
+            if not bad_list:
+                strain_list = self.add_clusters_to_existing_table(clean_clusters, dist_mat, co, cluster_strain_list)
+                self.merged_clusters(cluster_strain_list, strain_list)
+            else:
+                print "### Not Updating Clusters:"+ str(datetime.time(datetime.now()))
         else:
             print "### Not Updating Clusters:"+ str(datetime.time(datetime.now()))
-
 
 # -------------------------------------------------------------------------------------------------
 

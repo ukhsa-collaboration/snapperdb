@@ -174,12 +174,67 @@ Using hierarchical single linkage clustering of the pairwise SNP distances we ar
 snapperdb.py update_clusters -c $myconfigname
 ```
 
+Isolates that have artificially low genetic distance to others may led to cluster merges with single linkage clustering.  Artificially low genetic distances might be caused by low quality samples or by samples that are mixed with another isolate.  To combat this problem, for each cluster a Z-Score is calculated for each isolate to ascertain how far that isolates average SNP distance deviates from the mean average SNP distance in that cluster.  If an isolates Z-Score is less that -1.75 it is deemed an outlier and will have to be manually accepted or ignored.
+
+Here is an example of the output of update_clusters where an outlier has been identified. Strain 13816_H14212028301-1 has tripped the Z-Score threshold in the 50 SNP cluster '1', its average distance to other isolates in this cluster was 42.6 which resulted in a Z-Score just less than -1.75.
+
+
+```
+### Cluster level 250 :23:41:32.847220
+### Cluster level 100 :23:53:40.710755
+### Cluster level 50 :00:00:35.531624
+### Cluster level 25 :00:03:01.664428
+### Cluster level 10 :00:03:51.182371
+### Cluster level 5 :00:04:37.412988
+### Cluster level 0 :00:05:26.974864
+### Getting previously checked outliers:00:06:26.419278
+### Checking Clusters:00:06:26.540735
+33-19-8101311 [1, 1, 1, 124, 3121, 4294, 5529]
+### Investigating  250 1
+### Average Distance  417.962973573
+### Standard Deviation  216.131996093
+### Investigating  100 1
+### Average Distance  69.2875007924
+### Standard Deviation  22.0576314
+### Investigating  50 1
+### Average Distance  67.2382283514
+### Standard Deviation  14.066770828
+### Outlier Z-Score  13816_H14212028301-1 42.6178690009 -1.75024955276
+### Investigating  25 124
+### Average Distance  60.1811010179
+### Standard Deviation  12.4097892225
+### Investigating  10 3121
+### Average Distance  10.041015625
+### Standard Deviation  3.85288497424
+### Investigating  5 4294
+### Average Distance  0.0
+### Investigating  0 5529
+### Average Distance  0.0
+```
+
+
+At this stage it is best to manually inspect the SNP alignment for the outlier (see Generating Alignments for Phylogenetic Analysis below), does it have more 'N' bases then expected?
+
+If you are happy to accept the outlier you can run the following
+
+```sh
+snapperdb.py accept_outlier -c $myconfigname -n $nameofstrain
+```
+
+If you think the outlier is best ignored from this and future analysis then run
+
+```sh
+snapperdb.py ignore_isolate -c $myconfigname -n $nameofstrain
+```
+
+Now you can run update_clusters again and generate the SNP addresses
+
 ### Generating Alignments for Phylogenetic Analysis
 
 The command **get_the_snps** is used to produce alignments to use for phylogenetic analysis.  In it's simplest form the **get_the_snps** function takes the name of the config file and list of strains in your database that you want to generate the alignment from.
 
 ```sh
-SnapperDB_main.py get_the_snps -c $myconfigname -l $mylistofstrains
+snapperdb.py get_the_snps -c $myconfigname -l $mylistofstrains
 ```
 
 There are lots of other options in **get_the_snps**.  To see them supply **-h**.  We think we have provided fairly sensible defaults.  One key option is **-m** which sets the maximum number of SNPs away from the reference that's allowed (Default 5000).  Strains with more SNPs than this will be ignored.  Another important option is **-a** which is alignment type.  The three options available are; **C** (Core) -  only allows positions that are present in all strains, **A** (Soft Core) - produces alignments where at least specified percentage of the samples are A/C/T/G at each position (Default A:80), **W** produce whole genome alignments.  If you wish to mask regions of the genome out of the alignment, for example parts of the reference known to have recombined the you can either supply a file of coordinates to ignore with the **-n** flag or supply a GFF file produced by gubbins for example with the **-ng** option.  The **-b** flag allows the list of strains supplied with the -l flag to be complemented with other background strains from the database.  To include a representative from each 100 SNP cluster you would provide the option **t100**.  Finally if you would like to output a list of annotated variants or a distance matrix of pairwise SNP distances provide a 'Y' option to the **-v** and **-x** flags respectively.
@@ -189,5 +244,5 @@ There are lots of other options in **get_the_snps**.  To see them supply **-h**.
 This will create a set of JSON files containing all the information to share to another database
 
 ```sh
-SnapperDB_main.py export_json -c $myconfigname -l $mylistofstrains
+snapperdb.py export_json -c $myconfigname -l $mylistofstrains
 ```

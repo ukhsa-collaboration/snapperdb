@@ -1,7 +1,7 @@
 snpdb_name ebg_4_snps
 reference_genome AM933172
-pg_uname timdallman
-pg_pword 
+pg_uname postgres
+pg_pword postgres
 pg_host localhost
 depth_cutoff 10
 mq_cutoff 30
