@@ -27,14 +27,22 @@ SnapperDB is intended to be used at the clonal complex / eBURST group level wher
 
 SnapperDB is available at https://github.com/phe-bioinformatics/snapperdb
 
-From source:
-
+It is available by pip
 ```bash
-$ git clone https://github.com/phe-bioinformatics/snapperdb.git
-$ pip2 install -e snapperdb
+$ pip install snapperdb
 ```
 
-Add the installation destination to your PYTHONPATH or run from the installation path.
+also from conda
+```bash
+$ conda install -c tdallman snapperdb
+```
+
+
+and from source:
+```bash
+$ git clone https://github.com/phe-bioinformatics/snapperdb.git
+```
+
 
 ---
 
@@ -115,11 +123,14 @@ The default home for the configs is in
 ```
 /$PATH/snapperdb/user_configs
 ```
+however it is best practice to set up the *GASTROSNAPPER_CONFPATH* environment variable to point to your config directory. 
 
-The reference genome should have the .fa suffix and be placed in.
+The reference genome should have the .fa suffix and the path defaults to
 ```
 /$PATH/snapperdb/reference_genomes
 ```
+however it is best practice to set up the *GASTROSNAPPER_REFPATH* environment variable to point to your directory of reference genomes.
+
 
 If the reference is a *de novo* assembly place the original FASTQ files in the reference_genomes directory and it will use them to mask ambiguous mapping regions.  They need to be of the format $reference_genome.R1.fastq.gz $reference_genome.R2.fastq.gz.  If you want your variants to be annotated you can add a Genbank file to this directory with the naming convention reference_genome.gb
 
@@ -127,7 +138,7 @@ If the reference is a *de novo* assembly place the original FASTQ files in the r
 To create the database run the command:
 
 ```sh
-snapperdb.py make_snpdb -c $myconfigname
+run_snapperdb.py make_snpdb -c $myconfigname
 ```
 
 This command will execute the SQL to create the postgres database.  Then it will either simulate reads or use the user supplied reads to map against the reference genome.  Regions of ambiguous mapping (and any variants!) are stored in SNP database.
@@ -140,7 +151,7 @@ Once a SnapperDB instance has been created you will want to populate it with FAS
 SnapperDB can import samples in one by one basis using the **fastq_to_db** command
 
 ```sh
-snapperdb.py fastq_to_db -c $myconfigname $FASTQ1 $FASTQ2
+run_snapperdb.py fastq_to_db -c $myconfigname $FASTQ1 $FASTQ2
 ```
 
 If you want to batch load a set of samples.  It is recommended you run **fastq_to_vcf** in parallel followed by **fastq_to_db** in serial.
@@ -151,7 +162,7 @@ If you want to batch load a set of samples.  It is recommended you run **fastq_t
 If you have received a JSON export of variants from another SNAPPERDB you can import that sample into your own local database.
 
 ```sh
-snapperdb.py import_json -j $myjsonfile
+run_snapperdb.py import_json -j $myjsonfile
 ```
 
 There are two modes of import that can be selected by the **-w** flag. R will simply read from SnapperDB database and return the best match(es) for SNP address. W will write to SnapperDB equivalent to if you were importing a VCF.  R mode is still under development
@@ -161,7 +172,7 @@ There are two modes of import that can be selected by the **-w** flag. R will si
 After uploading samples to your SnapperDB instance you can populate the distance matrix with pairwise SNP differences.
 
 ```sh
-snapperdb.py update_distance_matrix -c $myconfigname
+run_snapperdb.py update_distance_matrix -c $myconfigname
 ```
 
 If you have access to a HPC cluster the **-m** flag can be used to partition your job into.  This parameter expects an integer that will be the number of strains you want update in each qsub job.
@@ -171,7 +182,7 @@ If you have access to a HPC cluster the **-m** flag can be used to partition you
 Using hierarchical single linkage clustering of the pairwise SNP distances we are able to derive an isolate level nomenclature for each genome sequence.  This allows efficient searching of the population studied as well as automated cluster detection.  By default the SNP address performs single linkage clustering at seven SNP thresholds; 250, 100, 50, 25, 10, 5, 0.
 
 ```sh
-snapperdb.py update_clusters -c $myconfigname
+run_snapperdb.py update_clusters -c $myconfigname
 ```
 
 Isolates that have artificially low genetic distance to others may led to cluster merges with single linkage clustering.  Artificially low genetic distances might be caused by low quality samples or by samples that are mixed with another isolate.  To combat this problem, for each cluster a Z-Score is calculated for each isolate to ascertain how far that isolates average SNP distance deviates from the mean average SNP distance in that cluster.  If an isolates Z-Score is less that -1.75 it is deemed an outlier and will have to be manually accepted or ignored.
@@ -218,13 +229,13 @@ At this stage it is best to manually inspect the SNP alignment for the outlier (
 If you are happy to accept the outlier you can run the following
 
 ```sh
-snapperdb.py accept_outlier -c $myconfigname -n $nameofstrain
+run_snapperdb.py accept_outlier -c $myconfigname -n $nameofstrain
 ```
 
 If you think the outlier is best ignored from this and future analysis then run
 
 ```sh
-snapperdb.py ignore_isolate -c $myconfigname -n $nameofstrain
+run_snapperdb.py ignore_isolate -c $myconfigname -n $nameofstrain
 ```
 
 Now you can run update_clusters again and generate the SNP addresses
@@ -234,7 +245,7 @@ Now you can run update_clusters again and generate the SNP addresses
 The command **get_the_snps** is used to produce alignments to use for phylogenetic analysis.  In it's simplest form the **get_the_snps** function takes the name of the config file and list of strains in your database that you want to generate the alignment from.
 
 ```sh
-snapperdb.py get_the_snps -c $myconfigname -l $mylistofstrains
+run_snapperdb.py get_the_snps -c $myconfigname -l $mylistofstrains
 ```
 
 There are lots of other options in **get_the_snps**.  To see them supply **-h**.  We think we have provided fairly sensible defaults.  One key option is **-m** which sets the maximum number of SNPs away from the reference that's allowed (Default 5000).  Strains with more SNPs than this will be ignored.  Another important option is **-a** which is alignment type.  The three options available are; **C** (Core) -  only allows positions that are present in all strains, **A** (Soft Core) - produces alignments where at least specified percentage of the samples are A/C/T/G at each position (Default A:80), **W** produce whole genome alignments.  If you wish to mask regions of the genome out of the alignment, for example parts of the reference known to have recombined the you can either supply a file of coordinates to ignore with the **-n** flag or supply a GFF file produced by gubbins for example with the **-ng** option.  The **-b** flag allows the list of strains supplied with the -l flag to be complemented with other background strains from the database.  To include a representative from each 100 SNP cluster you would provide the option **t100**.  Finally if you would like to output a list of annotated variants or a distance matrix of pairwise SNP distances provide a 'Y' option to the **-v** and **-x** flags respectively.
@@ -244,5 +255,5 @@ There are lots of other options in **get_the_snps**.  To see them supply **-h**.
 This will create a set of JSON files containing all the information to share to another database
 
 ```sh
-snapperdb.py export_json -c $myconfigname -l $mylistofstrains
+run_snapperdb.py export_json -c $myconfigname -l $mylistofstrains
 ```
