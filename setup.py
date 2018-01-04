@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-'''
-:Date: 7 Apr, 2016
-:Author: Alex Jironkin
-'''
 from distutils.core import setup
 import os
 import sys
@@ -31,15 +27,14 @@ else:
 
 install_requires = [str(ir.req) for ir in install_reqs]
 
-setup(name='SnapperDB',
+setup(name='snapperdb',
       version=get_version(),
       description='Public Health England(UK) SNP calling pipeline tools.',
       author='Public Health England',
-      author_email='NGSSBioinformatics@phe.gov.uk',
-      url='http://phoenix.readthedocs.org/en/latest/index.html',
-            packages=['snapperdb',
-               'snapperdb.snpdb',
-               'snapperdb.gbru_vcf'],
-      scripts=['snapperdb.py'],
+      author_email='tim.dallman@phe.gov.uk',
+      url='https://github.com/phe-bioinformatics/snapperdb/',
+      download_url='https://github.com/phe-bioinformatics/snapperdb/archive/1.0.tar.gz',
+      packages=['snapperdb','snapperdb.snpdb','snapperdb.gbru_vcf'],
+      scripts=['run_snapperdb.py'],
       install_requires=install_requires
      )
