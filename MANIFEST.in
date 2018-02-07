@@ -1,2 +1,3 @@
 include *.txt
+include *.rm
 recursive-include docs *.txt
