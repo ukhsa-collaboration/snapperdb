@@ -134,7 +134,7 @@ however it is best practice to set up the *GASTROSNAPPER_REFPATH* environment va
 
 If the reference is a *de novo* assembly place the original FASTQ files in the reference_genomes directory and it will use them to mask ambiguous mapping regions.  They need to be of the format $reference_genome.R1.fastq.gz $reference_genome.R2.fastq.gz.  If you want your variants to be annotated you can add a Genbank file to this directory with the naming convention reference_genome.gb
 
-We recommend that you *do not* user the default postgres username and password and set up a new user for all your Snapper needs.  This user will need to be a Superuser to create the database as SnapperDB relies on the Postgres extension INTARRAY.
+We recommend that you *do not* use the default postgres username and password and instead set up a new user for all your Snapper needs.  This user will need to be a postgres Superuser to create the database as SnapperDB relies on the Postgres extension INTARRAY.
 
 To create the database run the command:
 
