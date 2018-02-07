@@ -1,4 +1,4 @@
-# SnapperDB README
+# SnapperDB README 
 
 
 Welcome to SnapperDB, A database solution for routine sequencing analysis of bacterial isolates.
