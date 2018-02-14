@@ -649,6 +649,9 @@ class SNPdb:
                                 except:
                                     var_look[self.variants[ids].contig] = {}
                                     var_look[self.variants[ids].contig][self.variants[ids].pos] = 1
+                                    #captures contigs with variants but no ignored_pos
+                                    n_look[self.variants[ids].contig] = {}
+
                 # go through ignored_pos
                 for bad_ids in self.igpos[strain]:
                     #set the reference position to a N
