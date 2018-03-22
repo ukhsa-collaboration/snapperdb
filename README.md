@@ -19,7 +19,7 @@ SnapperDB is intended to be used at the clonal complex / eBURST group level wher
 
 ### Version
 
-1.0.1
+1.0.2
 
 ---
 
