@@ -300,7 +300,29 @@ def ignore_isolate(args,config_dict):
     snpdb.remove_isolate(args.ig_strain)
 
 
+
   # -------------------------------------------------------------------------------------------------
+
+def get_strains(args,config_dict):
+
+    #set up logging
+    logger = logging.getLogger('snapperdb.snpdb.get_strains')
+    logger.info('Inititialising SnpDB Class')
+    #initalise snpdb class
+    snpdb = SNPdb(config_dict)
+    #parse confif
+    snpdb.parse_config_dict(config_dict)
+
+    #connect to postgresdb
+    snpdb._connect_to_snpdb()
+    snpdb.snpdb_conn = psycopg2.connect(snpdb.conn_string)  
+
+    #remove isolate
+    snpdb.get_strain_list(args.thresh)
+
+
+  # -------------------------------------------------------------------------------------------------
+
 
 def accept_outlier(args,config_dict):
 

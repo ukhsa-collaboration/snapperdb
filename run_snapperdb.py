@@ -12,7 +12,7 @@ import datetime
 from snapperdb import parse_config
 from snapperdb.gbru_vcf import fastq_to_vcf, make_fastq
 from snapperdb.snpdb import vcf_to_db, make_snpdb, get_the_snps, update_distance_matrix,\
-                            update_clusters, add_ref_cluster, qsub_to_check_matrix, export_json, import_json, ignore_isolate, accept_outlier
+                            update_clusters, add_ref_cluster, qsub_to_check_matrix, export_json, import_json, ignore_isolate, accept_outlier, get_strains
 
 
 def get_version():
@@ -124,6 +124,10 @@ def run_command(args):
         logger.info('PARAMS: config = %s' % args.config_file)
         accept_outlier(args, config_dict)
 
+    elif args.command == 'get_strains':
+        logger = logging.getLogger('snapperdb.accept_outlier')
+        logger.info('PARAMS: config = %s' % args.config_file)
+        get_strains(args, config_dict)
 
     elif args.command == 'get_the_snps':
         logger = logging.getLogger('snapperdb.get_the_snps')
@@ -244,7 +248,7 @@ def main():
                                     'recombinant positions in it.')
     parser_get_the_snps.add_argument('-b', dest='back_flag',
                                      help='Would you like a background cluster level? SNP cluster level '
-                                          'from which to take one representative', default='N')
+                                          'from which to take one representative e.g. t5', default='N')
     parser_get_the_snps.add_argument('-g', dest='log_dir', default=os.getcwd(),
                                      help='Where do you want the logs written to? Will default to a /user/home/logs')
     parser_update_clusters = subparsers.add_parser('update_clusters',
@@ -287,7 +291,16 @@ def main():
                                         help='The name of a config '
                                              'file in the user_configs directory (not the full path)')
     parser_accept_outlier.add_argument('-g', dest='log_dir', default=os.getcwd(),
-                                        help='Where do you want the logs written to? Will default to a /user/home/logs')    
+                                        help='Where do you want the logs written to? Will default to a /user/home/logs')
+    parser_get_strains = subparsers.add_parser('get_strains',
+                                                   help='Retrieve strains and their SNP Address')
+    parser_get_strains.add_argument('-t', dest='thresh', metavar='SNP thresh and cluster', default='All',
+                                        help='Restrict to snp cluster e.g. t5:150')
+    parser_get_strains.add_argument('-c', dest='config_file', metavar='Config file', required=True,
+                                        help='The name of a config '
+                                             'file in the user_configs directory (not the full path)')
+    parser_get_strains.add_argument('-g', dest='log_dir', default=os.getcwd(),
+                                        help='Where do you want the logs written to? Will default to a /user/home/logs')          
 
     args = parser.parse_args()
     print args

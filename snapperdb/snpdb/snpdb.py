@@ -419,6 +419,28 @@ class SNPdb:
 
         print "%s removed from clustering" % ig_strain
 
+
+# -------------------------------------------------------------------------------------------------
+
+
+    def get_strain_list(self, thresh):
+        #get list of strain
+        cur = self.snpdb_conn.cursor()
+        if thresh == 'All':
+            sql = "select name, t250, t100, t50, t25, t10, t5, t0 from strain_clusters"
+            cur.execute(sql)
+        elif re.match('t\d+:\d+$',thresh):
+            (t,clust) = thresh.split(':')
+            sql = "select name, t250, t100, t50, t25, t10, t5, t0 from strain_clusters where %s = %s" % (t,clust)
+        else:
+            sys.stderr.write('Threshold command malformed\n')
+            sys.exit()
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            print row[0] + "\t" + str(row[1])+"."+str(row[2])+"."+str(row[3])+"."+str(row[4])+"."+str(row[5])+"."+str(row[6])+"."+str(row[7])
+
+
 # -------------------------------------------------------------------------------------------------
 
 
