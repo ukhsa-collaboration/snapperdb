@@ -35,6 +35,8 @@ setup(name='snapperdb',
       url='https://github.com/phe-bioinformatics/snapperdb/',
       download_url='https://github.com/phe-bioinformatics/snapperdb/archive/v1.0.4.tar.gz',
       packages=['snapperdb','snapperdb.snpdb','snapperdb.gbru_vcf'],
+      include_package_data=True,
+      package_data={'snpdb': ['snapperdb/snpdb/template_snapperdb_denovo_refs_sql']},
       scripts=['run_snapperdb.py'],
       install_requires=install_requires
      )
