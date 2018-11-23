@@ -19,7 +19,7 @@ SnapperDB is intended to be used at the clonal complex / eBURST group level wher
 
 ### Version
 
-1.0.4
+1.0.6
 
 ---
 
@@ -78,6 +78,8 @@ Set *PICARD_JAR* - full path to the GATK Java archive.
 **GATK**
 
 GATK is available from https://www.broadinstitute.org/gatk/. Please read the licensing information before using (https://www.broadinstitute.org/gatk/about/#licensing)
+
+Implementation does not supoprt GATK v4 as UnifiedGenotyper has been depreciated.
 
 Set *GATK_JAR* - full path to the GATK Java archive.
 

@@ -123,7 +123,7 @@ def read_multi_contig_fasta(ref):
 
 # -------------------------------------------------------------------------------------------------
 
-def read_rec_file_mc(rec_file):
+def read_rec_file_mc(rec_file, rec_dict):
     #read recombination file - tab delineated with contig
     try:
         openfile = open(rec_file, 'r')
@@ -132,14 +132,22 @@ def read_rec_file_mc(rec_file):
         print "### Exiting "+str(datetime.datetime.now())
         sys.exit()
 
-    rec_dict = {}
     for line in openfile:
         split_line = line.strip().split('\t')
-        rec_range = range(int(split_line[1]) - 1, (int(split_line[2]) - 1))
         if split_line[0] in rec_dict:
-            rec_dict[split_line[0]] = set(rec_dict[split_line[0]]) | set(rec_range)
+            try:
+                rec_dict[split_line[0]] += range(int(split_line[1]), (int(split_line[2])))
+            except:
+                print 'Error parsing ignored position list'
+                sys.exit()
         else:
-            rec_dict[split_line[0]] = set(rec_range)
+            rec_dict[split_line[0]] = []
+            try:
+                rec_dict[split_line[0]] += range(int(split_line[1]), (int(split_line[2])))
+            except:
+                print 'Error parsing ignored position list'
+                sys.exit()
+
     return rec_dict
 
 # -------------------------------------------------------------------------------------------------
@@ -168,8 +176,7 @@ def create_contig_index_for_consensus_genome(reference_genome):
 
 # -------------------------------------------------------------------------------------------------
 
-def make_recomb_dict_from_gubbins(recombinant_sections, contig_index):
-    rec_dict = {}
+def make_recomb_dict_from_gubbins(recombinant_sections, contig_index, rec_dict):
     for rs in recombinant_sections:
         for contig in contig_index:
             if contig[0] <= rs[0] <= contig[1]:
@@ -177,10 +184,20 @@ def make_recomb_dict_from_gubbins(recombinant_sections, contig_index):
                     recomb_start = (rs[0] - contig[0])
                     recomb_stop = (rs[1] - contig[0])
                     if contig_index[contig] in rec_dict:
-                        rec_dict[contig_index[contig]] += range(recomb_start, recomb_stop)
+                        try:
+                            rec_dict[contig_index[contig]] += range(recomb_start, recomb_stop)
+                        except:
+                            print 'Error parsing GFF'
+                            sys.exit()
+
                     else:
                         rec_dict[contig_index[contig]] = []
-                        rec_dict[contig_index[contig]] += range(recomb_start, recomb_stop)
+                        try:
+                            rec_dict[contig_index[contig]] += range(recomb_start, recomb_stop)
+                        except:
+                            print 'Error parsing GFF'
+                            sys.exit()
+                  
                 else:
                     print 'The recombination section is not on one contig, this may not be a real recombination event, this is not currently being exlcuded.', rs, contig, contig_index[contig]
     for contig in rec_dict:
@@ -189,7 +206,7 @@ def make_recomb_dict_from_gubbins(recombinant_sections, contig_index):
 
 # -------------------------------------------------------------------------------------------------
 
-def read_rec_file_mc_gubbins(gubbins_rec_file, reference_genome):
+def read_rec_file_mc_gubbins(gubbins_rec_file, reference_genome, rec_dict):
     contig_index = create_contig_index_for_consensus_genome(reference_genome)
     try:
         openfile = open(gubbins_rec_file, 'r')
@@ -203,7 +220,7 @@ def read_rec_file_mc_gubbins(gubbins_rec_file, reference_genome):
             split_line = line.strip().split('\t')
             recombinant_sections.append((int(split_line[3]), int(split_line[4])))
 
-    rec_dict = make_recomb_dict_from_gubbins(recombinant_sections, contig_index)
+    rec_dict = make_recomb_dict_from_gubbins(recombinant_sections, contig_index, rec_dict)
     return rec_dict
 
  # -------------------------------------------------------------------------------------------------
@@ -230,15 +247,14 @@ def get_the_snps(args, config_dict):
     strain_list.append(snpdb.reference_genome)
 
     #if recombination flag set
+    rec_dict = {}
+
     if args.rec_file != 'N':
         logger.info('Reading recombination list')
-        rec_dict = read_rec_file_mc(args.rec_file)
-    elif args.gubbins_rec_file != None:
+        rec_dict = read_rec_file_mc(args.rec_file, rec_dict)
+    if args.gubbins_rec_file != None:
         logger.info('Reading gubbins recombination list')
-        rec_dict = read_rec_file_mc_gubbins(args.gubbins_rec_file, ref_seq)
-    else:
-        #should we set this as none
-        rec_dict = {}
+        rec_dict = read_rec_file_mc_gubbins(args.gubbins_rec_file, ref_seq, rec_dict)
 
 
     #query snadb

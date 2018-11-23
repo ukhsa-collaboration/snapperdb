@@ -136,10 +136,6 @@ def run_command(args):
         if args.out == None:
             args.out = '%s.%s.%s' % (
             str(datetime.datetime.now()).split(' ')[0], config_dict['snpdb_name'], args.strain_list)
-        if args.rec_file != 'N' and args.gubbins_rec_file != None:
-            logger.error('Please only pass one of rec_file or gubbins_rec_file.')
-            print 'Please only pass one of rec_file or gubbins_rec_file.'
-            sys.exit()
         get_the_snps(args, config_dict)
 
 # -------------------------------------------------------------------------------------------------
